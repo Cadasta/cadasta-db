@@ -6,9 +6,9 @@ The Cadasta Database holds all media, survey, parcel, relationship, and person d
 
 ##### Create a new Postgres DB and execute the following scripts:
 
-* [(1)db.sql](/sql-files/(1)db.sql)
-* [(2)survey-tables.sql]/sql-files/(2)survey-tables.sql
-* [(3)db-functions.sql]/sql-files/(3)db-functions.sql
+* [(1)db.sql](/sql-files/(1) db.sql)
+* [(2)survey-tables.sql](/sql-files/(2) survey-tables.sql)
+* [(3)db-functions.sql](/sql-files/(3) db-functions.sql)
 
 ##### Or, Connect to Cadasta RDS
 
