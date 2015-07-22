@@ -16,6 +16,10 @@ truncate table person cascade;
 truncate table parcel cascade;
 truncate table response cascade;
 
+
+
+'/Users/nick/code/cadasta-db/form-hub-surveys/bs-geo-form.json'
+
 SELECT * FROM import_formhub_form_json('/Users/admin/Library/Application Support/Postgres/var-9.4/bs-geo-form.json');
 SELECT * FROM import_formhub_data_json('/Users/admin/Library/Application Support/Postgres/var-9.4/bs-geo-data.json');
 
@@ -29,8 +33,6 @@ SELECT * FROM import_formhub_data_json('/Users/admin/Library/Application Support
 
 SELECT * FROM import_formhub_form_json('/Users/admin/Library/Application Support/Postgres/var-9.4/ftc2013-56.json');
 
-SELECT * FROM json_array_elements($$ $$)
-
 select * from respondent
 select * from raw_data
 select * from survey
@@ -43,7 +45,6 @@ select * from response
 select * from parcel
 select * from parcel_history
 select * from relationship
-select * from relationship_history
 
 SELECT * FROM json_array_elements((select json from raw_data where id = 1))
 
@@ -51,18 +52,20 @@ ALTER TABLE relationship ALTER COLUMN acquired_date SET DATA TYPE date
 
 select json from raw_form where id = 34
 
-select '{"name": "Basic-survey-prototype7","title": "Basic Cadasta Survey Prototype 7"}'::json
 
-select * FROM import_form_json();
+select * FROM json_cleanup('{"relevant": "selected(${applicant_marital_status}, 'married')"}');
+
+select replace("{"relevant": "selected(${applicant_marital_status}, 'married')"}', ', ''");
+
+select * from import_form_json ('{"name": "Basic-survey-prototype7","title": "Basic Cadasta Survey Prototype 7"}')
 
 CREATE OR REPLACE FUNCTION import_form_json(form_json json)
 RETURNS SETOF json_result AS $$
 DECLARE
-  data_form_json character varying;
   raw_form_id int;
 BEGIN
 
-  INSERT INTO raw_form (json) VALUES (data_form_json::json) RETURNING id INTO raw_form_id;
+  INSERT INTO raw_form (json) VALUES (form_json::json) RETURNING id INTO raw_form_id;
 
   IF raw_form_id IS NOT NULL THEN
     RAISE NOTICE 'Succesfully inserted raw json form, id: %', raw_form_id;

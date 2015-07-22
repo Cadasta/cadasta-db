@@ -112,7 +112,7 @@ Boolean. True if survey is succesffuly inserted into DB
 
 -   Add new survey form to DB
 
-```SELECT * FROM cd_import_form_json($${"name": "Basic-survey-prototype7", "title": "Basic Cadasta Survey Prototype 7", "sms_keyword": "Basic-survey-prototype7", "default_language": "default", "version": "201507162126", "id_string": "Basic-survey-prototype7", "type": "survey", "name": "meta"}]}$$)```
+```SELECT * FROM cd_import_form_json($${"name": "Basic-survey-prototype7", "title": "Basic Cadasta Survey Prototype 7", "sms_keyword": "Basic-survey-prototype7", "default_language": "default", "version": "201507162126", "id_string": "Basic-survey-prototype7", "type": "survey", "name": "meta"}$$)```
 
 
 T
