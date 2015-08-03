@@ -1,0 +1,29 @@
+{
+  "name": "cadasta-db",
+  "version": "0.0.1",
+  "description": "This module does all of the database setup and backup for the Cadasta Platform.",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Cadasta/cadasta-db.git"
+  },
+  "keywords": [
+    "cadasta",
+    "db"
+  ],
+  "author": "Cadasta, Inc.",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Cadasta/cadasta-db/issues"
+  },
+  "homepage": "https://github.com/Cadasta/cadasta-db",
+  "dependencies": {
+    "pg": "^4.4.1"
+  }
+}
