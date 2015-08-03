@@ -1,7 +1,6 @@
 var pg = require('pg');
 var fs = require('fs');
-var Util = require('./pg-util.js');
-var settings = require('./settings').pg;
+var settings = require('../settings').pg;
 
 // PostGIS Connection String
 var conString = "postgres://" +

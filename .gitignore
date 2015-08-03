@@ -1,8 +1,5 @@
 settings.js
+node_modules/
+
 .idea/
-
 *.iml
-
-*.xml
-
-*.xml
