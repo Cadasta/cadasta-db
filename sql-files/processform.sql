@@ -186,15 +186,11 @@ BEGIN
 					   greatgrandchild_question_prefix := lower(left(greatgrandchild_question_name, position('.' in greatgrandchild_question_name)-1));
 			                 END IF;
 			                 -- greatgrandchild question type
+
 					 CASE (greatgrandchild_question_type.name)
 					   -- greatgrandchild questions with options
 					   WHEN 'select all that apply','selection one' THEN
 					     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||greatgrandchild_question_type.id||','||quote_literal(greatgrandchild_question_name)||','||quote_literal(greatgrandchild_question_label)||') RETURNING id' INTO greatgrandchild_question_id;
-					     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(greatgrandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
-					     -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-					     -- IF question_section_id IS NOT NULL THEN
-					     --  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || greatgrandchild_question_id;
-					     -- END IF;
 					     IF section_id IS NOT NULL THEN
 					       EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || greatgrandchild_question_id;
 					     END IF;
@@ -205,11 +201,6 @@ BEGIN
 					     RAISE NOTICE '-------------------------> QUESTION: %', greatgrandchild_question_label || ' (' || greatgrandchild_question_type.name || ')';
 					   ELSE
 					     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||greatgrandchild_question_type.id||','||quote_literal(greatgrandchild_question_name)||','||quote_literal(greatgrandchild_question_label)||') RETURNING id' INTO greatgrandchild_question_id;
-					     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(greatgrandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
-					     -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-					     -- IF question_section_id IS NOT NULL THEN
-					     --  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || greatgrandchild_question_id;
-					     -- END IF;
 					     IF section_id IS NOT NULL THEN
 					       EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || greatgrandchild_question_id;
 					     END IF;

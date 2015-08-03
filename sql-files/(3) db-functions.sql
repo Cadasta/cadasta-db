@@ -74,7 +74,6 @@ BEGIN
 END;$$ language plpgsql;
 
 
-
 /******************************************************************
     import_formhub_data_json
 

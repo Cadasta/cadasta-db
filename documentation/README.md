@@ -53,7 +53,7 @@ has not been created.
 
 ##### Example(s)
 
--   Add new parcel of geomtry type Point and a lat/lng of (7.670367, -122.387855) (classification\_id:769):
+-   Add new parcel of geomtry type Point and a lat/lng of (7.670367, -122.387855):
 
 ```SELECT * FROM cd_create_parcel ('survey_grade_gps',4,null,'point',null,7.670367,-122.387855,null,null,'new description');```
 

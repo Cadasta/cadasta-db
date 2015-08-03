@@ -11,12 +11,17 @@ CREATE TYPE json_result AS (response json);
 CREATE TYPE land_use AS ENUM ('Commercial', 'Residential');
 CREATE TYPE id_type AS ENUM ('Drivers License, Passport');
 
-
 -- Project table holds CKAN project extents
-CREATE TABLE Project (
+CREATE TABLE Project_Extents (
     id int primary key not null,
     project_id int not null,
     geom geometry
+);
+
+-- Project WMS/Tile layers
+CREATE TABLE Project_Layers (
+    id int primary key not null,
+    layer_url character varying not null
 );
 
 -- Media table holds all media

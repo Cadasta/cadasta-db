@@ -42,6 +42,9 @@ BEGIN
 
     -- get the survey id
     SELECT INTO data_survey_id id FROM survey WHERE id_string = (SELECT value::text FROM json_each_text(survey.value) WHERE key = '_xform_id_string');
+
+    IF data_survey_id IS NOT NULL THEN
+
     -- get ckan user id
     SELECT INTO data_ckan_user_id id from survey where id = data_survey_id;
     -- get respondent first name
@@ -52,7 +55,10 @@ BEGIN
     -- process survey data only if there is a survey in the database that matches
     IF data_survey_id IS NOT NULL THEN
         -- take the first name , last name fields out of the survey
-        SELECT INTO data_person_id * FROM cd_create_person (data_survey_first_name,data_survey_last_name);
+
+        IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
+          SELECT INTO data_person_id * FROM cd_create_person (data_survey_first_name,data_survey_last_name);
+        END IF;
 
         RAISE NOTICE 'Created Person id: %', data_person_id;
 
@@ -186,6 +192,10 @@ BEGIN
         END IF;
       END IF;
     END IF;
+  ELSE
+    RAISE NOTICE 'Cannot Find Survey';
+    RETURN NEW;
+  END IF;
   END LOOP;
   RETURN NEW;
 END;

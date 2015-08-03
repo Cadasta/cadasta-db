@@ -181,6 +181,7 @@ INSERT INTO type (name, has_options) VALUES ('phonenumber', FALSE);
 INSERT INTO type (name, has_options) VALUES ('today', FALSE);
 INSERT INTO type (name, has_options) VALUES ('start', FALSE);
 INSERT INTO type (name, has_options) VALUES ('deviceid', FALSE);
+INSERT INTO type (name, has_options) VALUES ('date', FALSE);
 INSERT INTO type (name, has_options) VALUES ('photo', FALSE);
 INSERT INTO type (name, has_options) VALUES ('select one', TRUE); -- has a list of options to choose from
 INSERT INTO type (name, has_options) VALUES ('geopoint', FALSE); -- spatial
