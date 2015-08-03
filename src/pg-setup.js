@@ -34,16 +34,16 @@ function setupDB() {
 
   pg.query(q1, function () {
     console.log('../sql/1_db.sql complete.');
-    pg.query(q2, function() {
-      console.log('../sql/2_survey-tables.sql complete.');
-
-      // Templates in the postgres user in this SQL script.
-      // Functions should have user in settings as owner.
-      var q3 = Util.sqlTemplate('../sql/3_db-functions.sql', {user: settings.user});
-      pg.query(q3, function () {
-        console.log('../sql/3_db-functions.sql complete.');
-      });
-    })
+    //pg.query(q2, function() {
+    //  console.log('../sql/2_survey-tables.sql complete.');
+    //
+    //  // Templates in the postgres user in this SQL script.
+    //  // Functions should have user in settings as owner.
+    //  var q3 = Util.sqlTemplate('../sql/3_db-functions.sql', {user: settings.user});
+    //  pg.query(q3, function () {
+    //    console.log('../sql/3_db-functions.sql complete.');
+    //  });
+    //});
   });
 }
 
