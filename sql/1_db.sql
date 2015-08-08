@@ -24,8 +24,8 @@ CREATE TABLE Project_Layers (
     layer_url character varying not null
 );
 
--- Media table holds all media
-CREATE TABLE media (
+-- resource table holds all resources
+CREATE TABLE resource (
     id serial primary key not null,
     type character varying,
     url character varying,
@@ -37,12 +37,17 @@ CREATE TABLE media (
     updated_by integer
 );
 
--- person table
--- FK: person_type id
-CREATE TABLE person (
+-- Party table
+CREATE TABLE party (
     id serial primary key not null,
     first_name character varying not null,
     last_name character varying not null,
+    type character varying not null,
+    title character varying not null,
+    description character varying,
+    contact character varying,
+    num_members int,
+    legal_states character varying,
     id_type id_type,
     city character varying,
     state character varying,
@@ -60,32 +65,10 @@ CREATE TABLE person (
     updated_by integer
 );
 
--- Media <--> Person junction table
-CREATE TABLE media_person (
-    person_id int references person(id),
-    media_id int references media(id)
-);
-
--- group table
-CREATE TABLE "group" (
-    id serial primary key not null,
-    type character varying not null,
-    title character varying not null,
-    description character varying,
-    contact character varying,
-    num_members int,
-    legal_states character varying,
-    active boolean default false,
-    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
-    created_by integer,
-    updated_by integer
-);
-
--- Media <--> Group junction table
-CREATE TABLE media_group (
-    group_id int references "group"(id),
-    media_id int references media(id)
+-- Resource <--> party junction table
+CREATE TABLE resource_party (
+    party_id int references party(id),
+    resource_id int references resource(id)
 );
 
 CREATE TABLE restriction (
@@ -168,10 +151,10 @@ CREATE TABLE parcel (
     updated_by integer
 );
 
--- Media <--> Parcel junction table
-CREATE TABLE media_parcel (
+-- resource <--> Parcel junction table
+CREATE TABLE resource_parcel (
     parcel_id int references parcel(id),
-    media_id int references media(id)
+    resource_id int references resource(id)
 );
 
 -- Parcel Geometry table
@@ -186,12 +169,11 @@ CREATE TABLE parcel_geometry (
 );
 
 -- relationship table
--- media will be attached to relationship
+-- resource will be attached to relationship
 CREATE TABLE relationship (
     id serial primary key not null,
     parcel_id int references parcel(id) not null,
-    person_id int references person(id),
-    group_id int references "group"(id),
+    party_id int references party(id),
     geom_id int references parcel_geometry (id),
     tenure_type int references tenure_type (id) not null,
     acquired_date date,
@@ -204,10 +186,10 @@ CREATE TABLE relationship (
     updated_by integer
 );
 
--- Media <--> Parcel junction table
-CREATE TABLE media_relationship (
+-- resource <--> Parcel junction table
+CREATE TABLE resource_relationship (
     relationship_id int references relationship(id),
-    media_id int references media(id)
+    resource_id int references resource(id)
 );
 
 CREATE TABLE restriction_relationship (

@@ -1,9 +1,9 @@
 /******************************************************************
-  SURVEY TABLE DEFINITIONS
+  field_data TABLE DEFINITIONS
 ******************************************************************/
 
--- survey
-CREATE TABLE "survey"
+-- field_data
+CREATE TABLE "field_data"
 (
 	"id"			SERIAL				NOT NULL
 	,"project_id" int -- CKAN project id
@@ -18,13 +18,13 @@ CREATE TABLE "survey"
     time_updated timestamp,
     created_by integer,
     updated_by integer
-	,CONSTRAINT survey_id PRIMARY KEY(id)
+	,CONSTRAINT field_data_id PRIMARY KEY(id)
 );
 
--- Media <--> Survey junction table
-CREATE TABLE media_survey (
-    survey_id int references survey(id),
-    media_id int references media(id)
+-- resource <--> field_data junction table
+CREATE TABLE resource_field_data (
+    field_data_id int references field_data(id),
+    resource_id int references resource(id)
 );
 
  -- question type
@@ -40,12 +40,12 @@ CREATE TABLE "type"
     updated_by integer
 	,CONSTRAINT type_id PRIMARY KEY(id)
 );
--- questions with type "note": these are section headers and closing comments for a survey; they group questions
+-- questions with type "note": these are section headers and closing comments for a field_data; they group questions
 -- by subject/area of concern; these question types do not have responses;
 CREATE TABLE "section"
 (
 	"id"			SERIAL				NOT NULL
-	,"survey_id"		integer				NOT NULL	REFERENCES "survey"(id)
+	,"field_data_id"		integer				NOT NULL	REFERENCES "field_data"(id)
 	,"name"			character varying		NOT NULL
 	,"label"		character varying
 	,"publish"		boolean				DEFAULT TRUE,
@@ -61,7 +61,7 @@ CREATE TABLE "section"
 CREATE TABLE "q_group"
 (
 	"id"			SERIAL				NOT NULL
-	,"survey_id"		integer				NOT NULL	REFERENCES "survey"(id)
+	,"field_data_id"		integer				NOT NULL	REFERENCES "field_data"(id)
 	,"section_id"		integer						REFERENCES "section"(id)
 	,"parent_id"		integer						REFERENCES "q_group"(id)
 	,"name"			character varying		NOT NULL
@@ -79,7 +79,7 @@ CREATE TABLE "question"
 	"id"			SERIAL				NOT NULL
 	,"name"			character varying		NOT NULL
 	,"label"		character varying
-	,"survey_id"		integer				NOT NULL	REFERENCES "survey"(id)
+	,"field_data_id"		integer				NOT NULL	REFERENCES "field_data"(id)
 	,"type_id"		integer						REFERENCES "type"(id)
 	,"section_id"		integer						REFERENCES "section"(id)
 	,"group_id"		integer						REFERENCES "q_group"(id)
@@ -99,13 +99,11 @@ CREATE TABLE "question"
 	,CONSTRAINT question_id PRIMARY KEY(id)
 );
 
--- the location of the person filling out the survey
+-- respondent
 CREATE TABLE "respondent"
 (
 	"id"			SERIAL				NOT NULL
-	,"survey_id"		integer						REFERENCES "survey"(id)
-	,"person_id" integer references "person"(id)
-	,"group_id" integer references "group"(id)
+	,"field_data_id"		integer						REFERENCES "field_data"(id)
 	,"id_string"		character varying
 	,"submission_time"	timestamp with time zone,
 	active boolean default true,
@@ -120,7 +118,7 @@ CREATE TABLE "respondent"
 CREATE TABLE "response"
 (
 	"id"			SERIAL				NOT NULL
-	,"survey_id"	integer							REFERENCES "survey"(id)
+	,"field_data_id"	integer							REFERENCES "field_data"(id)
 	,"respondent_id"	integer						REFERENCES "respondent"(id)
 	,"question_id"		integer						REFERENCES "question"(id)
 	,"text"			character varying
