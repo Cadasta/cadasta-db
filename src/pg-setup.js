@@ -30,12 +30,12 @@ function nukeDB(cb) {
 
 function setupDB() {
   var q1 = fs.readFileSync('../sql/1_db.sql', 'utf8');
-  var q2 = fs.readFileSync('../sql/2_survey-tables.sql', 'utf8');
+  var q2 = fs.readFileSync('../sql/2_field-data-tables.sql', 'utf8');
 
   pg.query(q1, function () {
     console.log('../sql/1_db.sql complete.');
     pg.query(q2, function() {
-      console.log('../sql/2_survey-tables.sql complete.');
+      console.log('../sql/2_field-data-tables.sql complete.');
 
       // Templates in the postgres user in this SQL script.
       // Functions should have user in settings as owner.

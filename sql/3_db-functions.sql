@@ -1,4 +1,37 @@
 /******************************************************************
+    Create New field data form
+
+    cd_create_field_data
+
+******************************************************************/
+
+-- Create new Field Data
+
+DROP FUNCTION IF EXISTS cd_create_field_data(id_string character varying);
+
+CREATE OR REPLACE FUNCTION cd_create_field_data(id_string character varying)
+  RETURNS INTEGER AS $$
+  DECLARE
+  s_id integer;
+  field_data_id_string character varying;
+BEGIN
+
+    field_data_id_string = id_string;
+
+    IF field_data_id_string IS NOT NULL THEN
+	-- Create survey and return survey id
+    INSERT INTO field_data (id_string) VALUES (field_data_id_string) RETURNING id INTO s_id;
+
+	RETURN s_id;
+
+	END IF;
+
+END;
+  $$ LANGUAGE plpgsql VOLATILE;
+
+
+
+/******************************************************************
     import_formhub_form_json
 
     Import FormHub form.json file
@@ -112,15 +145,17 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 
 /******************************************************************
-    cd_create_person
+    cd_create_party
 
-    Create new person
+    Create new party
 
 ******************************************************************/
 
-DROP FUNCTION IF EXISTS cd_create_person(first_name character varying, last_name character varying);
+-- Create new party
 
-CREATE OR REPLACE FUNCTION cd_create_person(first_name character varying, last_name character varying)
+DROP FUNCTION IF EXISTS cd_create_party(first_name character varying, last_name character varying);
+
+CREATE OR REPLACE FUNCTION cd_create_party(first_name character varying, last_name character varying)
   RETURNS INTEGER AS $$
   DECLARE
   p_id integer;
@@ -128,7 +163,7 @@ BEGIN
 
     IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
 	-- Save the original organization ID variable
-    INSERT INTO person (first_name, last_name) VALUES (first_name,last_name) RETURNING id INTO p_id person_id;
+    INSERT INTO party (first_name, last_name) VALUES (first_name,last_name) RETURNING id INTO p_id person_id;
 
 	RETURN p_id;
 
@@ -136,6 +171,8 @@ BEGIN
 
 END;
   $$ LANGUAGE plpgsql VOLATILE;
+
+
 
 
 /******************************************************************
