@@ -161,6 +161,7 @@ CREATE TABLE "raw_data"
 (
 	"id"			SERIAL				NOT NULL
 	,"json"			json,
+	,"field_data_id" id references field_data(id),
 	active boolean default true,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,

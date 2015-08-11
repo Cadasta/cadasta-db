@@ -1,4 +1,4 @@
-﻿-- Create new person
+﻿-- Create new party
 
 DROP FUNCTION IF EXISTS cd_create_party(first_name character varying, last_name character varying);
 
