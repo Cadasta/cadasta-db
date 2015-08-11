@@ -30,7 +30,6 @@ END;
   $$ LANGUAGE plpgsql VOLATILE;
 
 
-
 /******************************************************************
     import_formhub_form_json
 
@@ -85,19 +84,19 @@ END;$$ language plpgsql;
     Import raw JSON data string
 
 ******************************************************************/
-CREATE OR REPLACE FUNCTION cd_import_data_json(json_string character varying)
+CREATE OR REPLACE FUNCTION cd_import_data_json(field_data_id int, json_string character varying)
 RETURNS BOOLEAN AS $$
 DECLARE
   raw_data_id int;
   rec record;
 BEGIN
 
-  IF $1 IS NOT NULL THEN
+  IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
 
-    INSERT INTO raw_data (json) VALUES (json_string::json) RETURNING id INTO raw_data_id;
+    INSERT INTO raw_data (field_data_id, json) VALUES (field_data_id,json_string::json) RETURNING id INTO raw_data_id;
 
     IF raw_data_id IS NOT NULL THEN
-        RAISE NOTICE 'Succesfully inserted raw json dadta, id: %', raw_data_id;
+        RAISE NOTICE 'Succesfully inserted raw json data, id: %', raw_data_id;
         RETURN TRUE;
     END IF;
   ELSE
