@@ -21,14 +21,13 @@
  SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
 ******************************************************************/
 
-DROP FUNCTION IF EXISTS cd_create_relationship(parcel_id int,ckan_user_id integer,person_id int,group_id int,geom_id int,
+DROP FUNCTION IF EXISTS cd_create_relationship(parcel_id int,ckan_user_id integer,party_id int,geom_id int,
 tenure_type character varying,acquired_date character varying,how_acquired character varying,archived boolean,history_description character varying);
 
 CREATE OR REPLACE FUNCTION cd_create_relationship(
                                             parcel_id int,
                                             ckan_user_id int,
-                                            person_id int,
-                                            group_id int,
+                                            party_id int,
                                             geom_id int,
                                             tenure_type character varying,
                                             acquired_date date,
@@ -41,8 +40,7 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
 
   cd_parcel_id int;
   cd_ckan_user_id int;
-  cd_person_id int;
-  cd_group_id int;
+  cd_party_id int;
   cd_geom_id int;
   cd_tenure_type_id int;
   cd_tenure_type character varying;
@@ -55,7 +53,7 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
 
 BEGIN
 
-    IF $1 IS NOT NULL AND $6 IS NOT NULL AND ($3 IS NOT NULL OR $4 IS NOT NULL) THEN
+    IF $1 IS NOT NULL AND $6 IS NOT NULL AND ($3 IS NOT NULL) THEN
 
         cd_history_description = history_description;
 
@@ -65,10 +63,8 @@ BEGIN
 	    SELECT INTO cd_relationship_timestamp * FROM localtimestamp;
 	    -- get parcel_id
         SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int;
-        -- get person_id
-        SELECT INTO cd_person_id id FROM person where id = person_id::int;
-        -- get group_id
-        SELECT INTO cd_group_id id FROM "group" where id = group_id::int;
+        -- get party_id
+        SELECT INTO cd_party_id id FROM party where id = party_id::int;
         -- get tenure type id
         SELECT INTO cd_tenure_type_id id FROM tenure_type where type = cd_tenure_type;
         -- get ckan user id
@@ -81,21 +77,16 @@ BEGIN
 
             RAISE NOTICE 'Relationship parcel_id: %', cd_parcel_id;
 
-            IF cd_person_id IS NOT NULL AND cd_group_id IS NOT NULL THEN
-                RAISE NOTICE 'Relationship cannot have group AND person id';
+            IF cd_party_id IS NULL THEN
+                RAISE NOTICE 'Relationship must have a party id';
                 RETURN NULL;
 
-            ELSIF cd_person_id IS NULL AND cd_group_id IS NULL THEN
-                RAISE NOTICE 'Cannot find user or group';
-                RETURN NULL;
-
-            ELSIF cd_person_id IS NOT NULL AND cd_group_id IS NULL OR cd_group_id IS NOT NULL AND cd_person_id IS NULL THEN
-                RAISE NOTICE 'Relationship person_id: %', cd_person_id;
-                RAISE NOTICE 'Relationship group_id: %', cd_group_id;
+            ELSIF cd_party_id IS NOT NULL THEN
+                RAISE NOTICE 'Relationship party_id: %', cd_party_id;
 
 		        -- create relationship row
-                INSERT INTO relationship (created_by,parcel_id,person_id,group_id,tenure_type,geom_id,acquired_date,how_acquired, archived)
-                VALUES (ckan_user_id,cd_parcel_id,cd_person_id, cd_group_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired,cd_archived) RETURNING id INTO r_id;
+                INSERT INTO relationship (created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired, archived)
+                VALUES (ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired,cd_archived) RETURNING id INTO r_id;
 
                 -- create relationship history
                 INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
@@ -103,10 +94,10 @@ BEGIN
 
 		        RAISE NOTICE 'Successfully created new relationship id: %', r_id;
 
---            ELSIF cd_group_id IS NOT NULL AND cd_person_id IS NULL THEN
+--            ELSIF cd_group_id IS NOT NULL AND cd_party_id IS NULL THEN
 --                -- create relationship row
---                INSERT INTO relationship (parcel_id,person_id,group_id,tenure_type,geom_id,acquired_date,how_acquired, archived)
---                VALUES (cd_parcel_id,cd_person_id, cd_group_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired,cd_archived) RETURNING id INTO r_id;
+--                INSERT INTO relationship (parcel_id,party_id,group_id,tenure_type,geom_id,acquired_date,how_acquired, archived)
+--                VALUES (cd_parcel_id,cd_party_id, cd_group_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired,cd_archived) RETURNING id INTO r_id;
 --                RAISE NOTICE 'Successfully created new relationship id: %', r_id;
 --
 --                -- create relationship history
@@ -121,7 +112,7 @@ BEGIN
         RETURN r_id;
 
 	ELSE
-	    RAISE NOTICE 'The following parameters are required: cd_parcel_id, tenure_type, & person_id or group_id';
+	    RAISE NOTICE 'The following parameters are required: cd_parcel_id, tenure_type, & party_id';
 	    RETURN NULL;
 	END IF;
 END;

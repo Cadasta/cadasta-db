@@ -51,8 +51,6 @@ BEGIN
 
     IF data_survey_id IS NOT NULL THEN
 
-    -- get ckan user id
-    -- SELECT INTO data_ckan_user_id id from survey where id = raw_field_data_id;
     -- get respondent first name
     SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';
     -- get respondent last name
@@ -60,18 +58,14 @@ BEGIN
 
     -- process survey data only if there is a survey in the database that matches
     IF raw_field_data_id IS NOT NULL THEN
-        -- take the first name , last name fields out of the survey
 
+        -- take the first name , last name fields out of the survey
         IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
           SELECT INTO data_person_id * FROM cd_create_party (data_survey_first_name,data_survey_last_name);
+          RAISE NOTICE 'Created Person id: %', data_person_id;
         END IF;
 
-        RAISE NOTICE 'Created Person id: %', data_person_id;
-
       EXECUTE 'INSERT INTO respondent (field_data_id, time_created) VALUES ('|| raw_field_data_id || ',' || quote_literal(current_timestamp) || ') RETURNING id' INTO data_respondent_id;
-
-      -- add person_id to respondent
-      -- UPDATE respondent SET person_id = data_person_id WHERE id = data_respondent_id;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
@@ -88,6 +82,7 @@ BEGIN
           IF num_slugs > 1 THEN
             SELECT INTO parent_question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1 offset 1) as slugs;
             -- get question id
+            RAISE NOTICE 'parent_question_slug: %', parent_question_slug;
             SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id = (select id from "q_group" where lower(name) = lower(parent_question_slug));
           ELSE
             -- get question id
@@ -97,6 +92,7 @@ BEGIN
         END IF;
 
         CASE (element.key)
+          -- get tenure type
           WHEN 'means_of_acquire' THEN
             data_means_aquired = element.value;
           WHEN 'date_land_possession' THEN
@@ -150,19 +146,21 @@ BEGIN
               WHEN ('_id') THEN
                 EXECUTE 'UPDATE respondent SET id_string = ' || quote_literal(element.value) || ' WHERE id = ' || data_respondent_id;
               WHEN ('_geolocation') THEN
-                SELECT INTO point regexp_replace(element.value, '"|,|\[|\]', '', 'g');
+                SELECT INTO point replace(regexp_replace(element.value, '"|,|\[|\]', '', 'g'), '-', ' -');
+--                SELECT INTO point replace(point,'-',' -');
+
                 -- RAISE NOTICE 'point: %', point;
-                --x := substring(point, 0, position(' ' in point))::numeric;
-                --y := substring(point, (position(' ' in point)+1), char_length(point))::numeric;
-                -- RAISE NOTICE 'x: %', x;
-                -- RAISE NOTICE 'y: %', y;
+                x := substring(point, 0, position(' ' in point))::numeric;
+                y := substring(point, (position(' ' in point)+1), char_length(point))::numeric;
+                 RAISE NOTICE 'x: %', x;
+                 RAISE NOTICE 'y: %', y;
                 IF point IS NOT NULL AND point <> 'null null' THEN
 
                   -- Geom type is point
                   data_geom_type = 'Point';
 
                   -- Create new parcel with lat lng as geometry
-                  -- SELECT INTO data_parcel_id * FROM cd_create_parcel ('survey_grade_gps',data_ckan_user_id,null,data_geom_type,null,y,x,null,null,'new description');
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel ('survey_grade_gps','11',null,data_geom_type,null,y,x,null,null,'new description');
                   RAISE NOTICE 'New parcel id: %', data_parcel_id;
 
                   -- set new parcel id in survey table
@@ -188,8 +186,8 @@ BEGIN
       IF data_parcel_id IS NOT NULL AND data_person_id IS NOT NULL THEN
         -- create relationship
 
-        --SELECT INTO data_relationship_id * FROM cd_create_relationship
-        --(data_parcel_id,data_ckan_user_id,data_person_id,null,null,data_tenure_type,data_date_land_possession, data_means_aquired, false, null);
+        SELECT INTO data_relationship_id * FROM cd_create_relationship
+        (data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, false, null);
 
         IF data_relationship_id IS NOT NULL THEN
             RAISE NOTICE 'New relationship id: %', data_relationship_id;
