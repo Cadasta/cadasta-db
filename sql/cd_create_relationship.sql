@@ -53,7 +53,7 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
 
 BEGIN
 
-    IF $1 IS NOT NULL AND $6 IS NOT NULL AND ($3 IS NOT NULL) THEN
+    IF $1 IS NOT NULL AND $5 IS NOT NULL AND ($3 IS NOT NULL) THEN
 
         cd_history_description = history_description;
 

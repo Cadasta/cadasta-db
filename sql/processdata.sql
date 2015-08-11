@@ -37,6 +37,7 @@ BEGIN
 
   raw_data_id := NEW.id;
   raw_field_data_id = NEW.field_data_id;
+  data_ckan_user_id = 11;
 
   count := 0;
     RAISE NOTICE 'Processing Data..... %', raw_data_id;
@@ -105,6 +106,8 @@ BEGIN
                 data_tenure_type = 'Own';
               WHEN 'lease' THEN
                 data_tenure_type = 'Lease';
+              WHEN 'common_law_freehold' THEN
+                data_tenure_type = 'Own';
               ELSE
                 RAISE NOTICE 'Improper Tenure Type';
             END CASE;
@@ -192,7 +195,7 @@ BEGIN
         IF data_relationship_id IS NOT NULL THEN
             RAISE NOTICE 'New relationship id: %', data_relationship_id;
         ELSE
-            RAISE NOTICE 'No new relationship';
+            RAISE NOTICE 'No new relationship data_tenure_type: % data_parcel_id: % data_person_id: % data_ckan_user_id: %', data_tenure_type, data_parcel_id, data_person_id, data_ckan_user_id;
         END IF;
       END IF;
     END IF;
