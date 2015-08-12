@@ -1,4 +1,4 @@
-/******************************************************************
+﻿/******************************************************************
   field_data TABLE DEFINITIONS
 ******************************************************************/
 
@@ -160,7 +160,7 @@ CREATE TABLE "raw_form"
 CREATE TABLE "raw_data"
 (
 	"id"			SERIAL				NOT NULL
-	,"json"			json,
+	,"json"			json
 	,"field_data_id" int references field_data(id),
 	active boolean default true,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
