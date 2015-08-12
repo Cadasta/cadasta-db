@@ -66,7 +66,7 @@ BEGIN
 			cd_geometry_type = '';
 		ELSIF cd_geometry_type = 'Point' AND cd_lat IS NOT NULL AND cd_lng IS NOT NULL THEN
 
-			SELECT INTO geometry * FROM ST_SetSRID(ST_MakePoint(cd_lng, cd_lat),4326);
+			SELECT INTO geometry * FROM ST_SetSRID(ST_MakePoint(cd_lat, cd_lng),4326);
 
 			RAISE NOTICE 'GEOM: %', geometry;
 
