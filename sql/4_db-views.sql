@@ -13,18 +13,19 @@ and r.parcel_id = parcel.id
 and parcel.spatial_source = s.id
 and r.tenure_type = t.id;
 
--- Show latest parcel, party, & reltionship activity
+-- Show latest parcel, party, & relationship activity
 -- ordered ALL by time created
 create or replace view show_activity as
-select 'parcel' as activity_type, parcel.id, s.type, parcel.time_created
+select 'parcel' as activity_type, parcel.id, s.type, '' as name,'' as parcel_id, parcel.time_created
 from parcel, spatial_source s
 where parcel.spatial_source = s.id
 union all
-select 'party', party.id, first_name || ' ' || last_name, time_created
+select 'party', party.id, '', first_name || ' ' || last_name, '', time_created
 from party
 union all
-select 'relationship', r.id, t.type, r.time_created
-from relationship r, tenure_type t
-where r.tenure_type = t.id
+select 'relationship', r.id, t.type, p.first_name || ' ' || p.last_name as owners, par.id::text as parcel_id, r.time_created
+from relationship r, tenure_type t, party p, parcel par
+where r.party_id = p.id
+and r.parcel_id = par.id
+and r.tenure_type = t.id
 order by 4 desc;
-
