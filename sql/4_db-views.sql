@@ -1,31 +1,30 @@
 ﻿/*************************************************
 
-    Add views to database
+    Add views to DB
 
 *************************************************/
 
 -- Show all relationships
-create or replace view show_relationships as
-select r.id as relationship_id, t.type as relationship_type, parcel.id as parcel_id, s.type as spatial_source, geom as parcel_geometry, party.id as party_id, first_name, last_name, r.time_created
-from parcel,party,relationship r, spatial_source s, tenure_type t
-where r.party_id = party.id
-and r.parcel_id = parcel.id
-and parcel.spatial_source = s.id
-and r.tenure_type = t.id;
+CREATE OR replace view show_relationships AS
+SELECT r.id AS relationship_id, t.type AS relationship_type, parcel.id AS parcel_id, s.type AS spatial_source, geom AS parcel_geometry, party.id AS party_id, first_name, lASt_name, r.time_created
+FROM parcel,party,relationship r, spatial_source s, tenure_type t
+WHERE r.party_id = party.id
+AND r.parcel_id = parcel.id
+AND parcel.spatial_source = s.id
+AND r.tenure_type = t.id;
 
 -- Show latest parcel, party, & relationship activity
--- ordered ALL by time created
-create or replace view show_activity as
-select 'parcel' as activity_type, parcel.id, s.type, '' as name,'' as parcel_id, parcel.time_created
-from parcel, spatial_source s
-where parcel.spatial_source = s.id
-union all
-select 'party', party.id, '', first_name || ' ' || last_name, '', time_created
-from party
-union all
-select 'relationship', r.id, t.type, p.first_name || ' ' || p.last_name as owners, par.id::text as parcel_id, r.time_created
-from relationship r, tenure_type t, party p, parcel par
-where r.party_id = p.id
-and r.parcel_id = par.id
-and r.tenure_type = t.id
-order by 4 desc;
+CREATE OR replace view show_activity AS
+SELECT * FROM (SELECT 'parcel' AS activity_type, parcel.id, s.type, NULL AS name,NULL AS parcel_id, parcel.time_created
+FROM parcel, spatial_source s
+WHERE parcel.spatial_source = s.id
+UNION all
+SELECT 'party', party.id, NULL, first_name || ' ' || lASt_name, NULL, time_created
+FROM party
+UNION all
+SELECT 'relationship', r.id, t.type, p.first_name || ' ' || p.lASt_name AS owners, par.id::text AS parcel_id, r.time_created
+FROM relationship r, tenure_type t, party p, parcel par
+WHERE r.party_id = p.id
+AND r.parcel_id = par.id
+AND r.tenure_type = t.id) AS foo
+Order BY time_CREATEd DESC;
