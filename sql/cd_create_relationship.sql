@@ -1,4 +1,4 @@
-﻿-- SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
+-- SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
 -- select * from parcel
 -- select * from relationship
 

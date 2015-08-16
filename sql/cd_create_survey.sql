@@ -1,4 +1,4 @@
-﻿-- Create new Field Data
+-- Create new Field Data
 
 DROP FUNCTION IF EXISTS cd_create_field_data(id_string character varying);
 
