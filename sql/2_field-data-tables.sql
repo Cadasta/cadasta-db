@@ -189,6 +189,7 @@ INSERT INTO type (name, has_options) VALUES ('integer', FALSE); -- numeric anwse
 INSERT INTO type (name, has_options) VALUES ('decimal', FALSE); -- numeric anwsers only
 INSERT INTO type (name, has_options) VALUES ('subscriberid', FALSE);
 INSERT INTO type (name, has_options) VALUES ('select all that apply', TRUE); -- has a list of options to choose from
+INSERT INTO type (name, has_options) VALUES ('calculate', FALSE)
 
 INSERT INTO type (name, has_options) VALUES ('repeat', FALSE);
 -- the questions in the children object are collected zero to many times
