@@ -15,13 +15,23 @@ CREATE TYPE id_type AS ENUM ('Drivers License, Passport');
 CREATE TABLE Project_Extents (
     id int primary key not null,
     project_id int not null,
-    geom geometry
+    geom geometry,
+    sys_delete boolean default false,
+    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    time_updated timestamp,
+    created_by integer,
+    updated_by integer
 );
 
 -- Project WMS/Tile layers
 CREATE TABLE Project_Layers (
     id int primary key not null,
-    layer_url character varying not null
+    layer_url character varying not null,
+    sys_delete boolean default false,
+    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    time_updated timestamp,
+    created_by integer,
+    updated_by integer
 );
 
 -- resource table holds all resources
@@ -30,7 +40,7 @@ CREATE TABLE resource (
     type character varying,
     url character varying,
     description character varying,
-    active boolean default true,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -74,7 +84,7 @@ CREATE TABLE resource_party (
 CREATE TABLE restriction (
     id serial primary key not null,
     description character varying,
-    active boolean default false,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -84,7 +94,7 @@ CREATE TABLE restriction (
 CREATE TABLE responsibility (
     id serial primary key not null,
     description character varying,
-    active boolean default true,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -94,7 +104,7 @@ CREATE TABLE responsibility (
 CREATE TABLE "right" (
     id serial primary key not null,
     description character varying,
-    active boolean default false,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -106,7 +116,7 @@ CREATE TABLE tenure_type (
     id serial primary key not null,
     type character varying not null,
     description character varying,
-    active boolean default false,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -121,7 +131,7 @@ INSERT INTO tenure_type (type) VALUES ('Informal Occupied');
 CREATE TABLE spatial_source (
     id serial primary key not null,
     type character varying not null,
-    active boolean default false,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -144,6 +154,7 @@ CREATE TABLE parcel (
     land_use land_use,
     gov_pin character varying,
     active boolean default false,
+    sys_delete boolean default false,
     archived boolean,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
@@ -161,7 +172,7 @@ CREATE TABLE resource_parcel (
 CREATE TABLE parcel_geometry (
     id serial primary key not null,
     geom geometry not null,
-    active boolean default true,
+    sys_delete boolean default true,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -180,6 +191,7 @@ CREATE TABLE relationship (
     how_acquired character varying,
     archived boolean,
     active boolean default false,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -239,5 +251,3 @@ CREATE TABLE parcel_history (
     created_by integer,
     updated_by integer
 );
-
--- create view that shows all data from parcel history, plus each child per parent

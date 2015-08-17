@@ -13,7 +13,7 @@ CREATE TABLE "field_data"
 	,"name"			character varying
 	,"label"		character varying
 	,"publish"		boolean				DEFAULT TRUE,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -33,7 +33,7 @@ CREATE TABLE "type"
 	"id"			SERIAL				NOT NULL
 	,"name"			character varying
 	,"has_options"		boolean,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -49,7 +49,7 @@ CREATE TABLE "section"
 	,"name"			character varying		NOT NULL
 	,"label"		character varying
 	,"publish"		boolean				DEFAULT TRUE,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -66,7 +66,7 @@ CREATE TABLE "q_group"
 	,"parent_id"		integer						REFERENCES "q_group"(id)
 	,"name"			character varying		NOT NULL
 	,"label"		character varying,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -91,7 +91,7 @@ CREATE TABLE "question"
 	,"app_column"		character varying
 	,"app_plural"		character varying
 	,"priority"		integer,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -106,7 +106,7 @@ CREATE TABLE "respondent"
 	,"field_data_id"		integer						REFERENCES "field_data"(id)
 	,"id_string"		character varying
 	,"submission_time"	timestamp with time zone,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -123,7 +123,7 @@ CREATE TABLE "response"
 	,"question_id"		integer						REFERENCES "question"(id)
 	,"text"			character varying
 	,"numeric"		numeric,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -137,7 +137,7 @@ CREATE TABLE "option"
 	,"question_id"		integer				NOT NULL	REFERENCES "question"(id)
 	,"name"			character varying
 	,"label"		character varying,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -149,7 +149,7 @@ CREATE TABLE "raw_form"
 (
 	"id"			SERIAL				NOT NULL
 	,"json"			json,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -162,7 +162,7 @@ CREATE TABLE "raw_data"
 	"id"			SERIAL				NOT NULL
 	,"json"			json
 	,"field_data_id" int references field_data(id),
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp,
     created_by integer,
@@ -189,7 +189,7 @@ INSERT INTO type (name, has_options) VALUES ('integer', FALSE); -- numeric anwse
 INSERT INTO type (name, has_options) VALUES ('decimal', FALSE); -- numeric anwsers only
 INSERT INTO type (name, has_options) VALUES ('subscriberid', FALSE);
 INSERT INTO type (name, has_options) VALUES ('select all that apply', TRUE); -- has a list of options to choose from
-INSERT INTO type (name, has_options) VALUES ('calculate', FALSE)
+INSERT INTO type (name, has_options) VALUES ('calculate', FALSE);
 
 INSERT INTO type (name, has_options) VALUES ('repeat', FALSE);
 -- the questions in the children object are collected zero to many times
