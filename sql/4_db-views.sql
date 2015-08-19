@@ -1,4 +1,4 @@
-/*************************************************
+﻿/*************************************************
 
     Add views to DB
 
@@ -11,7 +11,8 @@ FROM parcel,party,relationship r, spatial_source s, tenure_type t
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
 AND parcel.spatial_source = s.id
-AND r.tenure_type = t.id;
+AND r.tenure_type = t.id
+AND r.active = true;
 
 -- Show latest parcel, party, & relationship activity
 CREATE OR replace view show_activity AS

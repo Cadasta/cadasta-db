@@ -319,7 +319,7 @@ BEGIN
       IF p_id IS NOT NULL THEN
           -- See if relationship id is active
           IF (SELECT * FROM cd_validate_parcel(p_id)) THEN
-                RAISE NOTICE 'Found parcel id: %', r_id;
+                RAISE NOTICE 'Found parcel id: %', p_id;
                 -- Deactivate parcel id in parcel table
                 UPDATE parcel SET active = false, time_updated = curr_time WHERE id = p_id;
 
