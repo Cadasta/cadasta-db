@@ -8,6 +8,18 @@ Cadasta Database Function Reference
 
 [cd\_create\_party](#cd_create_party)
 
+[cd\_delete\_parcel](#cd_delete_parcel)
+
+[cd\_delete\_parcels](#cd_delete_parcels)
+
+[cd\_archive\_parcel](#cd_archive_parcel)
+
+[cd\_archive\_parcels](#cd_archive_parcels)
+
+[cd\_delete\_relationship](#cd_delete_relationship)
+
+[cd\_delete\_relationships](#cd_delete_relationships)
+
 [cd\_import\_data\_json](#cd_import_data_json)
 
 * * * * *
@@ -41,7 +53,7 @@ Options:
 Options:
 * Commercial
 * Residential
-8.  gov\_pin (character varying) - Optional. 
+8.  gov\_pin (character varying) - Optional.
 9.  history\_description (characer varying) - Optional. A description of the parcels history
 
 ##### Result
@@ -54,8 +66,8 @@ has not been created.
 -   Add new parcel of geomtry type Point and a lat/lng of (7.670367, -122.387855):
 
 ```SELECT INTO data_parcel_id * FROM cd_create_parcel ('survey_grade_gps',11,null,'Point',null,47.92883,-122.132131,null,null,'new description');```
-7
 
+7
 
 <a name="cd_create_party"/>
 cd\_create\_party
@@ -84,6 +96,99 @@ has not been created.
 
 3
 
+<a name="cd_delete_parcel"/>
+cd\_delete\_parcel
+===========================
+
+##### Description
+
+Delete a parcel.
+
+##### Parameter(s)
+
+1. parcel\_id (integer) - **Required**.
+
+##### Result
+
+Boolean. True/False valid.
+
+##### Example(s)
+Delete parcel id 3
+
+```  SELECT * from cd_delete_parcel(3);```
+
+TRUE
+
+<a name="cd_delete_parcels"/>
+cd\_delete\_parcels
+===========================
+
+##### Description
+
+Delete list of parcel\_ids.
+
+##### Parameter(s)
+
+1. parcel\_ids (character varying) - **Required**. comma separated list of parcel_ids to delete.
+
+##### Result
+
+Integer array of deleted parcel ids.
+
+##### Example(s)
+
+```  SELECT * from cd_delete_parcels('2,139,333');```
+
+| integer[]   |
+|-------------|
+| {2,139,333}   |
+
+<a name="cd_delete_relationship"/>
+cd\_delete\_relationship
+===========================
+
+##### Description
+
+Delete a relationship.
+
+##### Parameter(s)
+
+1. relationship\_id (integer) - **Required**.
+
+##### Result
+
+Boolean. True/False valid.
+
+##### Example(s)
+Delete relationship id 13
+
+```  SELECT * from cd_delete_relationship(13);```
+
+TRUE
+
+<a name="cd_delete_relationships"/>
+cd\_delete\_relationships
+===========================
+
+##### Description
+
+Delete list of relationship\_ids.
+
+##### Parameter(s)
+
+1. relationship\_ids (character varying) - **Required**. comma separated list of relationship_ids to delete.
+
+##### Result
+
+Integer array of deleted relationship ids.
+
+##### Example(s)
+
+```  SELECT * from cd_delete_relationships('9,19,33');```
+
+| integer[]   |
+|-------------|
+| {9,19,33}   |
 
 <a name="cd_import_data_json"/>
 cd\_import\_data\_json
@@ -93,7 +198,7 @@ cd\_import\_data\_json
 
 Import Forhum/ONA Fielddata from Ona endpoint: ```/api/v1/data/:form_id?format=json```
 
-***Important:**** JSON string must be encapsulated inside of '$$' 
+***Important:**** JSON string must be encapsulated inside of '$$'
 
 ```var json = '$$' + JsonString + '$$' ;```
 

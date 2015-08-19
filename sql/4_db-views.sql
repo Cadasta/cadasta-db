@@ -1,5 +1,4 @@
 ﻿/*************************************************
-
     Add views to DB
 
 *************************************************/
@@ -29,3 +28,13 @@ WHERE r.party_id = p.id
 AND r.parcel_id = par.id
 AND r.tenure_type = t.id) AS foo
 Order BY time_CREATEd DESC;
+
+-- Parcel list with relationship count
+CREATE OR REPLACE VIEW show_parcel_list AS
+SELECT p.id, p.time_created, count(r.id) as num_relationships
+FROM parcel p, relationship r
+WHERE r.parcel_id = p.id
+AND p.active = true
+AND r.active = true
+GROUP BY p.id
+ORDER BY p.time_created desc;
