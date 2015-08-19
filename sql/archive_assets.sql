@@ -1,4 +1,4 @@
-/******************************************************************
+﻿/******************************************************************
   cd_delete_parcel
 
 ******************************************************************/
@@ -7,7 +7,7 @@ DROP FUNCTION IF EXISTS cd_delete_parcel(parcel_id integer);
 CREATE OR REPLACE FUNCTION cd_delete_parcel(parcel_id integer)
   RETURNS BOOLEAN AS $$
   DECLARE
-  p_id integer; -- project id
+  p_id integer; -- parcel id
   r_ids integer []; -- relationship ids
   curr_time timestamp; -- current timestamp
 BEGIN
@@ -23,22 +23,18 @@ BEGIN
         IF p_id IS NOT NULL THEN
             RAISE NOTICE 'Found parcel id: %', p_id;
             -- Deactivate parcel id in parcel table
-            UPDATE parcel SET active = false, time_updated = curr_time WHERE id = p_id;
-
-            -- System delete parcel id from parcel table
-            UPDATE parcel SET sys_delete = true, time_updated = curr_time WHERE id = p_id;
+            UPDATE parcel SET active = false, sys_delete = true, time_updated = curr_time WHERE id = p_id;
 
             -- Collect all relationships that are associated with parcel
             SELECT INTO r_ids array_agg(id) FROM relationship r where r.parcel_id = p_id;
 
             IF r_ids IS NOT NULL THEN
                 RAISE NOTICE 'Associated relationship ids: %', r_ids;
-                -- Deactivate all relationships
-                UPDATE relationship SET active = false, time_updated = curr_time WHERE id = ANY(r_ids);
-
-                -- System delete all relationships
-                UPDATE relationship SET sys_delete = true, time_updated = curr_time WHERE id = ANY(r_ids);
-
+                -- Deactivate & System delete all relationships
+                UPDATE relationship SET active = false, sys_delete = true, time_updated = curr_time WHERE id = ANY(r_ids);
+                RETURN TRUE;
+            ELSE
+                -- Parcel is not associated with Relationship
                 RETURN TRUE;
             END IF;
         ELSE
@@ -47,8 +43,92 @@ BEGIN
         END IF;
 
     ELSE
-        RAISE NOTICE 'Parcel id parameter required';
+        RAISE NOTICE 'Parcel id is NULL';
         RETURN FALSE;
+	END IF;
+
+END;
+  $$ LANGUAGE plpgsql VOLATILE;
+
+/******************************************************************
+  cd_delete_relationship
+
+******************************************************************/
+DROP FUNCTION IF EXISTS cd_delete_relationship(relationship_id integer);
+
+CREATE OR REPLACE FUNCTION cd_delete_relationship(relationship_id integer)
+  RETURNS BOOLEAN AS $$
+  DECLARE
+  r_id integer; -- relationship id
+  curr_time timestamp; -- current timestamp
+BEGIN
+
+    -- Must have a value in the parameter
+    IF $1 IS NOT NULL THEN
+
+        SELECT INTO curr_time current_timestamp;
+
+        -- Make sure relationship id exists
+        SELECT INTO r_id id FROM relationship where id = $1;
+
+        IF r_id IS NOT NULL THEN
+            RAISE NOTICE 'Found relationship id: %', r_id;
+            -- Deactivate relationship id in relationship table
+            UPDATE relationship SET active = false, sys_delete = true, time_updated = curr_time WHERE id = r_id;
+            RETURN TRUE;
+        ELSE
+            RAISE NOTICE 'Cannot find relationship id: %', $1;
+            RETURN FALSE;
+        END IF;
+
+    ELSE
+        RAISE NOTICE 'Relationship id is NULL';
+        RETURN FALSE;
+	END IF;
+
+END;
+  $$ LANGUAGE plpgsql VOLATILE;
+
+/******************************************************************
+  cd_delete_relationships
+
+******************************************************************/
+DROP FUNCTION IF EXISTS cd_delete_relationships(relationships_ids character varying);
+
+CREATE OR REPLACE FUNCTION cd_delete_relationships(relationships_ids character varying)
+  RETURNS INT[] AS $$
+  DECLARE
+  r_ids INT []; -- relationship ids
+  curr_time timestamp; -- current timestamp
+  filter_relationship_ids INT[];
+BEGIN
+
+    -- Must have a value in the parameter
+    IF $1 IS NOT NULL THEN
+
+        SELECT INTO curr_time current_timestamp;
+
+        -- cast parameter into array
+        filter_relationship_ids = string_to_array($1, ',')::int[];
+
+        -- Make sure parcel id exists
+        SELECT INTO r_ids array_agg(id) FROM relationship where id = ANY(filter_relationship_ids);
+        RAISE NOTICE 'List of relationships_ids: %', r_ids;
+
+        IF r_ids IS NOT NULL THEN
+            RAISE NOTICE 'Found relationship id: %', r_ids;
+            -- Deactivate parcel & system delete parcel id in parcel table
+            UPDATE relationship SET active = false, sys_delete = true, time_updated = curr_time WHERE id = ANY(r_ids);
+
+            RETURN r_ids;
+        ELSE
+            RAISE NOTICE 'Cannot find relationship id: %', $1;
+            RETURN r_ids;
+        END IF;
+
+    ELSE
+        RAISE NOTICE 'Relationship ids is NULL';
+        RETURN r_ids;
 	END IF;
 
 END;
@@ -103,7 +183,7 @@ BEGIN
         END IF;
 
     ELSE
-        RAISE NOTICE 'Parameter is required';
+        RAISE NOTICE 'Parcel ids is NULL';
         RETURN p_ids;
 	END IF;
 
@@ -195,7 +275,7 @@ BEGIN
         SELECT INTO r_ids array_agg(id) FROM relationship where id = ANY(filter_relationship_ids);
 
         -- Validate relationship ids
-        SELECT INTO valid_ids * FROM cd_validate_relationships(array_to_string(r_ids,','))::int[];
+        SELECT INTO valid_ids * FROM cd_validate_relationships(array_to_string(r_ids,','));
 
         IF valid_ids IS NOT NULL THEN
             RAISE NOTICE 'Valid relationship ids: %', valid_ids;

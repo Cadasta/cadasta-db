@@ -276,7 +276,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 ******************************************************************/
 
 DROP FUNCTION IF EXISTS cd_create_relationship(parcel_id int,ckan_user_id integer,party_id int,geom_id int,
-tenure_type character varying,acquired_date character varying,how_acquired character varying,archived boolean,history_description character varying);
+tenure_type character varying,acquired_date character varying,how_acquired character varying, history_description character varying);
 
 CREATE OR REPLACE FUNCTION cd_create_relationship(
                                             parcel_id int,
@@ -286,7 +286,6 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
                                             tenure_type character varying,
                                             acquired_date date,
                                             how_acquired character varying,
-                                            archived boolean,
                                             history_description character varying)
   RETURNS INTEGER AS $$
   DECLARE
@@ -300,7 +299,6 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
   cd_tenure_type character varying;
   cd_acquired_date date;
   cd_how_acquired character varying;
-  cd_archived boolean;
   cd_history_description character varying;
   cd_relationship_timestamp timestamp;
   cd_current_date date;
@@ -339,8 +337,8 @@ BEGIN
                 RAISE NOTICE 'Relationship party_id: %', cd_party_id;
 
 		        -- create relationship row
-                INSERT INTO relationship (created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired, archived)
-                VALUES (ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired,cd_archived) RETURNING id INTO r_id;
+                INSERT INTO relationship (created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
+                VALUES (ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired) RETURNING id INTO r_id;
 
                 -- create relationship history
                 INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
@@ -372,7 +370,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
-
 /******************************************************************
 
  Function: cd_process_data()
@@ -381,6 +378,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 
 ******************************************************************/
 
+--  Trigger to process FormHub data.json file after loading
 --  Trigger to process FormHub data.json file after loading
 CREATE OR REPLACE FUNCTION cd_process_data()
 RETURNS TRIGGER AS $cd_process_data$
@@ -573,7 +571,7 @@ BEGIN
         -- create relationship
 
         SELECT INTO data_relationship_id * FROM cd_create_relationship
-        (data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, false, null);
+        (data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
 
         IF data_relationship_id IS NOT NULL THEN
             RAISE NOTICE 'New relationship id: %', data_relationship_id;
