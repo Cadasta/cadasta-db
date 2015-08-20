@@ -144,19 +144,14 @@ END;
 ******************************************************************/
 
 -- SELECT * FROM cd_create_parcel ('survey_sketch',5,222.45,'point',null,null,'62.640826','-114.233223',null,null,'just got this yesterday');
+-- SELECT * FROM cd_create_parcel('survey_sketch',5,22.45,null,null,null,'new joint');
 -- select * from parcel
 -- select * from parcel_history
-
-DROP FUNCTION IF EXISTS cd_create_parcel(spatial_source character varying,ckan_user_id integer,area numeric,geom_type character varying,line geometry,
-polygon geometry,lat numeric,lng numeric,land_use land_use,gov_pin character varying);
 
 CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
                                             ckan_user_id integer,
                                             area numeric,
-                                            geom_type character varying,
                                             geom geometry,
-                                            lat numeric,
-                                            lng numeric,
                                             land_use land_use,
                                             gov_pin character varying,
                                             history_description character varying)
@@ -164,9 +159,7 @@ CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
   DECLARE
   p_id integer;
   ph_id integer;
-  geometry geometry;
-
-  cd_geometry_type character varying;
+  cd_geometry geometry;
   cd_parcel_timestamp timestamp;
   cd_user_id int;
   cd_area numeric;
@@ -174,68 +167,40 @@ CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
   cd_spatial_source_id int;
   cd_land_use land_use;
   cd_gov_pin character varying;
-  cd_lat numeric;
-  cd_lng numeric;
   cd_history_description character varying;
   cd_current_date date;
 
 BEGIN
 
-    -- geometry is not required at first
-    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $4 IS NOT NULL AND ($5 IS NOT NULL OR ($6 IS NOT NULL AND $7 IS NOT NULL)) THEN
+    -- spatial source and ckan id required
+    IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
 
         -- get time
         SELECT INTO cd_parcel_timestamp * FROM localtimestamp;
 
-        -- get geom
-        SELECT INTO cd_geometry_type * FROM initcap(geom_type);
-
         SELECT INTO cd_current_date * FROM current_date;
 
-        cd_lat := lat::numeric;
-        cd_lng := lng::numeric;
         cd_area := area::numeric;
         cd_gov_pin := gov_pin;
         cd_land_use := land_use;
         cd_spatial_source = spatial_source;
         cd_history_description = history_description;
         cd_user_id = ckan_user_id::int;
+        cd_geometry = geom;
 
         SELECT INTO cd_spatial_source_id id FROM spatial_source WHERE type = cd_spatial_source;
 
-	    IF cd_spatial_source IS NOT NULL THEN
-
-	    IF cd_geometry_type IS NOT NULL THEN
-	        -- get geom type
-	        IF cd_geometry_type ='Polygon' THEN
-			cd_geometry_type = '';
-		ELSIF cd_geometry_type = 'Point' AND cd_lat IS NOT NULL AND cd_lng IS NOT NULL THEN
-
-			SELECT INTO geometry * FROM ST_SetSRID(ST_MakePoint(cd_lat, cd_lng),4326);
-
-			RAISE NOTICE 'GEOM: %', geometry;
-
-			IF geometry IS NOT NULL THEN
+	    IF cd_spatial_source_id IS NOT NULL THEN
 				INSERT INTO parcel (spatial_source,user_id,geom,area,land_use,gov_pin,created_by) VALUES
-				(cd_spatial_source_id,cd_user_id, geometry,cd_area,cd_land_use,cd_gov_pin,cd_user_id) RETURNING id INTO p_id;
+				(cd_spatial_source_id,cd_user_id,cd_geometry,cd_area,cd_land_use,cd_gov_pin,cd_user_id) RETURNING id INTO p_id;
 				RAISE NOTICE 'Successfully created parcel, id: %', p_id;
 
 				INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified,created_by) VALUES
 				(p_id,p_id,cd_history_description,cd_current_date,cd_user_id) RETURNING id INTO ph_id;
 				RAISE NOTICE 'Successfully created parcel history, id: %', ph_id;
-
-			ELSE
-				RAISE NOTICE 'Geometry is required';
-				RETURN NULL;
-			END IF;
+		ELSE
+		    RAISE NOTICE 'Invalid spatial source';
 		END IF;
-
-		END IF;
-
-	    ELSE
-		RAISE NOTICE 'Geometry Type is required. (Point, Polygon, or Line)';
-		RETURN NULL;
-	    END IF;
 
 	    IF p_id IS NOT NULL THEN
 		RETURN p_id;
@@ -246,7 +211,7 @@ BEGIN
 
 	ELSE
 	    RAISE NOTICE 'The following parameters are required: spatial_source, ckan_user_id, geom_type';
-	    RAISE NOTICE '1:%  2:%  3:%  4:%  5%:  :6%  :7%   8:%  9:%  10:% ', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10;
+	    RAISE NOTICE 'spatial_source:%  ckan_user_id:% ', $1, $2;
 	    RETURN NULL;
 	END IF;
 END;
@@ -391,11 +356,12 @@ DECLARE
   option record;
   data_respondent_id integer;
   data_person_id int;
-  data_geom_type character varying;
+  data_geom geometry;
   question_id integer;
   question_id_l integer;
   data_relationship_id int;
   data_date_land_possession date;
+  data_geojson character varying;
   data_means_aquired character varying;
   data_survey_id integer;
   data_tenure_type character varying;
@@ -465,7 +431,7 @@ BEGIN
             SELECT INTO parent_question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1 offset 1) as slugs;
             -- get question id
             RAISE NOTICE 'parent_question_slug: %', parent_question_slug;
-            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id = (select id from "q_group" where lower(name) = lower(parent_question_slug) and field_data_id = raw_field_data_id);
+            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id = (select id from q_group where lower(name) = lower(parent_question_slug) and field_data_id = raw_field_data_id);
           ELSE
             -- get question id
             SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id IS NULL;
@@ -530,30 +496,23 @@ BEGIN
               WHEN ('_id') THEN
                 EXECUTE 'UPDATE respondent SET id_string = ' || quote_literal(element.value) || ' WHERE id = ' || data_respondent_id;
               WHEN ('_geolocation') THEN
-                SELECT INTO point replace(regexp_replace(element.value, '"|,|\[|\]', '', 'g'), '-', ' -');
---                SELECT INTO point replace(point,'-',' -');
 
-                -- RAISE NOTICE 'point: %', point;
-                x := substring(point, 0, position(' ' in point))::numeric;
-                y := substring(point, (position(' ' in point)+1), char_length(point))::numeric;
-                 RAISE NOTICE 'x: %', x;
-                 RAISE NOTICE 'y: %', y;
-                IF point IS NOT NULL AND point <> 'null null' THEN
+                  data_geojson = element.value::text;
 
-                  -- Geom type is point
-                  data_geom_type = 'Point';
+                  SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
 
-                  -- Create new parcel with lat lng as geometry
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel ('survey_grade_gps','11',null,data_geom_type,null,y,x,null,null,'new description');
-                  RAISE NOTICE 'New parcel id: %', data_parcel_id;
+                  RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
 
-                  -- set new parcel id in survey table
-                  -- UPDATE field_data SET parcel_id = data_parcel_id WHERE id = raw_field_data_id;
-                  RAISE NOTICE 'Updated survey set parcel_id = %', data_parcel_id;
-                ELSE
-                  -- create parcel with no geometry
-                  -- edit cd_create_parcel to create parcels without geom
-                END IF;
+                  -- Create new parcel
+
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',null,data_geom,null,null,'new description');
+
+                  IF data_parcel_id IS NOT NULL THEN
+                    RAISE NOTICE 'New parcel id: %', data_parcel_id;
+                    UPDATE field_data SET parcel_id = data_parcel_id WHERE id = raw_field_data_id;
+                  ELSE
+                    RAISE NOTICE 'Cannot create parcel';
+                  END IF;
               WHEN ('_submission_time') THEN
                 IF element.value IS NOT NULL THEN
                   EXECUTE 'UPDATE respondent SET submission_time = ' || quote_literal(replace(element.value,'T',' ')) || ' WHERE id = ' || data_respondent_id;

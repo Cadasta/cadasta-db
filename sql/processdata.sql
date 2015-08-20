@@ -10,11 +10,12 @@ DECLARE
   option record;
   data_respondent_id integer;
   data_person_id int;
-  data_geom_type character varying;
+  data_geom geometry;
   question_id integer;
   question_id_l integer;
   data_relationship_id int;
   data_date_land_possession date;
+  data_geojson character varying;
   data_means_aquired character varying;
   data_survey_id integer;
   data_tenure_type character varying;
@@ -84,7 +85,7 @@ BEGIN
             SELECT INTO parent_question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1 offset 1) as slugs;
             -- get question id
             RAISE NOTICE 'parent_question_slug: %', parent_question_slug;
-            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id = (select id from "q_group" where lower(name) = lower(parent_question_slug) and field_data_id = raw_field_data_id);
+            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id = (select id from q_group where lower(name) = lower(parent_question_slug) and field_data_id = raw_field_data_id);
           ELSE
             -- get question id
             SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id IS NULL;
@@ -149,30 +150,23 @@ BEGIN
               WHEN ('_id') THEN
                 EXECUTE 'UPDATE respondent SET id_string = ' || quote_literal(element.value) || ' WHERE id = ' || data_respondent_id;
               WHEN ('_geolocation') THEN
-                SELECT INTO point replace(regexp_replace(element.value, '"|,|\[|\]', '', 'g'), '-', ' -');
---                SELECT INTO point replace(point,'-',' -');
 
-                -- RAISE NOTICE 'point: %', point;
-                x := substring(point, 0, position(' ' in point))::numeric;
-                y := substring(point, (position(' ' in point)+1), char_length(point))::numeric;
-                 RAISE NOTICE 'x: %', x;
-                 RAISE NOTICE 'y: %', y;
-                IF point IS NOT NULL AND point <> 'null null' THEN
+                  data_geojson = element.value::text;
 
-                  -- Geom type is point
-                  data_geom_type = 'Point';
+                  SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
 
-                  -- Create new parcel with lat lng as geometry
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel ('survey_grade_gps','11',null,data_geom_type,null,y,x,null,null,'new description');
-                  RAISE NOTICE 'New parcel id: %', data_parcel_id;
+                  RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
 
-                  -- set new parcel id in survey table
-                  -- UPDATE field_data SET parcel_id = data_parcel_id WHERE id = raw_field_data_id;
-                  RAISE NOTICE 'Updated survey set parcel_id = %', data_parcel_id;
-                ELSE
-                  -- create parcel with no geometry
-                  -- edit cd_create_parcel to create parcels without geom
-                END IF;
+                  -- Create new parcel
+
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',null,data_geom,null,null,'new description');
+
+                  IF data_parcel_id IS NOT NULL THEN
+                    RAISE NOTICE 'New parcel id: %', data_parcel_id;
+                    UPDATE field_data SET parcel_id = data_parcel_id WHERE id = raw_field_data_id;
+                  ELSE
+                    RAISE NOTICE 'Cannot create parcel';
+                  END IF;
               WHEN ('_submission_time') THEN
                 IF element.value IS NOT NULL THEN
                   EXECUTE 'UPDATE respondent SET submission_time = ' || quote_literal(replace(element.value,'T',' ')) || ' WHERE id = ' || data_respondent_id;
