@@ -20,6 +20,10 @@ Cadasta Database Function Reference
 
 [cd\_delete\_relationships](#cd_delete_relationships)
 
+[cd\_archive\_relationship](#cd_archive_relationship)
+
+[cd\_archive\_relationships](#cd_delete_archive_relationships)
+
 [cd\_import\_data\_json](#cd_import_data_json)
 
 * * * * *
@@ -102,7 +106,7 @@ cd\_delete\_parcel
 
 ##### Description
 
-Delete a parcel.
+Delete a parcel and all existing relationships.
 
 ##### Parameter(s)
 
@@ -125,7 +129,7 @@ cd\_delete\_parcels
 
 ##### Description
 
-Delete list of parcel\_ids.
+Delete list of parcel\_ids and all associated relationships.
 
 ##### Parameter(s)
 
@@ -142,6 +146,54 @@ Integer array of deleted parcel ids.
 | integer[]   |
 |-------------|
 | {2,139,333}   |
+
+<a name="cd_archive_parcel"/>
+cd\_archive\_parcel
+===========================
+
+##### Description
+
+Archive a parcel and all existing relationships.
+
+##### Parameter(s)
+
+1. parcel\_id (integer) - **Required**.
+
+##### Result
+
+Boolean. True/False valid.
+
+##### Example(s)
+Archive parcel id 3
+
+```  SELECT * from cd_archive_parcel(3);```
+
+TRUE
+
+<a name="cd_archive_parcels"/>
+cd\_archive\_parcels
+===========================
+
+##### Description
+
+Archive list of parcel\_ids and all existing relationships.
+
+##### Parameter(s)
+
+1. parcel\_ids (character varying) - **Required**. comma separated list of parcel_ids to archive.
+
+##### Result
+
+Integer array of archived parcel ids.
+
+##### Example(s)
+
+```  SELECT * from cd_archives_parcels('2,139,333');```
+
+| integer[]   |
+|-------------|
+| {2,139,333} |
+
 
 <a name="cd_delete_relationship"/>
 cd\_delete\_relationship
@@ -189,6 +241,54 @@ Integer array of deleted relationship ids.
 | integer[]   |
 |-------------|
 | {9,19,33}   |
+
+
+<a name="cd_archive_relationship"/>
+cd\_archive\_relationship
+===========================
+
+##### Description
+
+Archive a relationship.
+
+##### Parameter(s)
+
+1. relationship\_id (integer) - **Required**.
+
+##### Result
+
+Boolean. True/False valid.
+
+##### Example(s)
+Archive relationship id 3
+
+```  SELECT * from cd_archive_relationship(3);```
+
+TRUE
+
+<a name="cd_archive_relationships"/>
+cd\_archive\_relationships
+===========================
+
+##### Description
+
+Archive list of relationship\_ids.
+
+##### Parameter(s)
+
+1. relationship\_ids (character varying) - **Required**. comma separated list of relationship_ids to archive.
+
+##### Result
+
+Integer array of archived relationship ids.
+
+##### Example(s)
+
+```  SELECT * from cd_archive_relationships('2,139,333');```
+
+| integer[]   |
+|-------------|
+| {2,139,333} |
 
 <a name="cd_import_data_json"/>
 cd\_import\_data\_json

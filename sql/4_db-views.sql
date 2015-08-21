@@ -31,7 +31,7 @@ Order BY time_CREATEd DESC;
 
 -- Parcel list with relationship count
 CREATE OR REPLACE VIEW show_parcel_list AS
-SELECT p.id, p.time_created, count(r.id) as num_relationships
+SELECT p.id, p.time_created, p.area, count(r.id) as num_relationships
 FROM parcel p, relationship r
 WHERE r.parcel_id = p.id
 AND p.active = true
