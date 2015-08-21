@@ -206,7 +206,7 @@ CREATE OR REPLACE FUNCTION cd_archive_parcels(parcel_ids character varying)
   filter_parcel_ids INT[];
 BEGIN
 
-    -- Validate parcel
+    -- Must have a value in the parameter
     IF $1 IS NOT NULL THEN
 
         SELECT INTO curr_time current_timestamp;
@@ -233,16 +233,18 @@ BEGIN
                 -- Deactivate all relationships
                 UPDATE relationship SET active = false, time_updated = curr_time WHERE id = ANY(r_ids);
 
-                RETURN TRUE;
+                RETURN valid_ids;
+            ELSE
+                RETURN valid_ids;
             END IF;
         ELSE
             RAISE NOTICE 'Cannot find parcel ids: %', $1;
-            RETURN FALSE;
+            RETURN valid_ids;
         END IF;
 
     ELSE
         RAISE NOTICE 'Parameter is required';
-        RETURN FALSE;
+        RETURN valid_ids;
 	END IF;
 
 END;

@@ -26,6 +26,14 @@ Cadasta Database Function Reference
 
 [cd\_archive\_relationships](#cd_archive_relationships)
 
+[cd\_validate\_parcel](#cd_validate_parcel)
+
+[cd\_validate\_parcels](#cd_validate_parcels)
+
+[cd\_validate\_relationship](#cd_validate_relationship)
+
+[cd\_validate\_relationships](#cd_validate_relationships)
+
 [cd\_import\_data\_json](#cd_import_data_json)
 
 * * * * *
@@ -322,6 +330,100 @@ Integer array of archived relationship ids.
 | integer[]   |
 |-------------|
 | {2,139,333} |
+
+
+<a name="cd_validate_parcels"/>
+cd\_validate\_parcels
+===========================
+
+##### Description
+
+Validate list of parcel\_ids.
+
+##### Parameter(s)
+
+1. parcel\_ids (character varying) - **Required**. comma separated list of parcel_ids to validate.
+
+##### Result
+
+Integer array of valid ACTIVE parcel_ids.
+
+##### Example(s)
+
+```SELECT * FROM cd_validate_parcels('3,4,5');```
+
+| integer[]   |
+|-------------|
+| {3,4,5}|
+
+
+<a name="cd_validate_parcel"/>
+cd\_validate\_parcel
+===========================
+
+##### Description
+
+Validate an parcel\_id.
+
+##### Parameter(s)
+
+1. parcel\_id (integer) - **Required**. parcel_id to validate.
+
+##### Result
+
+Boolean. True/False valid.
+
+##### Example(s)
+
+```SELECT * FROM cd_validate_parcel(3);```
+
+TRUE
+
+<a name="cd_validate_relationships"/>
+cd\_validate\_relationships
+===========================
+
+##### Description
+
+Validate list of relationship\_ids.
+
+##### Parameter(s)
+
+1. relationship\_ids (character varying) - **Required**. comma separated list of relationship_ids to validate.
+
+##### Result
+
+Integer array of valid ACTIVE relationship_ids.
+
+##### Example(s)
+
+```SELECT * FROM cd_validate_relationships('3,4,5');```
+
+| integer[]   |
+|-------------|
+| {3,4,5}|
+
+<a name="cd_validate_relationship"/>
+cd\_validate\_relationship
+===========================
+
+##### Description
+
+Validate an relationship\_id.
+
+##### Parameter(s)
+
+1. relationship\_id (integer) - **Required**. relationship_id to validate.
+
+##### Result
+
+Boolean. True/False valid.
+
+##### Example(s)
+
+```SELECT * FROM cd_validate_activity(3);```
+
+TRUE
 
 <a name="cd_import_data_json"/>
 cd\_import\_data\_json
