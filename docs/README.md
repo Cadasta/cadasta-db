@@ -8,6 +8,8 @@ Cadasta Database Function Reference
 
 [cd\_create\_party](#cd_create_party)
 
+[cd\_create\_relationship](#cd_create_relationship)
+
 [cd\_delete\_parcel](#cd_delete_parcel)
 
 [cd\_delete\_parcels](#cd_delete_parcels)
@@ -22,7 +24,7 @@ Cadasta Database Function Reference
 
 [cd\_archive\_relationship](#cd_archive_relationship)
 
-[cd\_archive\_relationships](#cd_delete_archive_relationships)
+[cd\_archive\_relationships](#cd_archive_relationships)
 
 [cd\_import\_data\_json](#cd_import_data_json)
 
@@ -45,33 +47,26 @@ Options:
 * survey_grade_gps
 2.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user.
 3.  area (numeric) – Optional. The size of the parcel.
-4.  geom\_type (character varying) – ***Required***. The Geometry Type
-Options:
-* Point
-* Polygon
-* Line
-5. geometry - ***Required if*** geom_type = 'Polygon' or 'Line'
-5.  lat (numeric) – ***Required if*** geom\_type = 'Point'. Point Latittude
-6.  lng (numeric) – ***Required if*** geom\_type = 'Point'. Point Longitude
-7.  land\_use (ENUM) - Optional. Type of parcel real estate
+4.  geom - PostGIS geometry type
+5.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
 * Commercial
 * Residential
-8.  gov\_pin (character varying) - Optional.
-9.  history\_description (characer varying) - Optional. A description of the parcels history
+6.  gov\_pin (character varying) - Optional.
+7.  history\_description (character varying) - Optional. A description of the parcels history
 
 ##### Result
 
-Integer. The parcel is sucessfully created if an integer is returned. If nothing is returned, the parcel
+Integer. The parcel is successfully created if an integer is returned. If nothing is returned, the parcel
 has not been created.
 
 ##### Example(s)
 
--   Add new parcel of geomtry type Point and a lat/lng of (7.670367, -122.387855):
+-   Add new survey sketch spatial source parcel from CKAN user 5
 
-```SELECT INTO data_parcel_id * FROM cd_create_parcel ('survey_grade_gps',11,null,'Point',null,47.92883,-122.132131,null,null,'new description');```
+```SELECT * FROM cd_create_parcel('survey_sketch',5,22.45,'010100000024253D0CADEC5DC04C89247A19354140',null,null,'Original Owner.');```
 
-7
+14
 
 <a name="cd_create_party"/>
 cd\_create\_party
@@ -99,6 +94,44 @@ has not been created.
 
 
 3
+
+
+<a name="cd_create_relationship"/>
+cd\_create\_relationship
+=================
+
+##### Description
+
+Create a new relationship and relationship history.
+
+##### Parameter(s)
+
+1.  parcel\_id (integer) – ***Required***. Parcel id
+2.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user
+3.  party\_id (integer) – ***Required***. Party id
+4.  geom_id - (integer) - Optional. Geometry id
+5.  tenure\_type (ENUM) - Optional. Type of parcel real estate
+Options:
+* Own
+* Lease
+* Occupy
+* Informal Occupied
+6. acquired\_date (date) - Optional. ('mm/dd/yyyy') Date of land acquisition
+7. how\_acquired (character varying) - Optional. A description of how the land was acquired
+8. history\_description (character varying) - A description of the relationships history
+
+##### Result
+
+Integer. The relationship is successfully created if an integer is returned. If nothing is returned, the relationship
+has not been created.
+
+##### Example(s)
+
+-   Add new owner relationship for Party 12 and Parcel 4. Land was acquired on October 22nd, 2009;
+
+```SELECT * FROM cd_create_relationship(4,11,12,null,'Own','10/22/2009','Passed Down', '3rd Owner');```
+
+14
 
 <a name="cd_delete_parcel"/>
 cd\_delete\_parcel
@@ -296,7 +329,7 @@ cd\_import\_data\_json
 
 ##### Description
 
-Import Forhum/ONA Fielddata from Ona endpoint: ```/api/v1/data/:form_id?format=json```
+Import Formhub/ONA Field data from Ona endpoint: ```/api/v1/data/:form_id?format=json```
 
 ***Important:**** JSON string must be encapsulated inside of '$$'
 
@@ -309,7 +342,7 @@ Import Forhum/ONA Fielddata from Ona endpoint: ```/api/v1/data/:form_id?format=j
 
 ##### Result
 
-Boolean. True if survey data is succesffuly inserted into DB
+Boolean. True if survey data is successfully inserted into DB
 
 ##### Example(s)
 
