@@ -126,10 +126,10 @@ CREATE TABLE tenure_type (
     updated_by integer
 );
 
-INSERT INTO tenure_type (type) VALUES ('Own');
-INSERT INTO tenure_type (type) VALUES ('Lease');
-INSERT INTO tenure_type (type) VALUES ('Occupy');
-INSERT INTO tenure_type (type) VALUES ('Informal Occupied');
+INSERT INTO tenure_type (type) VALUES ('own');
+INSERT INTO tenure_type (type) VALUES ('lease');
+INSERT INTO tenure_type (type) VALUES ('occupy');
+INSERT INTO tenure_type (type) VALUES ('informal occupy');
 
 CREATE TABLE spatial_source (
     id serial primary key not null,
