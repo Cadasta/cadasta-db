@@ -4,6 +4,7 @@ RETURNS TRIGGER AS $cd_process_data$
 DECLARE
   raw_data_id integer;
   raw_field_data_id integer;
+  raw_group_id integer;
   survey record;
   element record;
   options record;
@@ -19,6 +20,7 @@ DECLARE
   data_means_aquired character varying;
   data_survey_id integer;
   data_tenure_type character varying;
+  tenure_type_id int;
   data_parcel_id int;
   data_survey_first_name character varying;
   data_survey_last_name character varying;
@@ -79,12 +81,16 @@ BEGIN
         SELECT INTO num_questions count(id) FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id;
 	-- get question id
         SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id;
+
         IF num_questions > 1 THEN
           RAISE NOTICE '---------> MULTIPLE QUESTIONS FOUND!!!: %', num_questions || ' (count) key: ' || element.key || ' question_id found: ' || question_id;
           IF num_slugs > 1 THEN
             SELECT INTO parent_question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1 offset 1) as slugs;
             -- get question id
             RAISE NOTICE 'parent_question_slug: %', parent_question_slug;
+            SELECT INTO raw_group_id id FROM q_group where lower(name) = lower(parent_question_slug) and field_data_id = raw_field_data_id;
+
+            RAISE NOTICE 'question_slug: %, field_data_id: %, raw_id: %, group_id: %', question_slug, raw_field_data_id, raw_field_data_id, raw_group_id;
             SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id = (select id from q_group where lower(name) = lower(parent_question_slug) and field_data_id = raw_field_data_id);
           ELSE
             -- get question id
@@ -102,13 +108,13 @@ BEGIN
           WHEN 'proprietorship' THEN
             CASE (element.value)
               WHEN 'allodial' THEN
-                data_tenure_type = 'Own';
+                data_tenure_type = 'own';
               WHEN 'freehold' THEN
-                data_tenure_type = 'Own';
+                data_tenure_type = 'own';
               WHEN 'lease' THEN
-                data_tenure_type = 'Lease';
+                data_tenure_type = 'lease';
               WHEN 'common_law_freehold' THEN
-                data_tenure_type = 'Own';
+                data_tenure_type = 'own';
               ELSE
                 RAISE NOTICE 'Improper Tenure Type';
             END CASE;
@@ -122,6 +128,8 @@ BEGIN
         -- RAISE NOTICE 'Element: %', element.key;
         -- RAISE NOTICE 'Last slug: %', question_slug;
         IF (question_id IS NOT NULL) THEN
+                RAISE NOTICE 'Found question: %', question_id;
+
           SELECT INTO question_type name FROM type WHERE id = (SELECT type_id FROM question WHERE id = question_id);
           -- RAISE NOTICE 'Found question: %', question_id || ' - ' || question_type;
           -- check to see if this is a loop (group or repeat type)
@@ -143,14 +151,15 @@ BEGIN
           END CASE;
         -- question is not found in the database
         ELSE
-        -- RAISE NOTICE 'Cant find question: %', element.key;
+
+         RAISE NOTICE 'Cant find question: %', element.key;
           -- elements that have a key starting with an underscore, are not a survey question EXCEPT _geolocation
           IF left(element.key, 1) = '_' THEN
             CASE (lower(element.key))
               WHEN ('_id') THEN
                 EXECUTE 'UPDATE respondent SET id_string = ' || quote_literal(element.value) || ' WHERE id = ' || data_respondent_id;
               WHEN ('_geolocation') THEN
-
+                RAISE NOTICE 'Found geolocation:' ;
                   data_geojson = element.value::text;
 
                   SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
@@ -178,11 +187,12 @@ BEGIN
       END IF;
     END LOOP;
       IF raw_field_data_id IS NOT NULL THEN
+        RAISE NOTICE 'Raw data is not null: %',raw_field_data_id ;
         EXECUTE 'UPDATE response SET field_data_id = ' || quote_literal(raw_field_data_id) || ' WHERE respondent_id = ' || data_respondent_id;
       END IF;
       IF data_parcel_id IS NOT NULL AND data_person_id IS NOT NULL THEN
         -- create relationship
-
+        RAISE NOTICE 'Creating relationships tenure type: %', data_tenure_type ;
         SELECT INTO data_relationship_id * FROM cd_create_relationship
         (data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
 

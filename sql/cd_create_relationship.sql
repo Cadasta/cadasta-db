@@ -53,9 +53,8 @@ BEGIN
     IF $1 IS NOT NULL AND $5 IS NOT NULL AND ($3 IS NOT NULL) THEN
 
         cd_history_description = history_description;
+        cd_tenure_type = tenure_type;
 
-	    -- capitalize tenture type
-	    SELECT INTO cd_tenure_type * FROM initcap(tenure_type);
 	    -- get timestamp
 	    SELECT INTO cd_relationship_timestamp * FROM localtimestamp;
 	    -- get parcel_id
@@ -64,11 +63,11 @@ BEGIN
         SELECT INTO cd_party_id id FROM party where id = party_id::int;
         -- get tenure type id
         SELECT INTO cd_tenure_type_id id FROM tenure_type where type = cd_tenure_type;
+
         -- get ckan user id
         cd_ckan_user_id = ckan_user_id;
 
         SELECT INTO cd_current_date * FROM current_date;
-
 
         IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL THEN
 
@@ -102,7 +101,7 @@ BEGIN
 --                VALUES (r_id,r_id,true,cd_relationship_timestamp, cd_history_description, cd_current_date);
             END IF;
         ELSE
-            RAISE NOTICE 'Invalid parcel id or tenure type';
+            RAISE NOTICE 'Invalid parcel id:% or tenure type: %', cd_parcel_id, cd_tenure_type_id;
             RETURN NULL;
         END IF;
 
