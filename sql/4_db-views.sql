@@ -30,12 +30,12 @@ AND r.tenure_type = t.id) AS foo
 Order BY time_CREATEd DESC;
 
 -- Parcel list with relationship count
-CREATE OR REPLACE VIEW show_parcel_list AS
-SELECT p.id, p.time_created, p.area, t.type as tenure_type, count(r.id) as num_relationships
+CREATE OR REPLACE VIEW show_parcels_list AS
+SELECT p.id, p.time_created, p.area, array_agg(t.type) as tenure_type, count(r.id) as num_relationships
 FROM parcel p, relationship r, tenure_type t
 WHERE r.parcel_id = p.id
 AND r.tenure_type = t.id
 AND p.active = true
 AND r.active = true
-GROUP BY p.id, t.type
+GROUP BY p.id
 ORDER BY p.time_created desc;

@@ -120,10 +120,10 @@ Create a new relationship and relationship history.
 4.  geom_id - (integer) - Optional. Geometry id
 5.  tenure\_type (ENUM) - Optional. Type of parcel real estate
 Options:
-* Own
-* Lease
-* Occupy
-* Informal Occupied
+* own
+* lease
+* occupy
+* informal occupy
 6. acquired\_date (date) - Optional. ('mm/dd/yyyy') Date of land acquisition
 7. how\_acquired (character varying) - Optional. A description of how the land was acquired
 8. history\_description (character varying) - A description of the relationships history
