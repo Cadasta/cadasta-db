@@ -115,6 +115,10 @@ BEGIN
                 data_tenure_type = 'lease';
               WHEN 'common_law_freehold' THEN
                 data_tenure_type = 'own';
+              WHEN 'occupy' THEN
+                data_tenure_type = 'occupy';
+              WHEN 'informal_occupy' THEN
+                data_tenure_type = 'informal occupy';
               ELSE
                 RAISE NOTICE 'Improper Tenure Type';
             END CASE;
