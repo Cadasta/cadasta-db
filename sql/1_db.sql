@@ -21,7 +21,7 @@ CREATE TABLE Project_Extents (
     geom geometry,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -32,7 +32,7 @@ CREATE TABLE Project_Layers (
     layer_url character varying not null,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -45,7 +45,7 @@ CREATE TABLE resource (
     description character varying,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -73,7 +73,7 @@ CREATE TABLE party (
     DOB date,
     active boolean default true,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -89,7 +89,7 @@ CREATE TABLE restriction (
     description character varying,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -99,7 +99,7 @@ CREATE TABLE responsibility (
     description character varying,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -109,7 +109,7 @@ CREATE TABLE "right" (
     description character varying,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -121,7 +121,7 @@ CREATE TABLE tenure_type (
     description character varying,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -136,7 +136,7 @@ CREATE TABLE spatial_source (
     type character varying not null,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -159,7 +159,7 @@ CREATE TABLE parcel (
     active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -170,13 +170,13 @@ CREATE TABLE resource_parcel (
     resource_id int references resource(id)
 );
 
--- Parcel Geometry table
-CREATE TABLE parcel_geometry (
+-- Relationship Geometry table
+CREATE TABLE relationship_geometry (
     id serial primary key not null,
     geom geometry not null,
     sys_delete boolean default true,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -187,14 +187,14 @@ CREATE TABLE relationship (
     id serial primary key not null,
     parcel_id int references parcel(id) not null,
     party_id int references party(id),
-    geom_id int references parcel_geometry (id),
+    geom_id int references relationship_geometry (id),
     tenure_type int references tenure_type (id) not null,
     acquired_date date,
     how_acquired character varying,
     active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -232,7 +232,7 @@ CREATE TABLE relationship_history (
     date_modified date not null,
     active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -248,7 +248,7 @@ CREATE TABLE parcel_history (
     date_modified date not null,
     active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );

@@ -15,7 +15,7 @@ CREATE TABLE "field_data"
 	,"publish"		boolean				DEFAULT TRUE,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT field_data_id PRIMARY KEY(id)
@@ -35,7 +35,7 @@ CREATE TABLE "type"
 	,"has_options"		boolean,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT type_id PRIMARY KEY(id)
@@ -51,7 +51,7 @@ CREATE TABLE "section"
 	,"publish"		boolean				DEFAULT TRUE,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT section_id PRIMARY KEY(id)
@@ -68,7 +68,7 @@ CREATE TABLE "q_group"
 	,"label"		character varying,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT group_id PRIMARY KEY(id)
@@ -93,7 +93,7 @@ CREATE TABLE "question"
 	,"priority"		integer,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT question_id PRIMARY KEY(id)
@@ -108,7 +108,7 @@ CREATE TABLE "respondent"
 	,"submission_time"	timestamp with time zone,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT respondent_id PRIMARY KEY(id)
@@ -125,7 +125,7 @@ CREATE TABLE "response"
 	,"numeric"		numeric,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
     ,CONSTRAINT response_id PRIMARY KEY(id)
@@ -139,7 +139,7 @@ CREATE TABLE "option"
 	,"label"		character varying,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
     ,CONSTRAINT option_id PRIMARY KEY(id)
@@ -151,7 +151,7 @@ CREATE TABLE "raw_form"
 	,"json"			json,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
     ,CONSTRAINT raw_form_id PRIMARY KEY(id)
@@ -164,7 +164,7 @@ CREATE TABLE "raw_data"
 	,"field_data_id" int references field_data(id),
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
     ,CONSTRAINT raw_data_id PRIMARY KEY(id)
