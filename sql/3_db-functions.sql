@@ -156,7 +156,6 @@ CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
   p_id integer;
   ph_id integer;
   cd_geometry geometry;
-  cd_parcel_timestamp timestamp;
   cd_user_id int;
   cd_area numeric;
   cd_spatial_source character varying;
@@ -170,9 +169,6 @@ BEGIN
 
     -- spatial source and ckan id required
     IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
-
-        -- get time
-        SELECT INTO cd_parcel_timestamp * FROM localtimestamp;
 
         SELECT INTO cd_current_date * FROM current_date;
 
@@ -257,7 +253,6 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
   cd_acquired_date date;
   cd_how_acquired character varying;
   cd_history_description character varying;
-  cd_relationship_timestamp timestamp;
   cd_current_date date;
 
 BEGIN
@@ -267,8 +262,6 @@ BEGIN
         cd_history_description = history_description;
         cd_tenure_type = tenure_type;
 
-	    -- get timestamp
-	    SELECT INTO cd_relationship_timestamp * FROM localtimestamp;
 	    -- get parcel_id
         SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int;
         -- get party_id
@@ -404,7 +397,7 @@ BEGIN
           RAISE NOTICE 'Created Person id: %', data_person_id;
         END IF;
 
-      EXECUTE 'INSERT INTO respondent (field_data_id, time_created) VALUES ('|| raw_field_data_id || ',' || quote_literal(current_timestamp) || ') RETURNING id' INTO data_respondent_id;
+      EXECUTE 'INSERT INTO respondent (field_data_id, time_created) VALUES ('|| raw_field_data_id || ',' || current_timestamp || ') RETURNING id' INTO data_respondent_id;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;

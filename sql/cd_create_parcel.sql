@@ -15,7 +15,6 @@ CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
   p_id integer;
   ph_id integer;
   cd_geometry geometry;
-  cd_parcel_timestamp timestamp;
   cd_user_id int;
   cd_area numeric;
   cd_spatial_source character varying;
@@ -29,9 +28,6 @@ BEGIN
 
     -- spatial source and ckan id required
     IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
-
-        -- get time
-        SELECT INTO cd_parcel_timestamp * FROM localtimestamp;
 
         SELECT INTO cd_current_date * FROM current_date;
 

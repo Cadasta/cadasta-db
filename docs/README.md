@@ -10,6 +10,8 @@ Cadasta Database Function Reference
 
 [cd\_create\_relationship](#cd_create_relationship)
 
+[cd\_create\_relationship_geometry](#cd_create_relationship_geometry)
+
 [cd\_delete\_parcel](#cd_delete_parcel)
 
 [cd\_delete\_parcels](#cd_delete_parcels)
@@ -138,6 +140,32 @@ has not been created.
 -   Add new owner relationship for Party 12 and Parcel 4. Land was acquired on October 22nd, 2009;
 
 ```SELECT * FROM cd_create_relationship(4,11,12,null,'Own','10/22/2009','Passed Down', '3rd Owner');```
+
+14
+
+<a name="cd_create_relationship_geometry"/>
+cd\_create\_relationship\_geometry
+=================
+
+##### Description
+
+Create Relationship geometry
+
+##### Parameter(s)
+
+1.  relationship\_id (integer) – ***Required***. Relationship id
+2.  geojson (text) – ***Required***. Valid GEOJSON
+
+##### Result
+
+Integer. The relationship geometry is successfully created if an integer is returned. If nothing is returned, the relationship geometry
+has not been created.
+
+##### Example(s)
+
+-   Create new relationship geometry and update the relationship id:2 geom_id to 14
+
+```SELECT * FROM cd_create_relationship_geometry(2,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);```
 
 14
 

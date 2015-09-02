@@ -45,7 +45,6 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
   cd_acquired_date date;
   cd_how_acquired character varying;
   cd_history_description character varying;
-  cd_relationship_timestamp timestamp;
   cd_current_date date;
 
 BEGIN
@@ -55,8 +54,6 @@ BEGIN
         cd_history_description = history_description;
         cd_tenure_type = tenure_type;
 
-	    -- get timestamp
-	    SELECT INTO cd_relationship_timestamp * FROM localtimestamp;
 	    -- get parcel_id
         SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int;
         -- get party_id
