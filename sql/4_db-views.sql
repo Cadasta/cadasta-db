@@ -9,9 +9,9 @@
 
 -- Show all relationships
 CREATE OR replace view show_relationships AS
-SELECT r.id AS relationship_id, t.type AS relationship_type, parcel.id AS parcel_id, s.type AS spatial_source, geom,
+SELECT r.id AS relationship_id, t.type AS relationship_type, parcel.id AS parcel_id, s.type AS spatial_source, COALESCE(rg.geom,parcel.geom) as geom,
 party.id AS party_id, first_name, lASt_name, r.time_created,r.active, r.time_updated
-FROM parcel,party,relationship r, spatial_source s, tenure_type t
+FROM parcel,party,relationship r left join relationship_geometry rg on r.geom_id = rg.id, spatial_source s, tenure_type t
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
 AND parcel.spatial_source = s.id
