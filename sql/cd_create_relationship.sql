@@ -86,7 +86,7 @@ BEGIN
 
                 -- create relationship history
                 INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
-                VALUES (r_id,cd_parcel_id,true,'History', cd_current_date, cd_ckan_user_id);
+                VALUES (r_id,r_id,true,'History', cd_current_date, cd_ckan_user_id);
 
 		        RAISE NOTICE 'Successfully created new relationship id: %', r_id;
 

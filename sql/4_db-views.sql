@@ -9,7 +9,8 @@
 
 -- Show all relationships
 CREATE OR replace view show_relationships AS
-SELECT r.id AS relationship_id, t.type AS relationship_type, parcel.id AS parcel_id, s.type AS spatial_source, geom, party.id AS party_id, first_name, lASt_name, r.time_created,r.active, r.time_updated
+SELECT r.id AS relationship_id, t.type AS relationship_type, parcel.id AS parcel_id, s.type AS spatial_source, geom,
+party.id AS party_id, first_name, lASt_name, r.time_created,r.active, r.time_updated
 FROM parcel,party,relationship r, spatial_source s, tenure_type t
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
@@ -42,3 +43,20 @@ AND r.tenure_type = t.id
 AND p.active = true
 AND r.active = true
 GROUP BY p.id;
+
+-- Relationship History View
+CREATE OR replace view show_relationship_history AS
+SELECT -- relationship history columns
+rh.relationship_id, rh.origin_id, rh.version, rh.parent_id, rg.geom, parcel.id AS parcel_id,
+rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created,
+rh.time_updated, rh.created_by, rh.updated_by,
+-- relationship table columns
+t.type AS relationship_type,
+s.type AS spatial_source, party.id AS party_id, first_name, last_name
+FROM parcel,party,relationship r left join relationship_geometry rg on r.geom_id = rg.id, spatial_source s, tenure_type t, relationship_history rh
+WHERE r.party_id = party.id
+AND r.parcel_id = parcel.id
+AND rh.relationship_id = r.id
+AND parcel.spatial_source = s.id
+AND r.tenure_type = t.id
+AND r.active = true;

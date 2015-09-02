@@ -220,13 +220,12 @@ CREATE TABLE right_relationship (
     relationship_id int not null references relationship (id)
 );
 
-
 CREATE TABLE relationship_history (
     id serial primary key not null,
     relationship_id int references relationship(id) not null,
-    origin_id int references parcel(id) not null, -- in case of split, the origin id will always be the parcel id of the original parcel
-    version int default 1 not null,
-    parent_id int references parcel(id),
+    origin_id int references relationship(id) not null, -- in case of split, the origin id will always be the relationship id of the original relationship
+    version int default 1 not null, -- verison of the original relationship
+    parent_id int references relationship(id), --  in case of split, reltionship id is relationship id form which the relaltionship is derived from
     expiration_date timestamp,
     description character varying not null,
     date_modified date not null,
@@ -242,7 +241,7 @@ CREATE TABLE parcel_history (
     id serial primary key not null,
     parcel_id int references parcel(id) not null,
     origin_id int not null, --  in case of split, the origin id will always be the parcel id of the original parcel
-    parent_id int references parcel(id), -- in case of split, parent id is parcel id of the parcel the new parcels are derived from
+    parent_id int references parcel(id), -- in case of split, parent id is parcel id from which the parcel is derived from
     version int default 1 not null, -- version of the original parcel
     description character varying not null,
     date_modified date not null,
