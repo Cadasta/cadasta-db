@@ -47,7 +47,8 @@ GROUP BY p.id;
 -- Relationship History View
 CREATE OR replace view show_relationship_history AS
 SELECT -- relationship history columns
-rh.relationship_id, rh.origin_id, rh.version, rh.parent_id, rg.geom, parcel.id AS parcel_id,
+rh.relationship_id, rh.origin_id, rh.version, rh.parent_id, COALESCE(rg.geom,parcel.geom) as geom,
+parcel.id AS parcel_id,
 rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created,
 rh.time_updated, rh.created_by, rh.updated_by,
 -- relationship table columns
