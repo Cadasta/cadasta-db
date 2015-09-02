@@ -7,8 +7,6 @@
 
 -- Create new Field Data
 
-DROP FUNCTION IF EXISTS cd_create_field_data(id_string character varying);
-
 CREATE OR REPLACE FUNCTION cd_create_field_data(id_string character varying)
   RETURNS INTEGER AS $$
   DECLARE
@@ -110,8 +108,6 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 ******************************************************************/
 
 -- Create new party
-
-DROP FUNCTION IF EXISTS cd_create_party(first_name character varying, last_name character varying);
 
 CREATE OR REPLACE FUNCTION cd_create_party(first_name character varying, last_name character varying)
   RETURNS INTEGER AS $$
@@ -238,9 +234,6 @@ $$ LANGUAGE plpgsql VOLATILE;
  SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
  SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
 ******************************************************************/
-
-DROP FUNCTION IF EXISTS cd_create_relationship(parcel_id int,ckan_user_id integer,party_id int,geom_id int,
-tenure_type character varying,acquired_date character varying,how_acquired character varying, history_description character varying);
 
 CREATE OR REPLACE FUNCTION cd_create_relationship(
                                             parcel_id int,

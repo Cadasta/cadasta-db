@@ -2,7 +2,6 @@
   cd_delete_parcel
 
 ******************************************************************/
-DROP FUNCTION IF EXISTS cd_delete_parcel(parcel_id integer);
 
 CREATE OR REPLACE FUNCTION cd_delete_parcel(parcel_id integer)
   RETURNS BOOLEAN AS $$
@@ -54,7 +53,6 @@ END;
   cd_delete_relationship
 
 ******************************************************************/
-DROP FUNCTION IF EXISTS cd_delete_relationship(relationship_id integer);
 
 CREATE OR REPLACE FUNCTION cd_delete_relationship(relationship_id integer)
   RETURNS BOOLEAN AS $$
@@ -93,7 +91,6 @@ END;
   cd_delete_relationships
 
 ******************************************************************/
-DROP FUNCTION IF EXISTS cd_delete_relationships(relationships_ids character varying);
 
 CREATE OR REPLACE FUNCTION cd_delete_relationships(relationships_ids character varying)
   RETURNS INT[] AS $$
@@ -138,7 +135,6 @@ END;
   cd_delete_parcels
 
 ******************************************************************/
-DROP FUNCTION IF EXISTS cd_delete_parcels(parcel_ids character varying);
 
 CREATE OR REPLACE FUNCTION cd_delete_parcels(parcel_ids character varying)
   RETURNS INT[] AS $$
@@ -194,7 +190,6 @@ END;
   cd_archive_parcels
 
 ******************************************************************/
-DROP FUNCTION IF EXISTS cd_archive_parcels(parcel_ids character varying);
 
 CREATE OR REPLACE FUNCTION cd_archive_parcels(parcel_ids character varying)
   RETURNS INT[] AS $$
@@ -254,7 +249,6 @@ END;
   cd_archive_relationships
 
 ******************************************************************/
-DROP FUNCTION IF EXISTS cd_archive_relationships(relationship_ids character varying);
 
 CREATE OR REPLACE FUNCTION cd_archive_relationships(relationship_ids character varying)
   RETURNS INT[] AS $$
@@ -356,7 +350,6 @@ END;
   cd_archive_relationship
 
 ******************************************************************/
-DROP FUNCTION IF EXISTS cd_archive_relationship(relationship_id integer);
 
 CREATE OR REPLACE FUNCTION cd_archive_relationship(relationship_id integer)
   RETURNS BOOLEAN AS $$
