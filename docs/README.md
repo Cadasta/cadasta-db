@@ -10,6 +10,10 @@ Cadasta Database Function Reference
 
 [cd\_create\_relationship](#cd_create_relationship)
 
+[cd\_create\_organization](#cd_create_organization)
+
+[cd\_create\_project](#cd_create_project)
+
 [cd\_create\_relationship_geometry](#cd_create_relationship_geometry)
 
 [cd\_delete\_parcel](#cd_delete_parcel)
@@ -36,6 +40,14 @@ Cadasta Database Function Reference
 
 [cd\_validate\_relationships](#cd_validate_relationships)
 
+[cd\_validate\_organization](#cd_validate_organization)
+
+[cd\_validate\_organizations](#cd_validate_organizations)
+
+[cd\_validate\_project](#cd_validate_project)
+
+[cd\_validate\_projects](#cd_validate_projects)
+
 [cd\_import\_data\_json](#cd_import_data_json)
 
 * * * * *
@@ -56,7 +68,7 @@ Options:
 * recreational_gps
 * survey_grade_gps
 2.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user.
-3.  area (numeric) – Optional. The size of the parcel.
+3. project\_id (integer) - ***Required***. Cadasta project id
 4.  geom - PostGIS geometry type
 5.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
@@ -67,8 +79,7 @@ Options:
 
 ##### Result
 
-Integer. The parcel is successfully created if an integer is returned. If nothing is returned, the parcel
-has not been created.
+Integer. The parcel is successfully created if an integer is returned.
 
 ##### Example(s)
 
@@ -88,13 +99,13 @@ Create a new party
 
 ##### Parameter(s)
 
-1.  first\_name (character varying) – ***Required***.
-2.  last\_name (character varying) – ***Required***.
+1.  project\_id (integer) - ***Required***. Cadasta project id
+2.  first\_name (character varying) – ***Required***.
+3.  last\_name (character varying) – ***Required***.
 
 ##### Result
 
-Integer. The person is sucessfully created if an integer is returned. If nothing is returned, the person
-has not been created.
+Integer. The person is successfully created if an integer is returned.
 
 ##### Example(s)
 
@@ -132,8 +143,7 @@ Options:
 
 ##### Result
 
-Integer. The relationship is successfully created if an integer is returned. If nothing is returned, the relationship
-has not been created.
+Integer. The relationship is successfully created if an integer is returned.
 
 ##### Example(s)
 
@@ -142,6 +152,57 @@ has not been created.
 ```SELECT * FROM cd_create_relationship(4,11,12,null,'Own','10/22/2009','Passed Down', '3rd Owner');```
 
 14
+
+<a name="cd_create_organization"/>
+cd\_create\_organization
+=================
+
+##### Description
+
+Create Organization
+
+##### Parameter(s)
+
+1.  ckan\_id (character varying) – ***Required (Unique)***. CKAN dataset schema id
+2.  title (text) – ***Required***. Organization title
+
+##### Result
+
+Integer. The organization is successfully created if an integer is returned.
+
+##### Example(s)
+
+-   Create new organization
+
+```    SELECT * FROM cd_create_organization('Cadasta','Cadasta Org',null);```
+
+8
+
+<a name="cd_create_project"/>
+cd\_create\_project
+=================
+
+##### Description
+
+Create Project for an Organization
+
+##### Parameter(s)
+
+1.  organization\_id (integer) – ***Required***. Project id
+2.  ckan\_id (character varying) – ***Required***. CKAN project schema id
+3.  title (text) – ***Required***. Project title
+
+##### Result
+
+Integer. The project is successfully created if an integer is returned.
+
+##### Example(s)
+
+-   Create new Project 'Medellin Pilot' for Cadasta Organization (id: 8)
+
+``` SELECT * FROM cd_create_project(8,'Medellin','Medellin Pilot'); ```
+
+2
 
 <a name="cd_create_relationship_geometry"/>
 cd\_create\_relationship\_geometry
@@ -158,8 +219,7 @@ Create Relationship geometry
 
 ##### Result
 
-Integer. The relationship geometry is successfully created if an integer is returned. If nothing is returned, the relationship geometry
-has not been created.
+Integer. The relationship geometry is successfully created if an integer is returned.
 
 ##### Example(s)
 
@@ -215,6 +275,7 @@ Integer array of deleted parcel ids.
 | integer[]   |
 |-------------|
 | {2,139,333}   |
+
 
 <a name="cd_archive_parcel"/>
 cd\_archive\_parcel
@@ -429,7 +490,7 @@ Integer array of valid ACTIVE relationship_ids.
 
 | integer[]   |
 |-------------|
-| {3,4,5}|
+| {3,4,5}     |
 
 <a name="cd_validate_relationship"/>
 cd\_validate\_relationship
@@ -449,9 +510,103 @@ Boolean. True/False valid.
 
 ##### Example(s)
 
-```SELECT * FROM cd_validate_activity(3);```
+```SELECT * FROM cd_validate_relationship(3);```
 
 TRUE
+
+<a name="cd_validate_organization"/>
+cd\_validate\_organization
+===========================
+
+##### Description
+
+Validate an organization\_id.
+
+##### Parameter(s)
+
+1. organization\_id (integer) - **Required**. organization_id to validate.
+
+##### Result
+
+Boolean. True/False valid.
+
+##### Example(s)
+
+```SELECT * FROM cd_validate_organization(3);```
+
+TRUE
+
+<a name="cd_validate_organizations"/>
+cd\_validate\_organizations
+===========================
+
+##### Description
+
+Validate list of organization\_ids.
+
+##### Parameter(s)
+
+1. organization\_ids (character varying) - **Required**. comma separated list of organization_ids to validate.
+
+##### Result
+
+Integer array of valid ACTIVE organization_ids.
+
+##### Example(s)
+
+```SELECT * FROM cd_validate_organizations('3,4,5');```
+
+| integer[]   |
+|-------------|
+| {3,4,5}     |
+
+
+<a name="cd_validate_project"/>
+cd\_validate\_project
+===========================
+
+##### Description
+
+Validate an project\_id.
+
+##### Parameter(s)
+
+1. project\_id (integer) - **Required**. project_id to validate.
+
+##### Result
+
+Boolean. True/False valid.
+
+##### Example(s)
+
+```SELECT * FROM cd_validate_project(3);```
+
+TRUE
+
+<a name="cd_validate_projects"/>
+cd\_validate\_projects
+===========================
+
+##### Description
+
+Validate list of project\_ids.
+
+##### Parameter(s)
+
+1. project\_ids (character varying) - **Required**. comma separated list of project_ids to validate.
+
+##### Result
+
+Integer array of valid ACTIVE project_ids.
+
+##### Example(s)
+
+```SELECT * FROM cd_validate_projects('3,4,5');```
+
+| integer[]   |
+|-------------|
+| {3,4,5}     |
+
 
 <a name="cd_import_data_json"/>
 cd\_import\_data\_json

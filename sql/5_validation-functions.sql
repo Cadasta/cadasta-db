@@ -361,7 +361,7 @@ BEGIN
     -- Must have a value in the parameter
     IF $1 IS NOT NULL THEN
 
-	    -- Make sure parcel id exists
+	    -- Make sure relationship id exists
 	    SELECT INTO r_id id FROM relationship where id = $1;
 
 	    SELECT INTO curr_time current_timestamp;
@@ -490,5 +490,126 @@ BEGIN
 
 EXCEPTION
      WHEN others THEN RETURN NULL;
+END;
+$$ LANGUAGE 'plpgsql';
+
+
+/******************************************************************
+  cd_validate_projects
+
+  SELECT * FROM cd_validate_projects('1,2,3');
+
+  SELECT * FROM project
+
+******************************************************************/
+CREATE OR REPLACE FUNCTION cd_validate_projects(project_ids character varying)
+RETURNS INT[] AS $$
+DECLARE
+  valid_project_ids INT[];
+  filter_project_ids INT[];
+BEGIN
+     IF $1 IS NULL THEN
+       RETURN valid_project_ids;
+     END IF;
+
+     filter_project_ids := string_to_array($1, ',')::int[];
+
+     SELECT INTO valid_project_ids array_agg(DISTINCT id)::INT[] FROM
+     (SELECT id FROM project WHERE active = true AND sys_delete = false AND id = ANY(filter_project_ids) ORDER BY id) AS t;
+
+     RETURN valid_project_ids;
+
+EXCEPTION
+     WHEN others THEN RETURN NULL;
+END;
+$$ LANGUAGE 'plpgsql';
+
+/******************************************************************
+  cd_validate_project
+
+  SELECT * FROM PROJECT;
+
+  SELECT * FROM cd_validate_project(1);
+  SELECT * FROM cd_validate_project(3);
+
+******************************************************************/
+CREATE OR REPLACE FUNCTION cd_validate_project(project_id integer) RETURNS boolean AS $$
+DECLARE valid_id integer;
+BEGIN
+
+     IF $1 IS NULL THEN
+       RETURN false;
+     END IF;
+
+     SELECT INTO valid_id id FROM project WHERE active = true AND sys_delete = false AND id = $1;
+
+     IF valid_id IS NULL THEN
+      RETURN false;
+     ELSE
+      RETURN true;
+     END IF;
+
+EXCEPTION WHEN others THEN
+    RETURN FALSE;
+END;
+$$ LANGUAGE 'plpgsql';
+
+/******************************************************************
+  cd_validate_organizations
+
+  SELECT * FROM cd_validate_organizations('1,2,3');
+
+  SELECT * FROM organization
+
+******************************************************************/
+CREATE OR REPLACE FUNCTION cd_validate_organizations(organization_ids character varying)
+RETURNS INT[] AS $$
+DECLARE
+  valid_organization_ids INT[];
+  filter_organization_ids INT[];
+BEGIN
+     IF $1 IS NULL THEN
+       RETURN valid_organization_ids;
+     END IF;
+
+     filter_organization_ids := string_to_array($1, ',')::int[];
+
+     SELECT INTO valid_organization_ids array_agg(DISTINCT id)::INT[] FROM
+     (SELECT id FROM organization WHERE active = true AND sys_delete = false AND id = ANY(filter_organization_ids) ORDER BY id) AS t;
+
+     RETURN valid_organization_ids;
+
+EXCEPTION
+     WHEN others THEN RETURN NULL;
+END;
+$$ LANGUAGE 'plpgsql';
+
+/******************************************************************
+  cd_validate_organization
+
+  SELECT * FROM ORGANIZATION;
+
+  SELECT * FROM cd_validate_organization(1);
+  SELECT * FROM cd_validate_organization(3);
+
+******************************************************************/
+CREATE OR REPLACE FUNCTION cd_validate_organization(organization_id integer) RETURNS boolean AS $$
+DECLARE valid_id integer;
+BEGIN
+
+     IF $1 IS NULL THEN
+       RETURN false;
+     END IF;
+
+     SELECT INTO valid_id id FROM organization WHERE active = true AND sys_delete = false AND id = $1;
+
+     IF valid_id IS NULL THEN
+      RETURN false;
+     ELSE
+      RETURN true;
+     END IF;
+
+EXCEPTION WHEN others THEN
+    RETURN FALSE;
 END;
 $$ LANGUAGE 'plpgsql';

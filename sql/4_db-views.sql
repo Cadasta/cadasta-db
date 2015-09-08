@@ -9,13 +9,14 @@
 
 -- Show all relationships
 CREATE OR replace view show_relationships AS
-SELECT r.id AS relationship_id, t.type AS relationship_type, parcel.id AS parcel_id, s.type AS spatial_source, COALESCE(rg.geom,parcel.geom) as geom,
+SELECT r.id AS relationship_id, t.type AS relationship_type, parcel.id AS parcel_id, s.type AS spatial_source, project.title as project_title, COALESCE(rg.geom,parcel.geom) as geom,
 party.id AS party_id, first_name, lASt_name, r.time_created,r.active, r.time_updated
-FROM parcel,party,relationship r left join relationship_geometry rg on r.geom_id = rg.id, spatial_source s, tenure_type t
+FROM parcel,party,relationship r left join relationship_geometry rg on r.geom_id = rg.id, spatial_source s, tenure_type t, project
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
 AND parcel.spatial_source = s.id
 AND r.tenure_type = t.id
+AND r.project_id = project.id
 AND r.active = true;
 
 -- Show latest parcel, party, & relationship activity
@@ -52,12 +53,13 @@ parcel.id AS parcel_id,
 rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created,
 rh.time_updated, rh.created_by, rh.updated_by,
 -- relationship table columns
-t.type AS relationship_type,
+t.type AS relationship_type, project.title as project_title,
 s.type AS spatial_source, party.id AS party_id, first_name, last_name
-FROM parcel,party,relationship r left join relationship_geometry rg on r.geom_id = rg.id, spatial_source s, tenure_type t, relationship_history rh
+FROM parcel,party,relationship r left join relationship_geometry rg on r.geom_id = rg.id, spatial_source s, tenure_type t, relationship_history rh, project
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
 AND rh.relationship_id = r.id
 AND parcel.spatial_source = s.id
 AND r.tenure_type = t.id
+AND r.project_id = project.id
 AND r.active = true;

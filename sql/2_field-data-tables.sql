@@ -1,4 +1,4 @@
-/******************************************************************
+﻿/******************************************************************
   field_data TABLE DEFINITIONS
 ******************************************************************/
 
@@ -6,7 +6,7 @@
 CREATE TABLE "field_data"
 (
 	"id"			SERIAL				NOT NULL
-	,"project_id" int -- CKAN project id
+	,project_id int references project(id) 
 	,"user_id" int -- CKAN user id
 	,"parcel_id" int
 	,"id_string"		character varying		NOT NULL

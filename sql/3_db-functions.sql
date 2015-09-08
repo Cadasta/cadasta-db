@@ -1,4 +1,4 @@
-/******************************************************************
+﻿/******************************************************************
     Create New field data form
 
     cd_create_field_data
@@ -105,48 +105,56 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
     Create new party
 
+    SELECT * FROM cd_create_party(1,'Danny', 'Seagate');
+
 ******************************************************************/
 
 -- Create new party
 
-CREATE OR REPLACE FUNCTION cd_create_party(first_name character varying, last_name character varying)
+CREATE OR REPLACE FUNCTION cd_create_party(project_id int, first_name character varying, last_name character varying)
   RETURNS INTEGER AS $$
   DECLARE
   p_id integer;
+  cd_project_id int;
 BEGIN
 
-    IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
-	-- Save the original organization ID variable
-    INSERT INTO party (first_name, last_name) VALUES (first_name,last_name) RETURNING id INTO p_id person_id;
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL THEN
 
-	RETURN p_id;
+        SELECT INTO cd_project_id id FROM project where id = $1;
 
+	    -- Save the original organization ID variable
+        INSERT INTO party (project_id, first_name, last_name) VALUES (cd_project_id,first_name,last_name) RETURNING id INTO p_id;
+
+	    RETURN p_id;
+    ELSE
+        RETURN p_id;
 	END IF;
 
 END;
   $$ LANGUAGE plpgsql VOLATILE;
 
+/********************************************************
 
-
-/******************************************************************
     cd_create_parcel
 
-    Create New Parcel
+    INSERT INTO organization (title) VALUES ('HFH');
+    INSERT INTO project (organization_id, title) VALUES ((SELECT id from organization where title = 'HFH'), 'Bolivia');
 
-    -- SELECT * FROM cd_create_parcel ('survey_sketch',5,222.45,'point',null,null,'62.640826','-114.233223',null,null,'just got this yesterday');
-    -- select * from parcel
-    -- select * from parcel_history
+    select * from parcel
+    select * from project
 
-******************************************************************/
+    SELECT ST_LENGTH(ST_TRANSFORM((select geom from parcel where id =20),3857))
+    SELECT ST_GeometryType((select geom from parcel where id =20))
+    select * from parcel
 
--- SELECT * FROM cd_create_parcel ('survey_sketch',5,222.45,'point',null,null,'62.640826','-114.233223',null,null,'just got this yesterday');
--- SELECT * FROM cd_create_parcel('survey_sketch',5,22.45,null,null,null,'new joint');
+-- SELECT * FROM cd_create_parcel('survey_sketch','11', 1 ,(select geom from parcel where id = 7),null,null,'new description');
 -- select * from parcel
 -- select * from parcel_history
 
+*********************************************************/
 CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
                                             ckan_user_id integer,
-                                            area numeric,
+                                            project_id integer,
                                             geom geometry,
                                             land_use land_use,
                                             gov_pin character varying,
@@ -155,9 +163,12 @@ CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
   DECLARE
   p_id integer;
   ph_id integer;
+  cd_project_id integer;
   cd_geometry geometry;
+  cd_geom_type character varying;
   cd_user_id int;
   cd_area numeric;
+  cd_length numeric;
   cd_spatial_source character varying;
   cd_spatial_source_id int;
   cd_land_use land_use;
@@ -170,35 +181,56 @@ BEGIN
     -- spatial source and ckan id required
     IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
 
-        SELECT INTO cd_current_date * FROM current_date;
+        SELECT INTO cd_project_id id FROM project where id = $3;
 
-        cd_area := area::numeric;
-        cd_gov_pin := gov_pin;
-        cd_land_use := land_use;
-        cd_spatial_source = spatial_source;
-        cd_history_description = history_description;
-        cd_user_id = ckan_user_id::int;
-        cd_geometry = geom;
+        IF cd_project_id IS NOT NULL THEN
+            SELECT INTO cd_current_date * FROM current_date;
 
-        SELECT INTO cd_spatial_source_id id FROM spatial_source WHERE type = cd_spatial_source;
+            cd_gov_pin := gov_pin;
+            cd_land_use := land_use;
+            cd_spatial_source = spatial_source;
+            cd_history_description = history_description;
+            cd_user_id = ckan_user_id::int;
+            cd_geometry = geom;
 
-	    IF cd_spatial_source_id IS NOT NULL THEN
-				INSERT INTO parcel (spatial_source,user_id,geom,area,land_use,gov_pin,created_by) VALUES
-				(cd_spatial_source_id,cd_user_id,cd_geometry,cd_area,cd_land_use,cd_gov_pin,cd_user_id) RETURNING id INTO p_id;
-				RAISE NOTICE 'Successfully created parcel, id: %', p_id;
+            SELECT INTO cd_spatial_source_id id FROM spatial_source WHERE type = cd_spatial_source;
 
-				INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified,created_by) VALUES
-				(p_id,p_id,cd_history_description,cd_current_date,cd_user_id) RETURNING id INTO ph_id;
-				RAISE NOTICE 'Successfully created parcel history, id: %', ph_id;
-		ELSE
-		    RAISE NOTICE 'Invalid spatial source';
-		END IF;
+            SELECT INTO cd_geom_type * FROM ST_GeometryType(cd_geometry); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
 
-	    IF p_id IS NOT NULL THEN
-		RETURN p_id;
+             IF cd_geom_type iS NOT NULL THEN
+                  RAISE NOTICE 'cd_geom_type: %', cd_geom_type;
+                 CASE (cd_geom_type)
+                    WHEN 'ST_Polygon' THEN
+                        cd_area = ST_AREA(ST_TRANSFORM(cd_geometry,3857)); -- get area in meters
+                    WHEN 'ST_LineString' THEN
+                        cd_length = ST_LENGTH(ST_TRANSFORM(cd_geometry,3857)); -- get length in meters
+                        RAISE NOTICE 'length: %', cd_length;
+                    ELSE
+                        RAISE NOTICE 'Parcel is a point';
+                 END CASE;
+             END IF;
+
+	        IF cd_spatial_source_id IS NOT NULL THEN
+				    INSERT INTO parcel (spatial_source,project_id, user_id,geom,area,length,land_use,gov_pin,created_by) VALUES
+				    (cd_spatial_source_id,cd_project_id,cd_user_id,cd_geometry,cd_area,cd_length,cd_land_use,cd_gov_pin,cd_user_id) RETURNING id INTO p_id;
+				    RAISE NOTICE 'Successfully created parcel, id: %', p_id;
+
+				    INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified,created_by) VALUES
+				    (p_id,p_id,cd_history_description,cd_current_date,cd_user_id) RETURNING id INTO ph_id;
+				    RAISE NOTICE 'Successfully created parcel history, id: %', ph_id;
+		    ELSE
+		        RAISE NOTICE 'Invalid spatial source';
+		    END IF;
+
+	        IF p_id IS NOT NULL THEN
+		        RETURN p_id;
+	        ELSE
+		        RAISE NOTICE 'Unable to create Parcel';
+		        RETURN NULL;
+	        END IF;
 	    ELSE
-		RAISE NOTICE 'Unable to create Parcel';
-		RETURN NULL;
+	        RAISE NOTICE 'Invalid project id';
+	        RETURN NULL;
 	    END IF;
 
 	ELSE
@@ -209,29 +241,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
--- SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
--- select * from parcel
--- select * from relationship
 
 /******************************************************************
- TESTING cd_create_relationship
+
+ cd_create_relationship
 
  select * from relationship
  select * from parcel
  select * from person
-
+ select * from project
  select * from current_date
+ -- Add person (id: 4) & parcel (id: 7) to relationship
+ SELECT * FROM cd_create_relationship(1,7,null,4,null,'lease',null,'Uncle Phils will',null);
+ -- with date
+ SELECT * FROM cd_create_relationship(1,7,null,4,null,'lease',current_date,null,null);
 
-
- -- Add person & parcel to relationship
- SELECT * FROM cd_create_relationship(7,5,4,null,null,'lease',null,null,null);
- SELECT * FROM cd_create_relationship(5,1,3,null,NULL,'Own','2001-09-28','Stolen',false);
-
- SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
- SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
 ******************************************************************/
 
 CREATE OR REPLACE FUNCTION cd_create_relationship(
+                                            project_id int,
                                             parcel_id int,
                                             ckan_user_id int,
                                             party_id int,
@@ -247,6 +275,7 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
   cd_parcel_id int;
   cd_ckan_user_id int;
   cd_party_id int;
+  cd_project_id int;
   cd_geom_id int;
   cd_tenure_type_id int;
   cd_tenure_type character varying;
@@ -257,10 +286,12 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
 
 BEGIN
 
-    IF $1 IS NOT NULL AND $5 IS NOT NULL AND ($3 IS NOT NULL) THEN
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $4 IS NOT NULL AND $6 IS NOT NULL THEN
 
         cd_history_description = history_description;
         cd_tenure_type = tenure_type;
+
+        cd_acquired_date = acquired_date;
 
 	    -- get parcel_id
         SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int;
@@ -268,13 +299,17 @@ BEGIN
         SELECT INTO cd_party_id id FROM party where id = party_id::int;
         -- get tenure type id
         SELECT INTO cd_tenure_type_id id FROM tenure_type where type = cd_tenure_type;
+        -- get project id
+        SELECT INTO cd_project_id id FROM project where id = $1;
+        -- get geom id
+        SELECT INTO cd_geom_id id FROM relationship_geometry where id = $5;
 
         -- get ckan user id
         cd_ckan_user_id = ckan_user_id;
 
         SELECT INTO cd_current_date * FROM current_date;
 
-        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL THEN
+        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL AND cd_project_id IS NOT NULL THEN
 
             RAISE NOTICE 'Relationship parcel_id: %', cd_parcel_id;
 
@@ -286,8 +321,8 @@ BEGIN
                 RAISE NOTICE 'Relationship party_id: %', cd_party_id;
 
 		        -- create relationship row
-                INSERT INTO relationship (created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
-                VALUES (ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired) RETURNING id INTO r_id;
+                INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
+                VALUES (cd_project_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
 
                 -- create relationship history
                 INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
@@ -295,18 +330,9 @@ BEGIN
 
 		        RAISE NOTICE 'Successfully created new relationship id: %', r_id;
 
---            ELSIF cd_group_id IS NOT NULL AND cd_party_id IS NULL THEN
---                -- create relationship row
---                INSERT INTO relationship (parcel_id,party_id,group_id,tenure_type,geom_id,acquired_date,how_acquired, archived)
---                VALUES (cd_parcel_id,cd_party_id, cd_group_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired,cd_archived) RETURNING id INTO r_id;
---                RAISE NOTICE 'Successfully created new relationship id: %', r_id;
---
---                -- create relationship history
---                INSERT INTO relationship_history (relationship_id,origin_id,active,timestamp,description,date_modified)
---                VALUES (r_id,r_id,true,cd_relationship_timestamp, cd_history_description, cd_current_date);
             END IF;
         ELSE
-            RAISE NOTICE 'Invalid parcel id:% or tenure type: %', cd_parcel_id, cd_tenure_type_id;
+            RAISE NOTICE 'Invalid parcel id:% or tenure type: % or project_id %', cd_parcel_id, cd_tenure_type_id, cd_project_id;
             RETURN NULL;
         END IF;
 
@@ -318,6 +344,8 @@ BEGIN
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
 /******************************************************************
 
  Function: cd_process_data()
@@ -326,7 +354,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 
 ******************************************************************/
 --  Trigger to process FormHub data.json file after loading
---  Trigger to process FormHub data.json file after loading
+
 CREATE OR REPLACE FUNCTION cd_process_data()
 RETURNS TRIGGER AS $cd_process_data$
 DECLARE
@@ -338,8 +366,12 @@ DECLARE
   options record;
   option record;
   data_respondent_id integer;
+  data_project_id integer;
   data_person_id int;
+  data_geom_type character varying;
   data_geom geometry;
+  data_area numeric;
+  data_length numeric;
   question_id integer;
   question_id_l integer;
   data_relationship_id int;
@@ -383,6 +415,8 @@ BEGIN
 
     IF data_survey_id IS NOT NULL THEN
 
+    SELECT INTO data_project_id id FROM project ORDER BY id LIMIT 1;
+
     -- get respondent first name
     SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';
     -- get respondent last name
@@ -393,11 +427,11 @@ BEGIN
 
         -- take the first name , last name fields out of the survey
         IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
-          SELECT INTO data_person_id * FROM cd_create_party (data_survey_first_name,data_survey_last_name);
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, data_survey_first_name,data_survey_last_name);
           RAISE NOTICE 'Created Person id: %', data_person_id;
         END IF;
 
-      EXECUTE 'INSERT INTO respondent (field_data_id, time_created) VALUES ('|| raw_field_data_id || ',' || current_timestamp || ') RETURNING id' INTO data_respondent_id;
+      EXECUTE 'INSERT INTO respondent (field_data_id) VALUES ('|| raw_field_data_id || ') RETURNING id' INTO data_respondent_id;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
@@ -494,13 +528,14 @@ BEGIN
                 RAISE NOTICE 'Found geolocation:' ;
                   data_geojson = element.value::text;
 
-                  SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
+                  RAISE NOTICE 'geojson: %', data_geojson;
+
+                  SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326); -- convert to LAT LNG GEOM
 
                   RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
 
-                  -- Create new parcel
-
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',null,data_geom,null,null,'new description');
+		   -- Create new parcel
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',data_project_id,data_geom,null,null,'new description');
 
                   IF data_parcel_id IS NOT NULL THEN
                     RAISE NOTICE 'New parcel id: %', data_parcel_id;
@@ -508,6 +543,7 @@ BEGIN
                   ELSE
                     RAISE NOTICE 'Cannot create parcel';
                   END IF;
+                  
               WHEN ('_submission_time') THEN
                 IF element.value IS NOT NULL THEN
                   EXECUTE 'UPDATE respondent SET submission_time = ' || quote_literal(replace(element.value,'T',' ')) || ' WHERE id = ' || data_respondent_id;
@@ -524,9 +560,9 @@ BEGIN
       END IF;
       IF data_parcel_id IS NOT NULL AND data_person_id IS NOT NULL THEN
         -- create relationship
-        RAISE NOTICE 'Creating relationships tenure type: %', data_tenure_type ;
+        RAISE NOTICE 'Creating relationships tenure type: % project_id %', data_tenure_type, data_project_id;
         SELECT INTO data_relationship_id * FROM cd_create_relationship
-        (data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
+        (data_project_id,data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
 
         IF data_relationship_id IS NOT NULL THEN
             RAISE NOTICE 'New relationship id: %', data_relationship_id;
@@ -543,6 +579,167 @@ BEGIN
   RETURN NEW;
 END;
 $cd_process_data$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS cd_process_data ON raw_data;
+
 CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
     FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
+
+/******************************************************************
+ TESTING cd_create_relationship_geometry
+
+ SELECT * FROM cd_create_relationship_geometry(2,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+
+ SELECT * FROM cd_create_relationship_geometry(4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+
+ SELECT * FROM cd_create_relationship_geometry(24,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+
+
+ select * from relationship_geometry
+ select * from relationship
+******************************************************************/
+
+CREATE OR REPLACE FUNCTION cd_create_relationship_geometry(relationship_id int, geojson text)
+  RETURNS INTEGER AS $$
+  DECLARE
+
+  valid_id int;
+  rg_id int; -- new relationship geometry id
+  data_geojson character varying; -- geojson paramater
+  data_geom geometry;
+
+  BEGIN
+
+    IF ($1 IS NOT NULL AND $2 IS NOT NULL) THEN
+
+        -- validate relationshup id
+        IF (cd_validate_relationship($1)) THEN
+
+            data_geojson = geojson::text;
+
+            -- get id from relationship table
+            SELECT INTO valid_id id FROM relationship where id = $1;
+            -- get geom form GEOJSON
+            SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
+
+            IF data_geom IS NOT NULL AND valid_id IS NOT NULL THEN
+
+                -- add relationship geom column
+                INSERT INTO relationship_geometry (geom) VALUES (data_geom) RETURNING id INTO rg_id;
+
+                IF rg_id IS NOT NULL THEN
+                    -- add relationship geom id in relationship table
+                    UPDATE relationship SET geom_id = rg_id, time_updated = current_timestamp WHERE id = valid_id;
+                    RETURN rg_id;
+                END IF;
+
+            ELSE
+                RAISE NOTICE 'Invalid geometry: %', geom;
+                RETURN NULL;
+            END IF;
+
+        ELSE
+            RAISE NOTICE 'Invalid relationship id: %', relationship_id;
+            RETURN NULL;
+        END IF;
+
+    ELSE
+        RAISE NOTICE 'Relationship id and Geometry required';
+        RETURN NULL;
+    END IF;
+
+  END;
+
+$$ LANGUAGE plpgsql VOLATILE;
+
+-- Create new organization
+/********************************************************
+
+    cd_create_organization
+
+    select * from organization;
+
+    SELECT * FROM cd_create_organization('Cadasta','Cadasta Org',null);
+    SELECT * FROM cd_create_organization('Cadasta',null,null);
+
+*********************************************************/
+CREATE OR REPLACE FUNCTION cd_create_organization(ckan_org_id character varying, title character varying, description character varying)
+  RETURNS INTEGER AS $$
+  DECLARE
+  o_id integer;
+  cd_ckan_org_id character varying;
+  cd_description character varying;
+  cd_title character varying;
+BEGIN
+
+    cd_ckan_org_id = ckan_org_id;
+    cd_description = description;
+    cd_title = title;
+
+    IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
+
+	    -- Save the original organization ID variable
+        INSERT INTO organization (title, description, ckan_id) VALUES (cd_title,cd_description,cd_ckan_org_id) RETURNING id INTO o_id;
+
+	    RETURN o_id;
+    ELSE
+        RAISE NOTICE 'Missing ckan_org_id OR title';
+        RETURN o_id;
+	END IF;
+
+END;
+  $$ LANGUAGE plpgsql VOLATILE;
+
+
+-- Create new project
+
+/********************************************************
+
+    cd_create_project
+
+    select * from project;
+    select * from organization;
+
+    SELECT * FROM cd_create_project(1,'Medellin','Medellin Pilot');
+    SELECT * FROM cd_create_project(1,'Ghana','Ghana Pilot');
+
+    SELECT * FROM cd_create_project(2,'Ghana',null);
+    SELECT * FROM cd_create_project(4,'Medellin','Medellin Pilot');
+
+*********************************************************/
+CREATE OR REPLACE FUNCTION cd_create_project(org_id integer, ckan_project_id character varying, title character varying)
+  RETURNS INTEGER AS $$
+  DECLARE
+  p_id integer;
+  o_id integer;
+  cd_ckan_project_id character varying;
+  cd_title character varying;
+BEGIN
+
+    cd_ckan_project_id = ckan_project_id;
+    cd_title = title;
+    cd_ckan_project_id = ckan_project_id;
+
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL THEN
+
+        -- Grab org id from org table
+        SELECT INTO o_id id FROM organization WHERE id = $1;
+
+        -- Validate organization id
+        IF o_id IS NOT NULL AND cd_validate_organization($1) THEN
+
+	        -- Create project and store project id
+            INSERT INTO project (organization_id, ckan_id, title) VALUES (o_id,cd_ckan_project_id,cd_title) RETURNING id INTO p_id;
+
+            RETURN p_id;
+        ELSE
+            RAISE NOTICE 'Invalid organization id %', $1;
+            RETURN p_id;
+        END IF;
+
+    ELSE
+        RAISE NOTICE 'All parameters required';
+        RETURN p_id;
+	END IF;
+
+END;
+  $$ LANGUAGE plpgsql VOLATILE;
+

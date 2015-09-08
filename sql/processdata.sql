@@ -1,4 +1,12 @@
+/******************************************************************
+
+ Function: cd_process_data()
+
+ Trigger to process FormHub data.json file after loading
+
+******************************************************************/
 --  Trigger to process FormHub data.json file after loading
+
 CREATE OR REPLACE FUNCTION cd_process_data()
 RETURNS TRIGGER AS $cd_process_data$
 DECLARE
@@ -10,8 +18,12 @@ DECLARE
   options record;
   option record;
   data_respondent_id integer;
+  data_project_id integer;
   data_person_id int;
+  data_geom_type character varying;
   data_geom geometry;
+  data_area numeric;
+  data_length numeric;
   question_id integer;
   question_id_l integer;
   data_relationship_id int;
@@ -55,6 +67,8 @@ BEGIN
 
     IF data_survey_id IS NOT NULL THEN
 
+    SELECT INTO data_project_id id FROM project ORDER BY id LIMIT 1;
+
     -- get respondent first name
     SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';
     -- get respondent last name
@@ -65,11 +79,11 @@ BEGIN
 
         -- take the first name , last name fields out of the survey
         IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
-          SELECT INTO data_person_id * FROM cd_create_party (data_survey_first_name,data_survey_last_name);
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, data_survey_first_name,data_survey_last_name);
           RAISE NOTICE 'Created Person id: %', data_person_id;
         END IF;
 
-      EXECUTE 'INSERT INTO respondent (field_data_id, time_created) VALUES ('|| raw_field_data_id || ',' || quote_literal(current_timestamp) || ') RETURNING id' INTO data_respondent_id;
+      EXECUTE 'INSERT INTO respondent (field_data_id) VALUES ('|| raw_field_data_id || ') RETURNING id' INTO data_respondent_id;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
@@ -168,13 +182,14 @@ BEGIN
 
                   RAISE NOTICE 'geojson: %', data_geojson;
 
-                  SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
+                  SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326); -- convert to LAT LNG GEOM
 
                   RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
 
-                  -- Create new parcel
+                  IF data_geom IS NOT NULL THEN
 
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',null,data_geom,null,null,'new description');
+                  -- Create new parcel
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',data_project_id,data_geom,null,null,'new description');
 
                   IF data_parcel_id IS NOT NULL THEN
                     RAISE NOTICE 'New parcel id: %', data_parcel_id;
@@ -198,9 +213,9 @@ BEGIN
       END IF;
       IF data_parcel_id IS NOT NULL AND data_person_id IS NOT NULL THEN
         -- create relationship
-        RAISE NOTICE 'Creating relationships tenure type: %', data_tenure_type ;
+        RAISE NOTICE 'Creating relationships tenure type: % project_id %', data_tenure_type, data_project_id;
         SELECT INTO data_relationship_id * FROM cd_create_relationship
-        (data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
+        (data_project_id,data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
 
         IF data_relationship_id IS NOT NULL THEN
             RAISE NOTICE 'New relationship id: %', data_relationship_id;
@@ -217,74 +232,6 @@ BEGIN
   RETURN NEW;
 END;
 $cd_process_data$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS cd_process_data ON raw_data;
+
 CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
     FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
-
-/******************************************************************
-
- TESTING cd_create_relationship_geometry
-
- SELECT * FROM cd_create_relationship_geometry(2,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
-
- SELECT * FROM cd_create_relationship_geometry(4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
-
- SELECT * FROM cd_create_relationship_geometry(24,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
-
-
- select * from relationship_geometry
- select * from relationship
-******************************************************************/
-
-CREATE OR REPLACE FUNCTION cd_create_relationship_geometry(relationship_id int, geojson text)
-  RETURNS INTEGER AS $$
-  DECLARE
-
-  valid_id int;
-  rg_id int; -- new relationship geometry id
-  data_geojson character varying; -- geojson paramater
-  data_geom geometry;
-
-  BEGIN
-
-    IF ($1 IS NOT NULL AND $2 IS NOT NULL) THEN
-
-        -- validate relationshup id
-        IF (cd_validate_relationship($1)) THEN
-
-            data_geojson = geojson::text;
-
-            -- get id from relationship table
-            SELECT INTO valid_id id FROM relationship where id = $1;
-            -- get geom form GEOJSON
-            SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
-
-            IF data_geom IS NOT NULL AND valid_id IS NOT NULL THEN
-
-                -- add relationship geom column
-                INSERT INTO relationship_geometry (geom) VALUES (data_geom) RETURNING id INTO rg_id;
-
-                IF rg_id IS NOT NULL THEN
-                    -- add relationship geom id in relationship table
-                    UPDATE relationship SET geom_id = rg_id, time_updated = current_timestamp WHERE id = valid_id;
-                    RETURN rg_id;
-                END IF;
-
-            ELSE
-                RAISE NOTICE 'Invalid geometry: %', geom;
-                RETURN NULL;
-            END IF;
-
-        ELSE
-            RAISE NOTICE 'Invalid relationship id: %', relationship_id;
-            RETURN NULL;
-        END IF;
-
-    ELSE
-        RAISE NOTICE 'Relationship id and Geometry required';
-        RETURN NULL;
-    END IF;
-
-  END;
-
-$$ LANGUAGE plpgsql VOLATILE;

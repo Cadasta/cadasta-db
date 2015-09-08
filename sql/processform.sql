@@ -82,14 +82,13 @@ BEGIN
          -- parent section headings or closing statements
          WHEN ('note') THEN
 
-         -- update field_data project id
+         -- Use one project until Cadasta API endpoint is built
+         SELECT INTO field_data_project_id id FROM project ORDER by id LIMIT 1;
 
-         SELECT INTO field_data_project_id project_id FROM field_data WHERE id = field_data_id;
          IF field_data_project_id IS NULL AND parent_question_name = 'project_id' THEN
             RAISE NOTICE 'Found project id %', parent_question_name;
 
-
-            UPDATE field_data SET project_id = (SELECT value::int FROM json_each_text(parent_question_json.json) WHERE key = 'label');
+            UPDATE field_data SET project_id = field_data_project_id;
          END IF;
 
         /******************************************************************************

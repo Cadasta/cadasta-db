@@ -14,11 +14,40 @@ CREATE TYPE json_result AS (response json);
 CREATE TYPE land_use AS ENUM ('Commercial', 'Residential');
 CREATE TYPE id_type AS ENUM ('Drivers License, Passport');
 
+-- CKAN organizaiton
+CREATE TABLE organization (
+    id serial primary key not null,
+    title character varying,
+    description character varying,
+    ckan_id character varying unique,
+    active boolean default true,
+    sys_delete boolean default false,
+    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    created_by integer,
+    updated_by integer
+);
+
+-- CKAN project
+CREATE TABLE project (
+    id serial primary key not null,
+    organization_id int not null references organization(id),
+    title character varying,
+    ckan_id character varying,
+    active boolean default true,
+    sys_delete boolean default false,
+    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    created_by integer,
+    updated_by integer
+);
+
 -- Project table holds CKAN project extents
-CREATE TABLE Project_Extents (
+CREATE TABLE project_extents (
     id int primary key not null,
-    project_id int not null,
+    project_id int not null references project(id),
     geom geometry,
+    active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -27,9 +56,11 @@ CREATE TABLE Project_Extents (
 );
 
 -- Project WMS/Tile layers
-CREATE TABLE Project_Layers (
+CREATE TABLE project_Layers (
     id int primary key not null,
+    project_id int not null references project(id),
     layer_url character varying not null,
+    active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -43,6 +74,7 @@ CREATE TABLE resource (
     type character varying,
     url character varying,
     description character varying,
+    active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -53,6 +85,7 @@ CREATE TABLE resource (
 -- Party table
 CREATE TABLE party (
     id serial primary key not null,
+    project_id int not null references project(id),
     first_name character varying not null,
     last_name character varying not null,
     type character varying,
@@ -150,9 +183,11 @@ INSERT INTO spatial_source (type) VALUES ('survey_grade_gps');
 -- Parcel Geometry table
 CREATE TABLE parcel (
     id serial primary key not null,
+    project_id int not null references project(id),
     spatial_source int references spatial_source(id) not null, -- required?
     user_id character varying not null,
-    area numeric,
+    area numeric,  -- area of polygon
+    length numeric,  -- lengthof linestring
     geom geometry,
     land_use land_use,
     gov_pin character varying,
@@ -185,6 +220,7 @@ CREATE TABLE relationship_geometry (
 -- resource will be attached to relationship
 CREATE TABLE relationship (
     id serial primary key not null,
+    project_id int not null references project(id),
     parcel_id int references parcel(id) not null,
     party_id int references party(id),
     geom_id int references relationship_geometry (id),
