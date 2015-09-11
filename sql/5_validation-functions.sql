@@ -613,3 +613,31 @@ EXCEPTION WHEN others THEN
     RETURN FALSE;
 END;
 $$ LANGUAGE 'plpgsql';
+
+
+/******************************************************************
+  cd_validate_party
+
+  select * from cd_validate_party(3);
+
+******************************************************************/
+CREATE OR REPLACE FUNCTION cd_validate_party(party_id integer) RETURNS boolean AS $$
+DECLARE valid_id integer;
+BEGIN
+
+     IF $1 IS NULL THEN
+       RETURN false;
+     END IF;
+
+     SELECT INTO valid_id id FROM party WHERE active = true AND sys_delete = false AND id = $1;
+
+     IF valid_id IS NULL THEN
+      RETURN false;
+     ELSE
+      RETURN true;
+     END IF;
+
+EXCEPTION WHEN others THEN
+    RETURN FALSE;
+END;
+$$ LANGUAGE 'plpgsql';

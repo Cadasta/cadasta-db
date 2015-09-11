@@ -71,8 +71,9 @@ CREATE TABLE project_Layers (
 -- resource table holds all resources
 CREATE TABLE resource (
     id serial primary key not null,
+    project_id int not null references project(id),
+    url character varying unique,
     type character varying,
-    url character varying,
     description character varying,
     active boolean default true,
     sys_delete boolean default false,
@@ -105,6 +106,7 @@ CREATE TABLE party (
     gender gender,
     DOB date,
     active boolean default true,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
