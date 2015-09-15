@@ -6,7 +6,6 @@
 --- DROP VIEW show_activity;
 --- DROP VIEW show_parcels_list;
 
-
 -- Show all relationships
 CREATE OR replace view show_relationships AS
 SELECT r.id AS relationship_id, t.type AS relationship_type, parcel.id AS parcel_id, project.id AS project_id, s.type AS spatial_source, project.title as project_title, COALESCE(rg.geom,parcel.geom) as geom,
@@ -63,3 +62,29 @@ AND parcel.spatial_source = s.id
 AND r.tenure_type = t.id
 AND r.project_id = project.id
 AND r.active = true;
+
+-- Parcel Resource Views
+CREATE VIEW show_parcel_resources AS
+SELECT rp.parcel_id, rp.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by, r.project_id
+from resource r, parcel p, resource_parcel rp
+where rp.parcel_id = p.id
+and rp.resource_id = r.id;
+
+-- Party Resource Views
+CREATE VIEW show_party_resources AS
+SELECT rp.party_id, rp.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by, r.project_id
+from resource r, party p, resource_party rp
+where rp.party_id = p.id
+and rp.resource_id = r.id;
+
+-- Relationship Resource Views
+CREATE VIEW show_relationship_resources AS
+SELECT rr.relationship_id, rr.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by, r.project_id
+from resource r, relationship rel, resource_relationship rr
+where rr.relationship_id = rel.id
+and rr.resource_id = r.id;
+
+-- Project Extents
+CREATE VIEW show_project_extents AS
+SELECT p.id, p.organization_id, p.title, pe.geom, p.ckan_id, p.active, p.sys_delete, p.time_created, p.time_updated, p.created_by, p.updated_by
+FROM project_extents pe right join project p on pe.project_id = p.id;

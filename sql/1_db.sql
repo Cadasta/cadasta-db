@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE TYPE gender AS ENUM ('Male', 'Female');
 CREATE TYPE json_result AS (response json);
 
--- Normalize?
+-- Normalize
 CREATE TYPE land_use AS ENUM ('Commercial', 'Residential');
 CREATE TYPE id_type AS ENUM ('Drivers License, Passport');
 
@@ -33,7 +33,7 @@ CREATE TABLE project (
     id serial primary key not null,
     organization_id int not null references organization(id),
     title character varying,
-    ckan_id character varying,
+    ckan_id character varying unique,
     active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -44,7 +44,7 @@ CREATE TABLE project (
 
 -- Project table holds CKAN project extents
 CREATE TABLE project_extents (
-    id int primary key not null,
+    id serial primary key not null,
     project_id int not null references project(id),
     geom geometry,
     active boolean default true,
@@ -57,7 +57,7 @@ CREATE TABLE project_extents (
 
 -- Project WMS/Tile layers
 CREATE TABLE project_Layers (
-    id int primary key not null,
+    id serial primary key not null,
     project_id int not null references project(id),
     layer_url character varying not null,
     active boolean default true,

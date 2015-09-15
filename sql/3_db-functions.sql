@@ -650,6 +650,94 @@ CREATE OR REPLACE FUNCTION cd_create_relationship_geometry(relationship_id int, 
 
 $$ LANGUAGE plpgsql VOLATILE;
 
+/******************************************************************
+ TESTING cd_create_project_extents
+
+ SELECT * FROM cd_create_project_extents(2,$anystr${"type": "Polygon",
+    "coordinates": [
+        [
+            [
+                -122.32929289340971,
+                47.674757902221806
+            ],
+            [
+                -122.32930362224579,
+                47.67455201393344
+            ],
+            [
+                -122.32899785041809,
+                47.67455923809767
+            ],
+            [
+                -122.32889592647551,
+                47.67462064345317
+            ],
+            [
+                -122.32885301113127,
+                47.6747253935987
+            ],
+            [
+                -122.32929289340971,
+                47.674757902221806
+            ]
+        ]
+    ]
+}$anystr$);
+
+ SELECT * FROM cd_create_project_extents(1,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+
+ select * from project_extents;
+ select * from relationship_geometry
+ select * from relationship
+******************************************************************/
+
+CREATE OR REPLACE FUNCTION cd_create_project_extents(project_id int, geojson text)
+  RETURNS INTEGER AS $$
+  DECLARE
+
+  p_id int;
+  pe_id int; -- new project extents id
+  data_geojson character varying; -- geojson paramater
+  data_geom geometry;
+  cd_geom_type character varying;
+
+  BEGIN
+
+    IF ($1 IS NOT NULL AND $2 IS NOT NULL) THEN
+
+        data_geojson = geojson::text;
+
+        SELECT INTO p_id id FROM project WHERE id = $1;
+
+        IF (cd_validate_project(p_id)) THEN
+
+            -- get geom form GEOJSON
+            SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
+
+            SELECT INTO cd_geom_type * FROM ST_GeometryType(data_geom); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+
+            IF data_geom IS NOT NULL AND cd_geom_type = 'ST_Polygon' THEN
+                INSERT INTO project_extents (project_id,geom) VALUES (p_id, data_geom) RETURNING id INTO pe_id;
+                RETURN pe_id;
+            ELSE
+                RAISE NOTICE 'Invalid GeoJSON';
+                RETURN pe_id;
+            END IF;
+
+        ELSE
+            RAISE NOTICE 'Invalid Project id';
+            RETURN pe_id;
+        END IF;
+
+    ELSE
+        RAISE NOTICE 'Relationship id and Geometry required';
+        RETURN pe_id;
+    END IF;
+
+  END;
+
+$$ LANGUAGE plpgsql VOLATILE;
+
 -- Create new organization
 /********************************************************
 
