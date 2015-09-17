@@ -20,19 +20,24 @@ AND r.active = true;
 
 -- Show latest parcel, party, & relationship activity
 CREATE OR replace view show_activity AS
-SELECT * FROM (SELECT 'parcel' AS activity_type, parcel.id, s.type, NULL AS name,NULL AS parcel_id, parcel.time_created
-FROM parcel, spatial_source s
+SELECT * FROM
+(SELECT 'parcel' AS activity_type, parcel.id, s.type, NULL AS name,NULL AS parcel_id, parcel.time_created, parcel.project_id
+FROM parcel, spatial_source s, project
 WHERE parcel.spatial_source = s.id
+AND parcel.project_id = project.id
 UNION all
-SELECT 'party', party.id, NULL, first_name || ' ' || lASt_name, NULL, time_created
-FROM party
+SELECT 'party', party.id, NULL, first_name || ' ' || lASt_name, NULL, party.time_created, party.project_id
+FROM party, project
+WHERE party.project_id = project.id
 UNION all
-SELECT 'relationship', r.id, t.type, p.first_name || ' ' || p.lASt_name AS owners, par.id::text AS parcel_id, r.time_created
-FROM relationship r, tenure_type t, party p, parcel par
+SELECT 'relationship', r.id, t.type, p.first_name || ' ' || p.lASt_name AS owners, par.id::text AS parcel_id, r.time_created, r.project_id
+FROM relationship r, tenure_type t, party p, parcel par, project pro
 WHERE r.party_id = p.id
 AND r.parcel_id = par.id
-AND r.tenure_type = t.id) AS foo
-Order BY time_CREATEd DESC;
+AND r.tenure_type = t.id
+AND r.project_id = pro.id)
+AS foo
+Order BY time_created DESC;
 
 -- Parcel list with relationship count
 CREATE OR REPLACE VIEW show_parcels_list AS
