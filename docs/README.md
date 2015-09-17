@@ -163,8 +163,9 @@ Create Organization
 
 ##### Parameter(s)
 
-1.  ckan\_id (character varying) – ***Required (Unique)***. CKAN dataset schema id
-2.  title (text) – ***Required***. Organization title
+1. ckan\_id (character varying) – ***Required (Unique)***. CKAN dataset schema id
+2. title (character varying) – ***Required***. Organization title
+3. description (character varying) - Optional. Organization description
 
 ##### Result
 
