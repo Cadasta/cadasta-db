@@ -415,7 +415,7 @@ BEGIN
 
     IF data_survey_id IS NOT NULL THEN
 
-    SELECT INTO data_project_id id FROM project ORDER BY id LIMIT 1;
+    SELECT INTO data_project_id id FROM project WHERE ckan_id = 'demo-project';
 
     -- get respondent first name
     SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';

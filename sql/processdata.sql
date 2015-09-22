@@ -67,7 +67,7 @@ BEGIN
 
     IF data_survey_id IS NOT NULL THEN
 
-    SELECT INTO data_project_id id FROM project ORDER BY id LIMIT 1;
+    SELECT INTO data_project_id id FROM project WHERE ckan_id = 'demo-project';
 
     -- get respondent first name
     SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';
@@ -186,9 +186,7 @@ BEGIN
 
                   RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
 
-                  IF data_geom IS NOT NULL THEN
-
-                  -- Create new parcel
+		   -- Create new parcel
                   SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',data_project_id,data_geom,null,null,'new description');
 
                   IF data_parcel_id IS NOT NULL THEN
@@ -197,6 +195,7 @@ BEGIN
                   ELSE
                     RAISE NOTICE 'Cannot create parcel';
                   END IF;
+                  
               WHEN ('_submission_time') THEN
                 IF element.value IS NOT NULL THEN
                   EXECUTE 'UPDATE respondent SET submission_time = ' || quote_literal(replace(element.value,'T',' ')) || ' WHERE id = ' || data_respondent_id;
