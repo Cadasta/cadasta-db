@@ -1,4 +1,4 @@
--- Create fake org and project until API endpoint is built
+-- Create fake org and project until API is wrapped in CKAN API
 
-INSERT INTO organization (title) VALUES ('HFH');
-INSERT INTO project (organization_id, title) VALUES ((SELECT id from organization where title = 'HFH'), 'Bolivia');
+SELECT * FROM cd_create_organization('demo-organization','Demo Organization',null);
+SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'demo-project ','Friday Night');
