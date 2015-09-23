@@ -840,6 +840,8 @@ END;
 
     SELECT * FROM cd_create_resource(1,'party',2,'http://www.cadasta.org/2/party',null);
 
+    SELECT * FROM cd_create_resource(1,'parcel',16,'http://www.cadasta.org/16/party',null, 'daniel-home');
+
     SELECT * FROM cd_create_resource(1,'relationship',4,'http://www.cadasta.org/4/relationship',null);
 
     select * from resource
@@ -851,7 +853,7 @@ END;
     select * from relationship
 
 *********************************************************/
-CREATE OR REPLACE FUNCTION cd_create_resource(project_id int, resource_type character varying, resource_type_id integer, url character varying, description character varying)
+CREATE OR REPLACE FUNCTION cd_create_resource(project_id int, resource_type character varying, resource_type_id integer, url character varying, description character varying, filename character varying)
   RETURNS INTEGER AS $$
   DECLARE
   o_id integer; -- organization id
@@ -860,10 +862,12 @@ CREATE OR REPLACE FUNCTION cd_create_resource(project_id int, resource_type char
   type_id integer; -- type of resource id (parcel, party, or relationship id)
   cd_description character varying;
   cd_url character varying;
+  cd_file_name character varying;
 BEGIN
 
     cd_description = description;
     cd_url = url;
+    cd_file_name = filename;
 
     -- project id, resource type, and url are required
     IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL AND $4 IS NOT NULL THEN
@@ -883,7 +887,7 @@ BEGIN
                         IF cd_validate_parcel(type_id) THEN
 
                              -- Create new resource and save resource id
-                            INSERT INTO resource (project_id, description, url) VALUES (p_id, cd_description, cd_url) RETURNING id INTO r_id;
+                            INSERT INTO resource (project_id, description, url, file_name) VALUES (p_id, cd_description, cd_url, cd_file_name) RETURNING id INTO r_id;
 
                             IF r_id IS NOT NULL THEN
                                 -- create resource
@@ -909,7 +913,7 @@ BEGIN
                         IF cd_validate_party(type_id) THEN
 
                              -- Create new resource and save resource id
-                            INSERT INTO resource (project_id, description, url) VALUES (p_id, cd_description, cd_url) RETURNING id INTO r_id;
+                            INSERT INTO resource (project_id, description, url,file_name) VALUES (p_id, cd_description, cd_url,file_name) RETURNING id INTO r_id;
 
                             IF r_id IS NOT NULL THEN
                                 -- create resource
@@ -935,7 +939,7 @@ BEGIN
                         IF cd_validate_relationship(type_id) THEN
 
                              -- Create new resource and save resource id
-                            INSERT INTO resource (project_id, description, url) VALUES (p_id, cd_description, cd_url) RETURNING id INTO r_id;
+                            INSERT INTO resource (project_id, description, url,file_name) VALUES (p_id, cd_description, cd_url,file_name) RETURNING id INTO r_id;
 
                             IF r_id IS NOT NULL THEN
                                 -- create resource

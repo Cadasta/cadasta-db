@@ -73,6 +73,7 @@ CREATE TABLE resource (
     id serial primary key not null,
     project_id int not null references project(id),
     url character varying unique,
+    file_name character varying,
     type character varying,
     description character varying,
     active boolean default true,
