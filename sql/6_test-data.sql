@@ -5,17 +5,17 @@ SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'de
 
 
 -- ADD resources
-SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'parcel',1,'http://www.cadasta.org/1/parcel',null);
-SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'party',1,'http://www.cadasta.org/1/party',null);
-SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'relationship',1,'http://www.cadasta.org/1/relationship',null);
+SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'parcel',1,'http://www.cadasta.org/1/parcel',null, 'test-file.rtf');
+SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'party',1,'http://www.cadasta.org/1/party',null, 'test-file.rtf');
+SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'relationship',1,'http://www.cadasta.org/1/relationship',null, 'test-file.rtf');
 
-SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'parcel',2,'http://www.cadasta.org/2/parcel',null);
-SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'party',2,'http://www.cadasta.org/2/party',null);
-SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'relationship',2,'http://www.cadasta.org/2/relationship',null);
+SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'parcel',2,'http://www.cadasta.org/2/parcel',null, 'test-file.rtf');
+SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'party',2,'http://www.cadasta.org/2/party',null, 'test-file.rtf');
+SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'relationship',2,'http://www.cadasta.org/2/relationship',null, 'test-file.rtf');
 
-SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'parcel',3,'http://www.cadasta.org/3/parcel',null);
-SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'party',3,'http://www.cadasta.org/3/party',null);
-SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'relationship',3,'http://www.cadasta.org/3/relationship',null);
+SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'parcel',3,'http://www.cadasta.org/3/parcel',null, 'test-file.rtf');
+SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'party',3,'http://www.cadasta.org/3/party',null, 'test-file.rtf');
+SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'relationship',3,'http://www.cadasta.org/3/relationship',null, 'test-file.rtf');
 
 -- Add project extents
 
