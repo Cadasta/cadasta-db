@@ -64,16 +64,16 @@ Create a new parcel and parcel history.
 
 1.  spatial\_source (character varying) – ***Required***.
 Options:
-* digitized
-* recreational_gps
-* survey_grade_gps
+    * digitized
+    * recreational_gps
+    * survey_grade_gps
 2.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user.
 3. project\_id (integer) - ***Required***. Cadasta project id
 4.  geom - PostGIS geometry type
 5.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
-* Commercial
-* Residential
+    * Commercial
+    * Residential
 6.  gov\_pin (character varying) - Optional.
 7.  history\_description (character varying) - Optional. A description of the parcels history
 
@@ -133,10 +133,10 @@ Create a new relationship and relationship history.
 4.  geom_id - (integer) - Optional. Geometry id
 5.  tenure\_type (ENUM) - Optional. Type of parcel real estate
 Options:
-* own
-* lease
-* occupy
-* informal occupy
+    * own
+    * lease
+    * occupy
+    * informal occupy
 6. acquired\_date (date) - Optional. ('mm/dd/yyyy') Date of land acquisition
 7. how\_acquired (character varying) - Optional. A description of how the land was acquired
 8. history\_description (character varying) - A description of the relationships history
