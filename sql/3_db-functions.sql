@@ -105,25 +105,26 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
     Create new party
 
-    SELECT * FROM cd_create_party(1,'Danny', 'Seagate');
+    -- Create new party Ian O'Guin for project 1
+    SELECT * FROM cd_create_party(1, 'Ian', 'O''Guin', null);
+    -- Create new party group Wal Mart for project 1
+    SELECT * FROM cd_create_party(1, null, null, 'Wal-Mart');
+
 
 ******************************************************************/
 
--- Create new party
-
-CREATE OR REPLACE FUNCTION cd_create_party(project_id int, first_name character varying, last_name character varying)
+CREATE OR REPLACE FUNCTION cd_create_party(project_id int, first_name character varying, last_name character varying, cd_group_name character varying)
   RETURNS INTEGER AS $$
   DECLARE
   p_id integer;
   cd_project_id int;
 BEGIN
 
-    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL THEN
+    IF $1 IS NOT NULL AND (($2 IS NOT NULL AND $3 IS NOT NULL) OR ($4 IS NOT NULL)) THEN
 
         SELECT INTO cd_project_id id FROM project where id = $1;
 
-	    -- Save the original organization ID variable
-        INSERT INTO party (project_id, first_name, last_name) VALUES (cd_project_id,first_name,last_name) RETURNING id INTO p_id;
+        INSERT INTO party (project_id, first_name, last_name, group_name) VALUES (cd_project_id,first_name,last_name, cd_group_name) RETURNING id INTO p_id;
 
 	    RETURN p_id;
     ELSE
@@ -132,6 +133,7 @@ BEGIN
 
 END;
   $$ LANGUAGE plpgsql VOLATILE;
+
 
 /********************************************************
 
@@ -804,7 +806,7 @@ BEGIN
 
     cd_ckan_project_id = ckan_project_id;
     cd_title = title;
-    cd_ckan_project_id = regexp_replace(ckan_project_id, '\W+', '', 'g');
+    cd_ckan_project_id = regexp_replace(ckan_project_id, U&'\2028', '', 'g');
 
     IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL THEN
 

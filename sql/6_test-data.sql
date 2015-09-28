@@ -1,8 +1,7 @@
--- Create fake org and project until API is wrapped in CKAN API
+﻿-- Create fake org and project until API is wrapped in CKAN API
 
 SELECT * FROM cd_create_organization('demo-organization','Demo Organization',null);
 SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'demo-project ','Friday Night');
-
 
 -- ADD resources
 --SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'parcel',1,'http://www.cadasta.org/1/parcel',null, 'test-file.rtf');
@@ -19,7 +18,7 @@ SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'de
 
 -- Add project extents
 
-  SELECT * FROM cd_create_project_extents((select id FROM project WHERE ckan_id LIKE '%demo-project%'),$anystr${
+  SELECT * FROM cd_create_project_extents((select id FROM project WHERE ckan_id = 'demo-project'),$anystr${
         "type": "Polygon",
         "coordinates": [
           [

@@ -100,8 +100,9 @@ Create a new party
 ##### Parameter(s)
 
 1.  project\_id (integer) - ***Required***. Cadasta project id
-2.  first\_name (character varying) – ***Required***.
-3.  last\_name (character varying) – ***Required***.
+2.  first\_name (character varying) – ***Required if org\_name is NULL***.
+3.  last\_name (character varying) – ***Required if org\_name is NULL***.
+4.  cd\_group\_name (character varying) - ***Required if first\_name and last\_name is null***. - Name of Group
 
 ##### Result
 
@@ -109,10 +110,15 @@ Integer. The person is successfully created if an integer is returned.
 
 ##### Example(s)
 
--   Create new person Sarah Beatrice
+-   Create new party Ian O'Guin for project 1
 
-```SELECT * FROM cd_create_person ('Sarah','Beatrice');```
+```SELECT * FROM cd_create_party(1, 'Ian', 'O''Guin', null);```
 
+2
+
+-   Create new party group Wal-Mart for project 1
+
+``` SELECT * FROM cd_create_party(1, null, null, 'Wal-Mart');```
 
 3
 

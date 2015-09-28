@@ -88,8 +88,9 @@ CREATE TABLE resource (
 CREATE TABLE party (
     id serial primary key not null,
     project_id int not null references project(id),
-    first_name character varying not null,
-    last_name character varying not null,
+    first_name character varying,
+    last_name character varying,
+    group_name character varying,
     type character varying,
     title character varying,
     description character varying,
@@ -111,7 +112,8 @@ CREATE TABLE party (
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
-    updated_by integer
+    updated_by integer,
+    check (first_name IS NOT NULL AND last_name IS NOT NULL OR group_name IS NOT NULL)
 );
 
 -- Resource <--> party junction table
