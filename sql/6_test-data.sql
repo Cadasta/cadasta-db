@@ -19,7 +19,7 @@ SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'de
 
 -- Add project extents
 
-  SELECT * FROM cd_create_project_extents((select id FROM project WHERE ckan_id LIKE '%demo_project%'),$anystr${
+  SELECT * FROM cd_create_project_extents((select id FROM project WHERE ckan_id LIKE '%demo-project%'),$anystr${
         "type": "Polygon",
         "coordinates": [
           [

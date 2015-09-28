@@ -804,7 +804,7 @@ BEGIN
 
     cd_ckan_project_id = ckan_project_id;
     cd_title = title;
-    cd_ckan_project_id = ckan_project_id;
+    cd_ckan_project_id = regexp_replace(ckan_project_id, '\W+', '', 'g');
 
     IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL THEN
 
@@ -830,6 +830,7 @@ BEGIN
 
 END;
   $$ LANGUAGE plpgsql VOLATILE;
+
 
 -- Create new resource
 /********************************************************
