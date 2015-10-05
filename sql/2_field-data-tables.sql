@@ -9,7 +9,8 @@ CREATE TABLE "field_data"
 	,project_id int references project(id) 
 	,"user_id" int -- CKAN user id
 	,"parcel_id" int
-	,"id_string"		character varying		NOT NULL
+	,"id_string"		character varying		NOT NULL unique
+	, "form_id" character varying not null unique
 	,"name"			character varying
 	,"label"		character varying
 	,"publish"		boolean				DEFAULT TRUE,

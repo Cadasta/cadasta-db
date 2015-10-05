@@ -1,4 +1,4 @@
-/******************************************************************
+﻿/******************************************************************
 
  Function: cd_process_data()
 
@@ -119,7 +119,7 @@ BEGIN
             data_means_aquired = element.value;
           WHEN 'date_land_possession' THEN
             data_date_land_possession = element.value;
-          WHEN 'proprietorship' THEN
+          WHEN 'tenure_type' THEN
             CASE (element.value)
               WHEN 'allodial' THEN
                 data_tenure_type = 'own';

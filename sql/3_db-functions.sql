@@ -7,21 +7,25 @@
 
 -- Create new Field Data
 
-CREATE OR REPLACE FUNCTION cd_create_field_data(id_string character varying)
+CREATE OR REPLACE FUNCTION cd_create_field_data(project_id integer, id_string character varying, form_id integer)
   RETURNS INTEGER AS $$
   DECLARE
-  s_id integer;
+  f_id integer;
   field_data_id_string character varying;
+  p_id integer;
 BEGIN
 
     field_data_id_string = id_string;
 
-    IF field_data_id_string IS NOT NULL THEN
+    SELECT INTO p_id id FROM project WHERE id = project_id;
+
+    IF field_data_id_string IS NOT NULL AND p_id IS NOT NULL AND form_id IS NOT NULL THEN
+
 	-- Create survey and return survey id
-    INSERT INTO field_data (id_string) VALUES (field_data_id_string) RETURNING id INTO s_id;
-
-	RETURN s_id;
-
+    INSERT INTO field_data (project_id, id_string, form_id) VALUES (project_id, field_data_id_string, form_id) RETURNING id INTO f_id;
+	    RETURN f_id; -- field data id
+    ELSE
+        RETURN f_id;
 	END IF;
 
 END;
@@ -101,7 +105,7 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 
 /******************************************************************
-    cd_create_party
+    cd_cd_create_party
 
     Create new party
 
