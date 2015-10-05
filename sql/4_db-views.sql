@@ -41,13 +41,15 @@ Order BY time_created DESC;
 
 -- Parcel list with relationship count
 CREATE OR REPLACE VIEW show_parcels_list AS
-SELECT p.id, p.time_created, p.area, p.length, array_agg(t.type) as tenure_type, count(r.id) as num_relationships, p.active
-FROM parcel p, relationship r, tenure_type t
+SELECT p.id, pro.id AS project_id, p.time_created, p.area, p.length, array_agg(t.type) as tenure_type, count(r.id) as num_relationships, p.active
+FROM parcel p, relationship r, tenure_type t, project pro
 WHERE r.parcel_id = p.id
+AND p.project_id = pro.id
+AND r.project_id = pro.id
 AND r.tenure_type = t.id
 AND p.active = true
 AND r.active = true
-GROUP BY p.id;
+GROUP BY p.id, pro.id;
 
 -- Relationship History View
 CREATE OR replace view show_relationship_history AS
