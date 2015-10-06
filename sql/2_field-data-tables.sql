@@ -9,8 +9,8 @@ CREATE TABLE "field_data"
 	,project_id int references project(id) 
 	,"user_id" int -- CKAN user id
 	,"parcel_id" int
-	,"id_string"		character varying		NOT NULL unique
-	, "form_id" character varying not null unique
+	,"id_string"		character varying unique
+	, "form_id" bigint unique
 	,"name"			character varying
 	,"label"		character varying
 	,"publish"		boolean				DEFAULT TRUE,
@@ -162,6 +162,7 @@ CREATE TABLE "raw_data"
 (
 	"id"			SERIAL				NOT NULL
 	,"json"			json
+	,"project_id" int references project(id)
 	,"field_data_id" int references field_data(id),
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,

@@ -7,7 +7,7 @@
 
 -- Create new Field Data
 
-CREATE OR REPLACE FUNCTION cd_create_field_data(project_id integer, id_string character varying, form_id integer)
+CREATE OR REPLACE FUNCTION cd_create_field_data(project_id integer, id_string character varying, form_id bigint)
   RETURNS INTEGER AS $$
   DECLARE
   f_id integer;
@@ -65,20 +65,27 @@ END;$$ language plpgsql;
     Import raw JSON data string
 
 ******************************************************************/
-CREATE OR REPLACE FUNCTION cd_import_data_json(field_data_id int, json_string character varying)
+CREATE OR REPLACE FUNCTION cd_import_data_json(json_string character varying)
 RETURNS BOOLEAN AS $$
 DECLARE
   raw_data_id int;
+  raw_field_data_id int;
   rec record;
 BEGIN
 
-  IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
+  IF $1 IS NOT NULL THEN
 
-    INSERT INTO raw_data (field_data_id, json) VALUES (field_data_id,json_string::json) RETURNING id INTO raw_data_id;
+    INSERT INTO raw_data (json) VALUES (json_string::json) RETURNING id INTO raw_data_id;
 
-    IF raw_data_id IS NOT NULL THEN
+    SELECT INTO raw_field_data_id field_data_id from raw_data where id = raw_data_id;
+
+    IF raw_data_id IS NOT NULL AND raw_field_data_id IS NOT NULL THEN
         RAISE NOTICE 'Succesfully inserted raw json data, id: %', raw_data_id;
         RETURN TRUE;
+    ELSE
+        -- Remove raw data row
+        DELETE FROM raw_data where id = raw_data_id;
+	    RETURN FALSE;
     END IF;
   ELSE
     RETURN FALSE;
@@ -364,8 +371,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE OR REPLACE FUNCTION cd_process_data()
 RETURNS TRIGGER AS $cd_process_data$
 DECLARE
-  raw_data_id integer;
-  raw_field_data_id integer;
+  raw_data_id integer; -- id of row in raw_data table
   raw_group_id integer;
   survey record;
   element record;
@@ -384,7 +390,8 @@ DECLARE
   data_date_land_possession date;
   data_geojson character varying;
   data_means_aquired character varying;
-  data_survey_id integer;
+  data_field_data_id integer; -- derived from submission _xform_id_string key and matched to id_string field in field_data table
+  data_xform_id_string character varying; -- xform id string is used to find field data id
   data_tenure_type character varying;
   tenure_type_id int;
   data_parcel_id int;
@@ -403,9 +410,9 @@ DECLARE
   y numeric;
 BEGIN
   -- get the ID from the new record
-
   raw_data_id := NEW.id;
-  raw_field_data_id = NEW.field_data_id;
+
+  -- TODO get real user id from CKAN
   data_ckan_user_id = 11;
 
   count := 0;
@@ -414,14 +421,22 @@ BEGIN
   -- loop through each survey in the json object
   FOR survey IN (SELECT * FROM json_array_elements((select json from raw_data where id = raw_data_id))) LOOP
 
-    -- get the survey id
-    -- SELECT INTO data_survey_id id FROM survey WHERE id_string = (SELECT value::text FROM json_each_text(survey.value) WHERE key = '_xform_id_string');
+    -- get field data id
+    SELECT INTO data_xform_id_string value::text FROM json_each_text(survey.value) WHERE key = '_xform_id_string';
+    RAISE NOTICE 'id_string =: %', data_xform_id_string;
 
-    data_survey_id = raw_field_data_id;
+    -- get field_data_id by matching id_string with data's xform_id_string key
+    SELECT INTO data_field_data_id id FROM field_data where id_string = data_xform_id_string;
 
-    IF data_survey_id IS NOT NULL THEN
+    IF data_field_data_id IS NOT NULL THEN
 
-    SELECT INTO data_project_id id FROM project WHERE ckan_id LIKE '%demo_project%';
+    -- Get project id from field data table
+    SELECT INTO data_project_id id FROM project where id = (SELECT project_id from field_data WHERE id_string = data_xform_id_string);
+
+    RAISE NOTICE 'Project id: %', data_project_id;
+
+    -- save field data id in raw_data table
+    UPDATE raw_data SET field_data_id = data_field_data_id, project_id = data_project_id where id = raw_data_id;
 
     -- get respondent first name
     SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';
@@ -429,15 +444,15 @@ BEGIN
     SELECT INTO data_survey_last_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_last';
 
     -- process survey data only if there is a survey in the database that matches
-    IF raw_field_data_id IS NOT NULL THEN
+    IF data_field_data_id IS NOT NULL THEN
 
         -- take the first name , last name fields out of the survey
         IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
-          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, data_survey_first_name,data_survey_last_name,null);
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, data_survey_first_name,data_survey_last_name, null);
           RAISE NOTICE 'Created Person id: %', data_person_id;
         END IF;
 
-      EXECUTE 'INSERT INTO respondent (field_data_id) VALUES ('|| raw_field_data_id || ') RETURNING id' INTO data_respondent_id;
+      EXECUTE 'INSERT INTO respondent (field_data_id) VALUES ('|| data_field_data_id || ') RETURNING id' INTO data_respondent_id;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
@@ -446,9 +461,9 @@ BEGIN
 
         SELECT INTO question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1) as slugs;
         SELECT INTO num_slugs count(slugs) FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum) as slugs;
-        SELECT INTO num_questions count(id) FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id;
+        SELECT INTO num_questions count(id) FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
 	-- get question id
-        SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id;
+        SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
 
         IF num_questions > 1 THEN
           RAISE NOTICE '---------> MULTIPLE QUESTIONS FOUND!!!: %', num_questions || ' (count) key: ' || element.key || ' question_id found: ' || question_id;
@@ -456,13 +471,13 @@ BEGIN
             SELECT INTO parent_question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1 offset 1) as slugs;
             -- get question id
             RAISE NOTICE 'parent_question_slug: %', parent_question_slug;
-            SELECT INTO raw_group_id id FROM q_group where lower(name) = lower(parent_question_slug) and field_data_id = raw_field_data_id;
+            SELECT INTO raw_group_id id FROM q_group where lower(name) = lower(parent_question_slug) and field_data_id = data_field_data_id;
 
-            RAISE NOTICE 'question_slug: %, field_data_id: %, raw_id: %, group_id: %', question_slug, raw_field_data_id, raw_field_data_id, raw_group_id;
-            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id = (select id from q_group where lower(name) = lower(parent_question_slug) and field_data_id = raw_field_data_id);
+            RAISE NOTICE 'question_slug: %, field_data_id: %, raw_id: %, group_id: %', question_slug, data_field_data_id, data_field_data_id, raw_group_id;
+            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id AND group_id = (select id from q_group where lower(name) = lower(parent_question_slug) and field_data_id = data_field_data_id);
           ELSE
             -- get question id
-            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = raw_field_data_id AND group_id IS NULL;
+            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id AND group_id IS NULL;
           END IF;
           RAISE NOTICE '---------> QUESTION ID UPDATED: %', question_id;
         END IF;
@@ -473,7 +488,7 @@ BEGIN
             data_means_aquired = element.value;
           WHEN 'date_land_possession' THEN
             data_date_land_possession = element.value;
-          WHEN 'proprietorship' THEN
+          WHEN 'tenure_type' THEN
             CASE (element.value)
               WHEN 'allodial' THEN
                 data_tenure_type = 'own';
@@ -545,7 +560,7 @@ BEGIN
 
                   IF data_parcel_id IS NOT NULL THEN
                     RAISE NOTICE 'New parcel id: %', data_parcel_id;
-                    UPDATE field_data SET parcel_id = data_parcel_id WHERE id = raw_field_data_id;
+                    UPDATE field_data SET parcel_id = data_parcel_id WHERE id = data_field_data_id;
                   ELSE
                     RAISE NOTICE 'Cannot create parcel';
                   END IF;
@@ -560,9 +575,9 @@ BEGIN
         END IF;
       END IF;
     END LOOP;
-      IF raw_field_data_id IS NOT NULL THEN
-        RAISE NOTICE 'Raw data is not null: %',raw_field_data_id ;
-        EXECUTE 'UPDATE response SET field_data_id = ' || quote_literal(raw_field_data_id) || ' WHERE respondent_id = ' || data_respondent_id;
+      IF data_field_data_id IS NOT NULL THEN
+        RAISE NOTICE 'Raw data is not null: %',data_field_data_id ;
+        EXECUTE 'UPDATE response SET field_data_id = ' || quote_literal(data_field_data_id) || ' WHERE respondent_id = ' || data_respondent_id;
       END IF;
       IF data_parcel_id IS NOT NULL AND data_person_id IS NOT NULL THEN
         -- create relationship
@@ -578,7 +593,7 @@ BEGIN
       END IF;
     END IF;
   ELSE
-    RAISE NOTICE 'Cannot Find Survey';
+    RAISE NOTICE 'Cannot find field data form';
     RETURN NEW;
   END IF;
   END LOOP;
