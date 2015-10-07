@@ -79,6 +79,13 @@ AND r.tenure_type = t.id
 AND r.project_id = project.id
 AND r.active = true;
 
+-- Parcel History w/ project_id
+CREATE VIEW show_parcel_history AS
+select ph.id, p.project_id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.description, ph.date_modified, ph.active, ph.time_created, ph.created_by, ph.updated_by
+from parcel_history ph, parcel p, project pro
+where ph.parcel_id = p.id
+and p.project_id = pro.id;
+
 -- Parcel Resource Views
 CREATE VIEW show_parcel_resources AS
 SELECT r.project_id, rp.parcel_id, rp.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
@@ -109,3 +116,4 @@ and r.project_id = pro.id;
 CREATE VIEW show_project_extents AS
 SELECT p.id, p.organization_id, p.title, pe.geom, p.active, p.sys_delete, p.time_created, p.time_updated, p.created_by, p.updated_by
 FROM project_extents pe right join project p on pe.project_id = p.id;
+
