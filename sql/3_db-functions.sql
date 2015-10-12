@@ -358,7 +358,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
-
 /******************************************************************
 
  Function: cd_process_data()
@@ -377,9 +376,11 @@ DECLARE
   element record;
   options record;
   option record;
+  data_uuid character varying;
   data_respondent_id integer;
   data_project_id integer;
   data_person_id int;
+  data_submission_time timestamp with time zone;
   data_geom_type character varying;
   data_geom geometry;
   data_area numeric;
@@ -442,6 +443,10 @@ BEGIN
     SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';
     -- get respondent last name
     SELECT INTO data_survey_last_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_last';
+    -- get uuid of response
+    SELECT INTO data_uuid value::text FROM json_each_text(survey.value) WHERE key = '_uuid';
+
+    SELECT INTO data_submission_time value::text FROM json_each_text(survey.value) WHERE key = '_submission_time';
 
     -- process survey data only if there is a survey in the database that matches
     IF data_field_data_id IS NOT NULL THEN
@@ -452,7 +457,7 @@ BEGIN
           RAISE NOTICE 'Created Person id: %', data_person_id;
         END IF;
 
-      EXECUTE 'INSERT INTO respondent (field_data_id) VALUES ('|| data_field_data_id || ') RETURNING id' INTO data_respondent_id;
+      INSERT INTO respondent (field_data_id, uuid, submission_time) VALUES (data_field_data_id,data_uuid,data_submission_time) RETURNING id INTO data_respondent_id;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
@@ -545,8 +550,6 @@ BEGIN
           -- elements that have a key starting with an underscore, are not a survey question EXCEPT _geolocation
           IF left(element.key, 1) = '_' THEN
             CASE (lower(element.key))
-              WHEN ('_id') THEN
-                EXECUTE 'UPDATE respondent SET id_string = ' || quote_literal(element.value) || ' WHERE id = ' || data_respondent_id;
               WHEN ('_geolocation') THEN
                 RAISE NOTICE 'Found geolocation:' ;
                   data_geojson = element.value::text;

@@ -105,7 +105,7 @@ CREATE TABLE "respondent"
 (
 	"id"			SERIAL				NOT NULL
 	,"field_data_id"		integer						REFERENCES "field_data"(id)
-	,"id_string"		character varying
+	,"uuid" character varying NOT NULL unique
 	,"submission_time"	timestamp with time zone,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
