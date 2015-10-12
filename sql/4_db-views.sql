@@ -7,6 +7,7 @@ DROP VIEW show_relationships;
 DROP VIEW show_activity;
 DROP VIEW show_parcels_list;
 DROP VIEW show_relationship_history;
+DROP VIEW show_parcel_history;
 DROP VIEW show_parcel_resources;
 DROP VIEW show_party_resources;
 DROP VIEW show_relationship_resources;
@@ -80,14 +81,14 @@ AND r.project_id = project.id
 AND r.active = true;
 
 -- Parcel History w/ project_id
-CREATE VIEW show_parcel_history AS
+CREATE OR REPLACE VIEW show_parcel_history AS
 select ph.id, p.project_id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.description, ph.date_modified, ph.active, ph.time_created, ph.time_updated, ph.created_by, ph.updated_by
 from parcel_history ph, parcel p, project pro
 where ph.parcel_id = p.id
 and p.project_id = pro.id;
 
 -- Parcel Resource Views
-CREATE VIEW show_parcel_resources AS
+CREATE OR REPLACE VIEW show_parcel_resources AS
 SELECT r.project_id, rp.parcel_id, rp.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
 from resource r, parcel p, resource_parcel rp, project pro
 where rp.parcel_id = p.id
@@ -96,7 +97,7 @@ and r.project_id = pro.id;
 
 
 -- Party Resource Views
-CREATE VIEW show_party_resources AS
+CREATE OR REPLACE VIEW show_party_resources AS
 SELECT r.project_id, rp.party_id, rp.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
 from resource r, party p, resource_party rp, project pro
 where rp.party_id = p.id
@@ -105,7 +106,7 @@ and r.project_id = pro.id;
 
 
 -- Relationship Resource Views
-CREATE VIEW show_relationship_resources AS
+CREATE OR REPLACE VIEW show_relationship_resources AS
 SELECT r.project_id, rr.relationship_id, rr.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
 from resource r, relationship rel, resource_relationship rr, project pro
 where rr.relationship_id = rel.id
@@ -113,7 +114,7 @@ and rr.resource_id = r.id
 and r.project_id = pro.id;
 
 -- Project Extents
-CREATE VIEW show_project_extents AS
+CREATE OR REPLACE VIEW show_project_extents AS
 SELECT p.id, p.organization_id, p.title, pe.geom, p.active, p.sys_delete, p.time_created, p.time_updated, p.created_by, p.updated_by
 FROM project_extents pe right join project p on pe.project_id = p.id;
 
