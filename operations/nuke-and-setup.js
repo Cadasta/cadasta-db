@@ -113,45 +113,43 @@ function query(queryStr) {
 return nukeDB()
 
     .then(function(response){
-        return runDeferredPsql('psql -U postgres -d ' + settings.database + ' -q -f ./sql/1_db.sql');
+        return runDeferredPsql('psql -U ' + settings.user + ' -d ' + settings.database + ' -q -f ../sql/1_db.sql');
 
     })
     .then(function(){
 
         console.log('1_db.sql complete.');
-        return runDeferredPsql('psql -U postgres -d ' + settings.database + ' -q -f ./sql/2_field-data-tables.sql');
+        return runDeferredPsql('psql -U ' + settings.user + ' -d ' + settings.database + ' -q -f ../sql/2_field-data-tables.sql');
 
     })
-
-
     .then(function(){
 
         console.log('2_survey-tables.sql complete.');
-        return runDeferredPsql('psql -U postgres -d ' + settings.database + ' -q -f ./sql/3_db-functions.sql');
+        return runDeferredPsql('psql -U ' + settings.user + ' -d ' + settings.database + ' -q -f ../sql/3_db-functions.sql');
 
 
     })
     .then(function(){
 
         console.log('3_db-functions.sql complete.');
-        return runDeferredPsql('psql -U postgres -d ' + settings.database + ' -q -f ./sql/4_db-views.sql');
+        return runDeferredPsql('psql -U ' + settings.user + ' -d ' + settings.database + ' -q -f ../sql/4_db-views.sql');
 
     })
     .then(function(){
         console.log("4_db-view is complete.")
-        return runDeferredPsql('psql -U postgres -d ' + settings.database + ' -q -f ./sql/5_validation-functions.sql');
+        return runDeferredPsql('psql -U ' + settings.user + ' -d ' + settings.database + ' -q -f ../sql/5_validation-functions.sql');
 
     })
     .then(function(){
         console.log("5_validation-functions.sql is complete.")
-        return runDeferredPsql('psql -U postgres -d ' + settings.database + ' -q -f ./sql/6_test-data.sql');
+        return runDeferredPsql('psql -U ' + settings.user + ' -d ' + settings.database + ' -q -f ../sql/6_test-data.sql');
 
     })
 
     .then(function(){
 
         console.log('6_test-data.sql is complete.');
-        return runDeferredPsql('psql -U postgres -d ' + settings.database + ' -q -f ./sql/truncate-db-tables.sql');
+        return runDeferredPsql('psql -U ' + settings.user + ' -d ' + settings.database + ' -q -f ../sql/truncate-db-tables.sql');
 
 
     })
@@ -159,7 +157,6 @@ return nukeDB()
 
         console.log('truncate function is complete.');
         return ;
-
 
     })
     .catch(function(err){

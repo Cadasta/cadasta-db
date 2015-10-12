@@ -502,6 +502,8 @@ BEGIN
                 data_tenure_type = 'occupy';
               WHEN 'informal_occupy' THEN
                 data_tenure_type = 'informal occupy';
+              WHEN 'contractual' THEN
+                data_tenure_type = 'lease';
               ELSE
                 RAISE NOTICE 'Improper Tenure Type';
             END CASE;
