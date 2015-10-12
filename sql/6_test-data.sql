@@ -2,6 +2,7 @@
 
 SELECT * FROM cd_create_organization('demo-organization','Demo Organization',null);
 SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'demo-project ','Friday Night');
+SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'nick-project ','Nick Project');
 
 -- ADD resources
 --SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'parcel',1,'http://www.cadasta.org/1/parcel',null, 'test-file.rtf');
