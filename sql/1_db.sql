@@ -34,6 +34,7 @@ CREATE TABLE project (
     organization_id int not null references organization(id),
     title character varying,
     ckan_id character varying unique,
+    ona_api_key character varying unique,
     active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -82,6 +83,12 @@ CREATE TABLE resource (
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
+);
+
+-- resource <--> project junction table
+CREATE TABLE resource_project (
+    project_id int references project(id),
+    resource_id int references resource(id)
 );
 
 -- Party table

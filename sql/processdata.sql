@@ -156,7 +156,6 @@ BEGIN
             END CASE;
             RAISE NOTICE 'Found Loan';
           ELSE
-            RAISE NOTICE 'Cannot Find Loan';
         END CASE;
 
         RAISE NOTICE 'Data tenture type: %', data_tenure_type;
@@ -174,16 +173,14 @@ BEGIN
               IF is_numeric(element.value) THEN
                 numeric_value := element.value;
                 IF numeric_value >= 0 THEN
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','
-			|| question_id || ',' ||  element.value || ');';
+                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ',' ||  element.value || ');';
                 ELSE
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','
-	  		|| question_id || ', NULL);';
+                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ', NULL);';
                 END IF;
-	      END IF;
+              ELSE
+	          END IF;
             ELSE
-                EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ','
-	  		|| question_id || ',' || quote_literal(element.value) ||');';
+              EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ','|| question_id || ',' || quote_literal(element.value) ||');';
           END CASE;
         -- question is not found in the database
         ELSE

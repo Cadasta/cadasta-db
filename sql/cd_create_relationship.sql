@@ -2,15 +2,13 @@
 
  cd_create_relationship
 
- select * from relationship
- select * from parcel
- select * from person
- select * from project
- select * from current_date
- -- Add person (id: 4) & parcel (id: 7) to relationship
- SELECT * FROM cd_create_relationship(1,7,null,4,null,'lease',null,'Uncle Phils will',null);
- -- with date
- SELECT * FROM cd_create_relationship(1,7,null,4,null,'lease',current_date,null,null);
+SELECT * FROM cd_create_relationship(3,18,11,15,null,'own','10/22/2001','Passed Down', '1st Owner');
+SELECT * FROM cd_create_relationship(3,18,11,16,null,'lease','10/22/1992','Passed Down', '1st Lease');
+SELECT * FROM cd_create_relationship(3,18,11,18,null,'lease','2/2/2005','Passed Down', '2nd Lease');
+SELECT * FROM cd_create_relationship(3,18,11,20,null,'occupy','5/22/2009','Passed Down', '3rd Owner');
+SELECT * FROM cd_create_relationship(3,18,11,22,null,'own','5/27/2009','Passed Down', '3rd Owner');
+SELECT * FROM cd_create_relationship(3,18,11,24,null,'own','10/23/2009','Passed Down', '3rd Owner'); -- with date
+SELECT * FROM cd_create_relationship(1,7,null,4,null,'lease',current_date,null,null);
 
 ******************************************************************/
 

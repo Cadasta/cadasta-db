@@ -89,7 +89,7 @@ and p.project_id = pro.id;
 
 -- Parcel Resource Views
 CREATE OR REPLACE VIEW show_parcel_resources AS
-SELECT r.project_id, rp.parcel_id, rp.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
+SELECT r.project_id, rp.parcel_id, rp.resource_id, r.type, r.file_name, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
 from resource r, parcel p, resource_parcel rp, project pro
 where rp.parcel_id = p.id
 and rp.resource_id = r.id
@@ -98,7 +98,7 @@ and r.project_id = pro.id;
 
 -- Party Resource Views
 CREATE OR REPLACE VIEW show_party_resources AS
-SELECT r.project_id, rp.party_id, rp.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
+SELECT r.project_id, rp.party_id, rp.resource_id, r.type, r.file_name, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
 from resource r, party p, resource_party rp, project pro
 where rp.party_id = p.id
 and rp.resource_id = r.id
@@ -107,10 +107,18 @@ and r.project_id = pro.id;
 
 -- Relationship Resource Views
 CREATE OR REPLACE VIEW show_relationship_resources AS
-SELECT r.project_id, rr.relationship_id, rr.resource_id, r.type, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
+SELECT r.project_id, rr.relationship_id, rr.resource_id, r.type, r.file_name, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
 from resource r, relationship rel, resource_relationship rr, project pro
 where rr.relationship_id = rel.id
 and rr.resource_id = r.id
+and r.project_id = pro.id;
+
+-- Project Resource Views
+CREATE OR REPLACE VIEW show_project_resources AS
+SELECT r.project_id, rp.project_id, rp.resource_id, r.type, r.file_name, r.url, r.description, r.active, r.sys_delete, r.time_created, r.time_updated, r.created_by, r.updated_by
+from resource r, resource_project rp, project pro
+where rp.project_id = pro.id
+and rp.resource_id = r.id
 and r.project_id = pro.id;
 
 -- Project Extents

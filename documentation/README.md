@@ -14,6 +14,8 @@ Cadasta Database Function Reference
 
 [cd\_create\_project](#cd_create_project)
 
+[cd\_create\_resource] (#cd_create_resource)
+
 [cd\_create\_relationship_geometry](#cd_create_relationship_geometry)
 
 [cd\_delete\_parcel](#cd_delete_parcel)
@@ -133,19 +135,20 @@ Create a new relationship and relationship history.
 
 ##### Parameter(s)
 
-1.  parcel\_id (integer) – ***Required***. Parcel id
-2.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user
-3.  party\_id (integer) – ***Required***. Party id
-4.  geom_id - (integer) - Optional. Geometry id
-5.  tenure\_type (ENUM) - Optional. Type of parcel real estate
+1.  project\_id (integer) - ***Required***. Project id
+2.  parcel\_id (integer) – ***Required***. Parcel id
+3.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user
+4.  party\_id (integer) – ***Required***. Party id
+5.  geom_id - (integer) - Optional. Geometry id
+6.  tenure\_type (ENUM) - ***Required. Case sensitive*** Tenure type of relationship
 Options:
     * own
     * lease
     * occupy
     * informal occupy
-6. acquired\_date (date) - Optional. ('mm/dd/yyyy') Date of land acquisition
-7. how\_acquired (character varying) - Optional. A description of how the land was acquired
-8. history\_description (character varying) - A description of the relationships history
+7. acquired\_date (date) - Optional. ('mm/dd/yyyy') Date of land acquisition
+8. how\_acquired (character varying) - Optional. A description of how the land was acquired
+9. history\_description (character varying) - A description of the relationships history
 
 ##### Result
 
@@ -153,9 +156,9 @@ Integer. The relationship is successfully created if an integer is returned.
 
 ##### Example(s)
 
--   Add new owner relationship for Party 12 and Parcel 4. Land was acquired on October 22nd, 2009;
+-   Add new ownership relationship on Project 3 for Party 11 and Parcel 18. Land was acquired on October 22nd, 2009;
 
-```SELECT * FROM cd_create_relationship(4,11,12,null,'Own','10/22/2009','Passed Down', '3rd Owner');```
+```SELECT * FROM cd_create_relationship(3, 18, 11, 24, null, 'own', '10/23/2009', 'Passed Down', '3rd Owner'); ```
 
 14
 
@@ -210,6 +213,40 @@ Integer. The project is successfully created if an integer is returned.
 ``` SELECT * FROM cd_create_project(8,'Medellin','Medellin Pilot'); ```
 
 2
+
+<a name="cd_create_resource"/>
+cd\_create\_resource
+=================
+
+##### Description
+
+Create resource for a project, party, parcel, or relationship
+
+##### Parameter(s)
+
+1.  project\_id (integer) – ***Required***. Project id
+2.  resource\_type (character varying) – ***Required***.
+Options:
+    * project
+    * parcel
+    * party
+    * relationship
+3.  resource\_type\_id (integer) – ***Required***. id of resource\_type
+4.  url - ***Required*** resource url
+5.  description - resource description
+6.  filename - ***Required*** resource filename
+
+##### Result
+
+Integer. The resource is successfully created if an integer is returned.
+
+##### Example(s)
+
+- Create new resource for relationship 30 in project 3
+
+``` SELECT * FROM cd_create_resource(3,'relationship',30,'http://www.cadasta.org/30/relationship','Bird's eye view of parcel, 'birdseye.txt'); ```
+
+52
 
 <a name="cd_create_relationship_geometry"/>
 cd\_create\_relationship\_geometry
