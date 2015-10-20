@@ -850,7 +850,7 @@ BEGIN
 END;
   $$ LANGUAGE plpgsql VOLATILE;
 
-  
+
 -- Create new resource
 /********************************************************
 
@@ -883,7 +883,7 @@ BEGIN
     cd_file_name = filename;
 
     -- project id, resource type, and url are required
-    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL AND $4 IS NOT NULL AND %6 IS NOT NULL THEN
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL AND $4 IS NOT NULL AND $6 IS NOT NULL THEN
 
         -- validate project id
         SELECT INTO p_id id FROM project WHERE id = $1;
