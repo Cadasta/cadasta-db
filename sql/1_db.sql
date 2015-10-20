@@ -34,6 +34,7 @@ CREATE TABLE project (
     id serial primary key not null,
     organization_id int not null references organization(id),
     title character varying,
+    description character varying,
     ckan_name character varying unique,
     ckan_id character varying unique,
     ona_api_key character varying unique,

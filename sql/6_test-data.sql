@@ -1,9 +1,11 @@
 ﻿-- Create fake org and project until API is wrapped in CKAN API
 
-SELECT * FROM cd_create_organization('demo-organization','Demo Organization',null);
-SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'demo-project ','Friday Night');
-SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'nick-project ','Nick Project');
-SELECT * FROM cd_create_organization('habit','Habitat for Humanity',null);
+SELECT * FROM cd_create_organization('demo-organization','demo-organization', 'Demo Organization', null);
+
+SELECT * FROM cd_create_project((Select id from organization where ckan_name = 'demo-organization'),'demo-project ' ,'demo-project ','Friday Night');
+SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'nick-project','nick-project ','Nick Project');
+
+SELECT * FROM cd_create_organization('habit','faleCKanidHfH','Habitat for Humanity',null);
 SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'habit'),'la-paz','La Paz');
 
 -- ADD resources
