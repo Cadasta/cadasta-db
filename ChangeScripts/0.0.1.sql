@@ -1,12 +1,17 @@
-  /********************************************************
+/******************************************************************
+Change Script 0.0.1
+Date: 10/20/15
 
-    cd_create_organization
+    1. Add ckan_name field to organization and project table
+    2. Update create org & create project functions
 
-    select * from organization;
+******************************************************************/
 
-    SELECT * FROM cd_create_organization('grow','123fadsaa', 'GROW Project', 'Created in response to GROW');`
+DROP FUNCTION cd_create_organization(character varying, character varying, character varying);
+DROP FUNCTION cd_create_project(integer, character varying, character varying);
 
-*********************************************************/
+ALTER TABLE organization ADD COLUMN ckan_name character varying unique;
+ALTER TABLE project ADD COLUMN ckan_name character varying unique;
 
 CREATE OR REPLACE FUNCTION cd_create_organization(ckan_name character varying, ckan_org_id character varying , title character varying, description character varying)
   RETURNS INTEGER AS $$
@@ -37,16 +42,6 @@ BEGIN
 END;
   $$ LANGUAGE plpgsql VOLATILE;
 
-  /********************************************************
-
-    cd_create_project
-
-    select * from project;
-    select * from organization;
-
-    SELECT * FROM cd_create_project(6,'34282jhsjjad839011', 'Medellin', 'Medellin Pilot');
-
-*********************************************************/
 
 CREATE OR REPLACE FUNCTION cd_create_project(org_id integer, ckan_project_id character varying, ckan_name character varying, title character varying)
   RETURNS INTEGER AS $$

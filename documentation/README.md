@@ -172,9 +172,10 @@ Create Organization
 
 ##### Parameter(s)
 
-1. ckan\_id (character varying) – ***Required (Unique)***. CKAN dataset schema id
-2. title (character varying) – ***Required***. Organization title
-3. description (character varying) - Optional. Organization description
+1. ckan\_name (character varying) - ***Required (Unique)***.  CKAN organization name
+2. ckan\_id (character varying) – ***Required (Unique)***. CKAN organization id
+3. title (character varying) – ***Required***. Organization title
+4. description (character varying) - Optional. Organization description
 
 ##### Result
 
@@ -184,9 +185,9 @@ Integer. The organization is successfully created if an integer is returned.
 
 -   Create new organization
 
-```    SELECT * FROM cd_create_organization('Cadasta','Cadasta Org',null);```
+```SELECT * FROM cd_create_organization('grow','123fadsaa', 'GROW Project', 'Created in response to GROW');```
 
-8
+3
 
 <a name="cd_create_project"/>
 cd\_create\_project
@@ -199,8 +200,9 @@ Create Project for an Organization
 ##### Parameter(s)
 
 1.  organization\_id (integer) – ***Required***. Project id
-2.  ckan\_id (character varying) – ***Required***. CKAN project schema id
-3.  title (text) – ***Required***. Project title
+2.  ckan\_id (character varying) – ***Required***. CKAN project id
+3.  ckan\_name (character varying) - ***Required***. CKAN project name
+4.  title (text) – ***Required***. Project title
 
 ##### Result
 
@@ -208,9 +210,9 @@ Integer. The project is successfully created if an integer is returned.
 
 ##### Example(s)
 
--   Create new Project 'Medellin Pilot' for Cadasta Organization (id: 8)
+-   Create new Project 'Medellin Pilot' for Cadasta Organization (id: 6)
 
-``` SELECT * FROM cd_create_project(8,'Medellin','Medellin Pilot'); ```
+```     SELECT * FROM cd_create_project(6,'34282jhsjjad839011', 'Medellin', 'Medellin Pilot'); ```
 
 2
 
