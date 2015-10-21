@@ -393,7 +393,6 @@ BEGIN
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
-
 /******************************************************************
 
  Function: cd_process_data()
@@ -548,11 +547,10 @@ BEGIN
               WHEN 'contractual' THEN
                 data_tenure_type = 'lease';
               ELSE
-                RAISE EXCEPTION 'Invalid Tenure Type';
+                RAISE NOTICE 'Improper Tenure Type';
             END CASE;
             RAISE NOTICE 'Found Loan';
           ELSE
-            RAISE NOTICE 'Cannot Find Loan';
         END CASE;
 
         RAISE NOTICE 'Data tenture type: %', data_tenure_type;
@@ -570,13 +568,14 @@ BEGIN
               IF is_numeric(element.value) THEN
                 numeric_value := element.value;
                 IF numeric_value >= 0 THEN
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ',' || question_id || ',' ||  element.value || ');';
+                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ',' ||  element.value || ');';
                 ELSE
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ',' || question_id || ', NULL);';
+                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ', NULL);';
                 END IF;
+              ELSE
 	          END IF;
             ELSE
-                EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ',' || question_id || ',' || quote_literal(element.value) ||');';
+              EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ','|| question_id || ',' || quote_literal(element.value) ||');';
           END CASE;
         -- question is not found in the database
         ELSE
@@ -596,7 +595,7 @@ BEGIN
                   RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
 
 		          -- Create new parcel
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',data_project_id,data_geom,null,null,'new description');
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel(data_project_id,'survey_sketch',data_geom,null,null,'new description');
 
                   IF data_parcel_id IS NOT NULL THEN
                     RAISE NOTICE 'New parcel id: %', data_parcel_id;

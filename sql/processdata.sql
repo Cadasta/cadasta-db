@@ -199,8 +199,8 @@ BEGIN
 
                   RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
 
-		   -- Create new parcel
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',data_project_id,data_geom,null,null,'new description');
+		          -- Create new parcel
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel(data_project_id,'survey_sketch',data_geom,null,null,'new description');
 
                   IF data_parcel_id IS NOT NULL THEN
                     RAISE NOTICE 'New parcel id: %', data_parcel_id;
@@ -247,3 +247,69 @@ $cd_process_data$ LANGUAGE plpgsql;
 
 CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
     FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
+
+
+/***
+
+
+Test data load
+
+***/
+
+SELECT * FROM cd_import_data_json ($anystr$[{
+      "_notes": [],
+      "applicant_name/applicant_name_first": "Makkonen",
+      "_bamboo_dataset_id": "",
+      "_tags": [],
+      "surveyor": "katechapman",
+      "_xform_id_string": "CJF-minimum-Test",
+      "_geolocation": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -68.13127398490906,
+              -16.498594502708375
+            ],
+            [
+              -68.13038885593414,
+              -16.4990522778716
+            ],
+            [
+              -68.13022255897522,
+              -16.49927344975331
+            ],
+            [
+              -68.1305605173111,
+              -16.499906102809422
+            ],
+            [
+              -68.13167631626129,
+              -16.49923744504563
+            ],
+            [
+              -68.13127398490906,
+              -16.498594502708375
+            ]
+          ]
+        ]
+      },
+      "_duration": 27.0,
+      "meta/instanceID": "uuid:6d998c3d-d712-4dbc-b041-16939500f5a7",
+      "end": "2015-10-07T12:55:55.218-07",
+      "date_land_possession": "2010-05-25",
+      "applicant_name/applicant_name_last": "Ontario ",
+      "start": "2015-10-07T12:55:28.024-07",
+      "_attachments": [],
+      "_status": "submitted_via_web",
+      "today": "2015-10-07",
+      "_uuid": "6d998c3d-d712-4dbc-b041-16939500f5a7",
+      "means_of_acquire": "inheritance",
+      "_submitted_by": null,
+      "formhub/uuid": "5b453ab2cbec49f79193293262d68376",
+      "_submission_time": "2015-10-07T19:55:46",
+      "_version": "201510071848",
+      "tenure_type": "common_law_freehold",
+      "deviceid": "35385206286421",
+      "_id": 15}
+    ]$anystr$);
