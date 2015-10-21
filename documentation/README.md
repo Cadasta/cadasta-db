@@ -70,6 +70,7 @@ Options:
     * digitized
     * recreational_gps
     * survey_grade_gps
+    * survey_sketch
 3. geojson - [GeoJSON](http://geojson.org/)
 4.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
