@@ -1,3 +1,15 @@
+﻿/******************************************************************
+Change Script 0.0.3
+Date: 10/21/15
+
+    1. Remove not null constraint from user_id in parcel table
+    2. Update create parcel function
+
+******************************************************************/
+
+ALTER TABLE parcel ALTER COLUMN user_id DROP NOT NULL;
+DROP FUNCTION cd_create_parcel(character varying, integer, integer, geometry, land_use, character varying, character varying);
+
 /********************************************************
 
     cd_create_parcel

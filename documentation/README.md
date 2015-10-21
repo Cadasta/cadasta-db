@@ -64,20 +64,19 @@ Create a new parcel and parcel history.
 
 ##### Parameter(s)
 
-1.  spatial\_source (character varying) – ***Required***.
+1. project\_id (integer) - ***Required***. Cadasta project id 
+2. spatial\_source (character varying) – ***Required***.
 Options:
     * digitized
     * recreational_gps
     * survey_grade_gps
-2.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user.
-3. project\_id (integer) - ***Required***. Cadasta project id
-4.  geom - PostGIS geometry type
-5.  land\_use (ENUM) - Optional. Type of parcel real estate
+3. geojson - [GeoJSON](http://geojson.org/)
+4.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
     * Commercial
     * Residential
-6.  gov\_pin (character varying) - Optional.
-7.  history\_description (character varying) - Optional. A description of the parcels history
+5.  gov\_pin (character varying) - Optional.
+6.  history\_description (character varying) - Optional. A description of the parcels history
 
 ##### Result
 
@@ -85,9 +84,25 @@ Integer. The parcel is successfully created if an integer is returned.
 
 ##### Example(s)
 
--   Add new survey sketch spatial source parcel from CKAN user 5
+-   Add new digitized Residential parcel to project 3
 
-```SELECT * FROM cd_create_parcel('survey_sketch',5,22.45,'010100000024253D0CADEC5DC04C89247A19354140',null,null,'Original Owner.');```
+``` SELECT * FROM cd_create_parcel(3, 'digitized', 	
+
+        $anystr$ {
+           "type": "LineString",
+           "coordinates": [
+             [
+               -121.73326581716537,
+               44.5723908536272
+             ],
+             [
+               -121.7331075668335,
+               44.57247110339075
+             ]
+           ]
+         } $anystr$, 'Residential', null, 'insert description here');
+         
+```
 
 14
 

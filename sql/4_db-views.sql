@@ -9,6 +9,7 @@ DROP VIEW show_parcels_list;
 DROP VIEW show_relationship_history;
 DROP VIEW show_parcel_history;
 DROP VIEW show_parcel_resources;
+DROP VIEW show_project_resources;
 DROP VIEW show_party_resources;
 DROP VIEW show_relationship_resources;
 DROP VIEW show_project_extents;

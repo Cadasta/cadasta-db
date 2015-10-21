@@ -200,7 +200,7 @@ CREATE TABLE parcel (
     id serial primary key not null,
     project_id int not null references project(id),
     spatial_source int references spatial_source(id) not null, -- required?
-    user_id character varying not null,
+    user_id character varying,
     area numeric,  -- area of polygon
     length numeric,  -- lengthof linestring
     geom geometry,
