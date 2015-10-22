@@ -71,7 +71,7 @@ Options:
     * recreational_gps
     * survey_grade_gps
     * survey_sketch
-3. geojson - [GeoJSON](http://geojson.org/)
+3. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
 4.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
     * Commercial
