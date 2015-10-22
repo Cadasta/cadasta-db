@@ -77,7 +77,7 @@ Options:
     * Commercial
     * Residential
 5.  gov\_pin (character varying) - Optional.
-6.  history\_description (character varying) - Optional. A description of the parcels history
+6.  history\_description (character varying) - ***Required***. A description of the parcels history
 
 ##### Result
 
