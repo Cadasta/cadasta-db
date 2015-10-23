@@ -6,6 +6,8 @@ Cadasta Database Function Reference
 
 [cd\_create\_parcel](#cd_create_parcel)
 
+[cd\_update\_parcel](#cd_update_parcel)
+
 [cd\_create\_party](#cd_create_party)
 
 [cd\_create\_relationship](#cd_create_relationship)
@@ -64,20 +66,20 @@ Create a new parcel and parcel history.
 
 ##### Parameter(s)
 
-1.  spatial\_source (character varying) – ***Required***.
+1. project\_id (integer) - ***Required***. Cadasta project id 
+2. spatial\_source (character varying) – ***Required***.
 Options:
     * digitized
     * recreational_gps
     * survey_grade_gps
-2.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user.
-3. project\_id (integer) - ***Required***. Cadasta project id
-4.  geom - PostGIS geometry type
-5.  land\_use (ENUM) - Optional. Type of parcel real estate
+    * survey_sketch
+3. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
+4.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
     * Commercial
     * Residential
-6.  gov\_pin (character varying) - Optional.
-7.  history\_description (character varying) - Optional. A description of the parcels history
+5.  gov\_pin (character varying) - Optional.
+6.  history\_description (character varying) - ***Required***. A description of the parcels history
 
 ##### Result
 
@@ -85,11 +87,59 @@ Integer. The parcel is successfully created if an integer is returned.
 
 ##### Example(s)
 
--   Add new survey sketch spatial source parcel from CKAN user 5
+-   Add new digitized, Commercial parcel to project 1
 
-```SELECT * FROM cd_create_parcel('survey_sketch',5,22.45,'010100000024253D0CADEC5DC04C89247A19354140',null,null,'Original Owner.');```
+```SELECT * FROM cd_create_parcel(1, 'digitized', 	$anystr${
+           "type": "LineString",
+           "coordinates": [
+             [
+               -121.73326581716537,
+               44.5723908536272
+             ],
+             [
+               -121.7331075668335,
+               44.57247110339075
+             ]
+           ]
+         }$anystr$, 'Commercial', null, 'insert description here');```
 
 14
+
+<a name="cd_update_parcel"/>
+cd\_update\_parcel
+=================
+
+##### Description
+
+Update a parcel & parcel history
+
+##### Parameter(s)
+
+1. project\_id (integer) - ***Required***. Cadasta project id 
+2. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
+3. spatial\_source (character varying) – Optional. Parcel Spatial Source
+Options:
+    * digitized
+    * recreational_gps
+    * survey_grade_gps
+    * survey_sketch
+4.  land\_use (ENUM) - Optional. Type of parcel real estate
+Options:
+    * Commercial
+    * Residential
+5.  gov\_pin (character varying) - Optional.
+6.  description (character varying) - Optional. A description of the parcels history
+
+##### Result
+
+Integer. New relationship history id
+
+##### Example(s)
+
+-   Update parcel 3's geometry
+```SELECT * FROM cd_update_parcel (3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$, null, null , null, null);```
+
+4
 
 <a name="cd_create_party"/>
 cd\_create\_party
