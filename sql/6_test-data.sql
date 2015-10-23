@@ -6,7 +6,8 @@ SELECT * FROM cd_create_project((Select id from organization where ckan_name = '
 SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'nick-project','nick-project ','Nick Project', null);
 
 SELECT * FROM cd_create_organization('habit','habitat','Habitat for Humanity',null);
-SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'habit'),'la-paz', 'la-paz', 'La Paz', 'test');
+SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'habitat'),'la-paz', 'la-paz', 'La Paz', 'test');
+
 -- ADD resources
 --SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'parcel',1,'http://www.cadasta.org/1/parcel',null, 'test-file.rtf');
 --SELECT * FROM cd_create_resource((select id FROM project WHERE ckan_id LIKE '%demo_project%'),'party',1,'http://www.cadasta.org/1/party',null, 'test-file.rtf');
