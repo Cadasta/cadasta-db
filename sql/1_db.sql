@@ -281,12 +281,6 @@ CREATE TABLE relationship_history (
     description character varying not null,
     date_modified date not null,
 
-
-
-
-
-
-
     active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,

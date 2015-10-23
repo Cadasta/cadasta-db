@@ -6,6 +6,8 @@ Cadasta Database Function Reference
 
 [cd\_create\_parcel](#cd_create_parcel)
 
+[cd\_update\_parcel](#cd_update_parcel)
+
 [cd\_create\_party](#cd_create_party)
 
 [cd\_create\_relationship](#cd_create_relationship)
@@ -104,6 +106,43 @@ Integer. The parcel is successfully created if an integer is returned.
          } $anystr$, 'Residential', null, 'insert description here');
          
 ```
+
+14
+
+<a name="cd_update_parcel"/>
+cd\_update\_parcel
+=================
+
+##### Description
+
+Update a parcel & parcel history
+
+##### Parameter(s)
+
+1. project\_id (integer) - ***Required***. Cadasta project id 
+2. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
+3. spatial\_source (character varying) – Optional. Parcel Spatial Source
+Options:
+    * digitized
+    * recreational_gps
+    * survey_grade_gps
+    * survey_sketch
+4.  land\_use (ENUM) - Optional. Type of parcel real estate
+Options:
+    * Commercial
+    * Residential
+5.  gov\_pin (character varying) - Optional.
+6.  description (character varying) - Optional. A description of the parcels history
+
+##### Result
+
+Integer. New relationship history id
+
+##### Example(s)
+
+-   Add new digitized Residential parcel to project 3
+
+``` ```
 
 14
 
