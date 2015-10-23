@@ -150,25 +150,66 @@ END;
 
     cd_create_parcel
 
-    INSERT INTO organization (title) VALUES ('HFH');
-    INSERT INTO project (organization_id, title) VALUES ((SELECT id from organization where title = 'HFH'), 'Bolivia');
-
-    select * from parcel
-    select * from project
-
-    SELECT ST_LENGTH(ST_TRANSFORM((select geom from parcel where id =20),3857))
-    SELECT ST_GeometryType((select geom from parcel where id =20))
     select * from parcel
 
--- SELECT * FROM cd_create_parcel('survey_sketch','11', 1 ,(select geom from parcel where id = 7),null,null,'new description');
+    SELECT * FROM cd_create_parcel(1, 'digitized', null, 'Commercial', null, 'insert description here');
+
+    SELECT * FROM cd_create_parcel(3, 'survey_sketch', $anystr${
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -121.73335433006287,
+              44.571446955240106
+            ],
+            [
+              -121.73388004302979,
+              44.57033871490996
+            ],
+            [
+              -121.7328178882599,
+              44.56994127185396
+            ],
+            [
+              -121.73189520835876,
+              44.570804942725566
+            ],
+            [
+              -121.73335433006287,
+              44.571446955240106
+            ]
+          ]
+        ]
+      }$anystr$, 'Residential', null, 'insert description here');
+
+
+      SELECT * FROM cd_create_parcel(1, 'digitized', 	$anystr${
+        "type": "LineString",
+        "coordinates": [
+          [
+            -121.73326581716537,
+            44.5723908536272
+          ],
+          [
+            -121.7331075668335,
+            44.57247110339075
+          ]
+        ]
+      }$anystr$, 'Commercial', null, 'insert description here');
+
+
 -- select * from parcel
 -- select * from parcel_history
 
 *********************************************************/
-CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
-                                            ckan_user_id integer,
-                                            project_id integer,
-                                            geom geometry,
+
+-- Function: cd_create_parcel(integer, character varying, geometry, land_use, character varying, character varying)
+
+-- DROP FUNCTION cd_create_parcel(integer, character varying, characer varying, land_use, character varying, character varying);
+
+CREATE OR REPLACE FUNCTION cd_create_parcel(project_id integer,
+                                            spatial_source character varying,
+                                            geojson character varying,
                                             land_use land_use,
                                             gov_pin character varying,
                                             history_description character varying)
@@ -179,22 +220,22 @@ CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
   cd_project_id integer;
   cd_geometry geometry;
   cd_geom_type character varying;
-  cd_user_id int;
   cd_area numeric;
   cd_length numeric;
   cd_spatial_source character varying;
   cd_spatial_source_id int;
   cd_land_use land_use;
+  cd_geojson character varying;
   cd_gov_pin character varying;
   cd_history_description character varying;
   cd_current_date date;
 
 BEGIN
 
-    -- spatial source and ckan id required
+    -- spatial source and project id required
     IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
 
-        SELECT INTO cd_project_id id FROM project where id = $3;
+        SELECT INTO cd_project_id id FROM project where id = $1;
 
         IF cd_project_id IS NOT NULL THEN
             SELECT INTO cd_current_date * FROM current_date;
@@ -203,8 +244,9 @@ BEGIN
             cd_land_use := land_use;
             cd_spatial_source = spatial_source;
             cd_history_description = history_description;
-            cd_user_id = ckan_user_id::int;
-            cd_geometry = geom;
+            cd_geojson = geojson;
+
+            SELECT INTO cd_geometry * FROM ST_SetSRID(ST_GeomFromGeoJSON(cd_geojson),4326); -- convert to LAT LNG GEOM
 
             SELECT INTO cd_spatial_source_id id FROM spatial_source WHERE type = cd_spatial_source;
 
@@ -224,36 +266,36 @@ BEGIN
              END IF;
 
 	        IF cd_spatial_source_id IS NOT NULL THEN
-				    INSERT INTO parcel (spatial_source,project_id, user_id,geom,area,length,land_use,gov_pin,created_by) VALUES
-				    (cd_spatial_source_id,cd_project_id,cd_user_id,cd_geometry,cd_area,cd_length,cd_land_use,cd_gov_pin,cd_user_id) RETURNING id INTO p_id;
+	                -- Create parcel record
+				    INSERT INTO parcel (spatial_source,project_id,geom,area,length,land_use,gov_pin) VALUES
+				    (cd_spatial_source_id,cd_project_id,cd_geometry,cd_area,cd_length,cd_land_use,cd_gov_pin) RETURNING id INTO p_id;
 				    RAISE NOTICE 'Successfully created parcel, id: %', p_id;
 
-				    INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified,created_by) VALUES
-				    (p_id,p_id,cd_history_description,cd_current_date,cd_user_id) RETURNING id INTO ph_id;
+                    -- Create parcel history record
+				    INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified, spatial_source, area, length, geom, land_use, gov_pin)
+				    VALUES (p_id,p_id,cd_history_description,cd_current_date, cd_spatial_source_id, cd_area, cd_length, cd_geometry, cd_land_use, cd_gov_pin)
+				    RETURNING id INTO ph_id;
+
 				    RAISE NOTICE 'Successfully created parcel history, id: %', ph_id;
 		    ELSE
-		        RAISE NOTICE 'Invalid spatial source';
+		        RAISE EXCEPTION 'Invalid spatial source';
 		    END IF;
 
 	        IF p_id IS NOT NULL THEN
 		        RETURN p_id;
 	        ELSE
-		        RAISE NOTICE 'Unable to create Parcel';
-		        RETURN NULL;
+		        RAISE EXCEPTION 'Unable to create Parcel';
 	        END IF;
 	    ELSE
-	        RAISE NOTICE 'Invalid project id';
-	        RETURN NULL;
+	        RAISE EXCEPTION 'Invalid project id';
 	    END IF;
 
 	ELSE
-	    RAISE NOTICE 'The following parameters are required: spatial_source, ckan_user_id, geom_type';
-	    RAISE NOTICE 'spatial_source:%  ckan_user_id:% ', $1, $2;
+	    RAISE EXCEPTION 'The following parameters are required: spatial_source, project_id';
 	    RETURN NULL;
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
-
 
 /******************************************************************
 
@@ -355,7 +397,6 @@ BEGIN
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
-
 /******************************************************************
 
  Function: cd_process_data()
@@ -510,11 +551,10 @@ BEGIN
               WHEN 'contractual' THEN
                 data_tenure_type = 'lease';
               ELSE
-                RAISE EXCEPTION 'Invalid Tenure Type';
+                RAISE NOTICE 'Improper Tenure Type';
             END CASE;
             RAISE NOTICE 'Found Loan';
           ELSE
-            RAISE NOTICE 'Cannot Find Loan';
         END CASE;
 
         RAISE NOTICE 'Data tenture type: %', data_tenure_type;
@@ -532,13 +572,14 @@ BEGIN
               IF is_numeric(element.value) THEN
                 numeric_value := element.value;
                 IF numeric_value >= 0 THEN
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ',' || question_id || ',' ||  element.value || ');';
+                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ',' ||  element.value || ');';
                 ELSE
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ',' || question_id || ', NULL);';
+                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ', NULL);';
                 END IF;
+              ELSE
 	          END IF;
             ELSE
-                EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ',' || question_id || ',' || quote_literal(element.value) ||');';
+              EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ','|| question_id || ',' || quote_literal(element.value) ||');';
           END CASE;
         -- question is not found in the database
         ELSE
@@ -555,10 +596,12 @@ BEGIN
 
                   SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326); -- convert to LAT LNG GEOM
 
+                  SELECT INTO data_geojson * FROM ST_AsGeoJSON(data_geom);
+
                   RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
 
-		          -- Create new parcel
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel('survey_sketch','11',data_project_id,data_geom,null,null,'new description');
+		          -- Create new parce
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel(data_project_id,'survey_sketch',data_geojson,null,null,'new description');
 
                   IF data_parcel_id IS NOT NULL THEN
                     RAISE NOTICE 'New parcel id: %', data_parcel_id;
@@ -1017,3 +1060,124 @@ BEGIN
 
 END;
   $$ LANGUAGE plpgsql VOLATILE;
+
+/********************************************************
+
+    cd_update_function
+
+    select * from parcel WHERE id = 3
+    select * from parcel_history where parcel_id = 3
+
+    SELECT NOT(ST_Equals((SELECT geom FROM parcel_history where id = 14), (select geom from parcel_history where id = 15)))
+
+    SELECT version from parcel_history where parcel_id = 3 order by version desc limit 1
+
+    SELECT SUM(version + 1) FROM parcel_history where parcel_id = 3 GROUP BY VERSION ORDER BY VERSION DESC LIMIT 1;
+
+    SELECT * FROM cd_update_parcel (3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
+    'Commercial' , '331321sad', null);
+
+*********************************************************/
+-- DROP FUNCTION cd_update_parcel(integer, character varying, character varying, land_use, character varying, character varying);
+
+CREATE OR REPLACE FUNCTION cd_update_parcel(cd_parcel_id integer,
+                                                     cd_geojson character varying,
+                                                     cd_spatial_source character varying,
+                                                     cd_land_use land_use,
+                                                     cd_gov_pin character varying,
+                                                     cd_description character varying
+                                                     )
+  RETURNS INTEGER AS $$
+  DECLARE
+
+  p_id integer;
+  ph_id integer;
+  cd_geom geometry;
+  cd_new_version integer;
+  cd_current_date date;
+  cd_geom_type character varying;
+  cd_area numeric;
+  cd_length numeric;
+  cd_spatial_source_id integer;
+
+  cd_geom_origin geometry;
+  cd_spatial_source_id_origin integer;
+  cd_land_use_origin land_use;
+  cd_gov_pin_origin character varying;
+  cd_description_origin character varying;
+
+BEGIN
+    -- 1. update parcel record
+    -- 2. create parcel hisotry record
+    SELECT INTO p_id id FROM PARCEL WHERE id = $1;
+
+    IF cd_validate_parcel(p_id) THEN
+
+        SELECT INTO cd_spatial_source_id id FROM spatial_source where type = cd_spatial_source;
+        SELECT INTO cd_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(cd_geojson),4326); -- convert to LAT LNG GEOM
+
+        -- get original values
+        SELECT INTO cd_geom_origin geom FROM parcel WHERE id = p_id;
+        SELECT INTO cd_spatial_source_id_origin spatial_source FROM parcel WHERE id = p_id;
+        SELECT INTO cd_land_use_origin land_use FROM parcel WHERE id = p_id;
+        SELECT INTO cd_gov_pin_origin gov_pin FROM parcel where id = p_id;
+        SELECT INTO cd_description_origin description FROM parcel_history where parcel_id = p_id ORDER BY version DESC LIMIT 1;
+
+        -- Ensure at least one value is differnt from original
+        IF NOT(ST_Equals(cd_geom_origin,cd_geom)) OR (cd_spatial_source_id_origin != cd_spatial_source_id) OR (cd_land_use_origin != cd_land_use) OR (cd_gov_pin_origin != cd_gov_pin) OR (cd_description_origin != cd_description) THEN
+
+           SELECT INTO cd_geom_type * FROM ST_GeometryType(cd_geom); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+
+             -- need geometry type for area, length calculation
+             IF cd_geom_type iS NOT NULL THEN
+                  RAISE NOTICE 'cd_geom_type: %', cd_geom_type;
+                 CASE (cd_geom_type)
+                    WHEN 'ST_Polygon' THEN
+                        cd_area = ST_AREA(ST_TRANSFORM(cd_geom,3857)); -- get area in meters
+                    WHEN 'ST_LineString' THEN
+                        cd_length = ST_LENGTH(ST_TRANSFORM(cd_geom,3857)); -- get length in meters
+                    ELSE
+                        RAISE NOTICE 'Parcel is a point';
+                 END CASE;
+             END IF;
+
+        -- increment version for parcel_history record
+        SELECT INTO cd_new_version SUM(version + 1) FROM parcel_history where parcel_id = p_id GROUP BY VERSION ORDER BY VERSION DESC LIMIT 1;
+        SELECT INTO cd_current_date * FROM current_date;
+
+        -- update parcel record
+        UPDATE parcel
+        SET
+        geom = COALESCE(cd_geom, geom),
+        area = COALESCE(cd_area, area),
+        length = COALESCE(cd_length, length),
+        spatial_source = COALESCE(cd_spatial_source_id, spatial_source),
+        land_use = COALESCE (cd_land_use, land_use),
+        gov_pin  = COALESCE (cd_gov_pin, gov_pin)
+        WHERE id = p_id;
+
+        IF cd_new_version IS NOT NULL THEN
+            -- add parcel history record
+            INSERT INTO parcel_history(
+            parcel_id, origin_id, parent_id, version, description, date_modified,
+            spatial_source, user_id, area, length, geom, land_use, gov_pin)
+	        VALUES (p_id, p_id, (SELECT parent_id FROM parcel_history where parcel_id = p_id ORDER BY version DESC LIMIT 1), cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
+            (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), cd_area, cd_length, cd_geom,
+            (SELECT land_use FROM parcel WHERE id = p_id), (SELECT gov_pin FROM parcel WHERE id = p_id)) RETURNING id INTO ph_id;
+        ELSE
+	        RAISE EXCEPTION 'Cannot increment version';
+        END IF;
+
+        IF ph_id IS NOT NULL THEN
+		    RETURN ph_id;
+		END IF;
+        ELSE
+            RAISE EXCEPTION 'All values match original version';
+        END IF;
+
+    ELSE
+        RAISE EXCEPTION 'Invalid Parcel id';
+    END IF;
+
+END;
+$$ LANGUAGE plpgsql VOLATILE;

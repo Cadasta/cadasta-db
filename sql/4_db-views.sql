@@ -9,6 +9,7 @@ DROP VIEW show_parcels_list;
 DROP VIEW show_relationship_history;
 DROP VIEW show_parcel_history;
 DROP VIEW show_parcel_resources;
+DROP VIEW show_project_resources;
 DROP VIEW show_party_resources;
 DROP VIEW show_relationship_resources;
 DROP VIEW show_project_extents;
@@ -57,7 +58,17 @@ AND r.project_id = pro.id
 AND r.tenure_type = t.id
 AND p.active = true
 AND r.active = true
-GROUP BY p.id, pro.id;
+GROUP BY p.id, pro.id
+UNION
+SELECT p.id, pro.id as project_id, p.time_created, p.area, p.length, ARRAY[]::character varying[], 0 as num_relationships, p.active
+FROM parcel p left join relationship r on r.parcel_id = p.id, project pro
+WHERE p.project_id = pro.id
+AND p.active = true
+AND p.id IN (select distinct(p.id)
+from parcel p left join relationship r on r.parcel_id = p.id
+except
+select distinct(p.id)
+from parcel p join relationship r on r.parcel_id = p.id);
 
 -- Relationship History View
 CREATE OR replace view show_relationship_history AS

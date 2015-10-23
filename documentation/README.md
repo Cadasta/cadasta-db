@@ -64,20 +64,20 @@ Create a new parcel and parcel history.
 
 ##### Parameter(s)
 
-1.  spatial\_source (character varying) – ***Required***.
+1. project\_id (integer) - ***Required***. Cadasta project id 
+2. spatial\_source (character varying) – ***Required***.
 Options:
     * digitized
     * recreational_gps
     * survey_grade_gps
-2.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user.
-3. project\_id (integer) - ***Required***. Cadasta project id
-4.  geom - PostGIS geometry type
-5.  land\_use (ENUM) - Optional. Type of parcel real estate
+    * survey_sketch
+3. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
+4.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
     * Commercial
     * Residential
-6.  gov\_pin (character varying) - Optional.
-7.  history\_description (character varying) - Optional. A description of the parcels history
+5.  gov\_pin (character varying) - Optional.
+6.  history\_description (character varying) - ***Required***. A description of the parcels history
 
 ##### Result
 
@@ -85,9 +85,25 @@ Integer. The parcel is successfully created if an integer is returned.
 
 ##### Example(s)
 
--   Add new survey sketch spatial source parcel from CKAN user 5
+-   Add new digitized Residential parcel to project 3
 
-```SELECT * FROM cd_create_parcel('survey_sketch',5,22.45,'010100000024253D0CADEC5DC04C89247A19354140',null,null,'Original Owner.');```
+``` SELECT * FROM cd_create_parcel(3, 'digitized', 	
+
+        $anystr$ {
+           "type": "LineString",
+           "coordinates": [
+             [
+               -121.73326581716537,
+               44.5723908536272
+             ],
+             [
+               -121.7331075668335,
+               44.57247110339075
+             ]
+           ]
+         } $anystr$, 'Residential', null, 'insert description here');
+         
+```
 
 14
 
@@ -661,16 +677,15 @@ cd\_import\_data\_json
 
 ##### Description
 
-Import Formhub/ONA Field data from Ona endpoint: ```/api/v1/data/:form_id?format=json```
+Import Formhub/ONA Form data
 
-***Important:**** JSON string must be encapsulated inside of '$$'
+***Important:**** JSON string must be encapsulated inside of '$anystr$'
 
-```var json = '$$' + JsonString + '$$' ;```
+```var json = '$anystr$' + JsonString + '$anystr$' ;```
 
 ##### Parameter(s)
 
-1.  field\_data\_id (integer) - ***Required***. The id of the field_data form
-2.  json\_string (character varying) – ***Required***.
+1.  json\_string (character varying) – ***Required***.
 
 ##### Result
 
@@ -680,7 +695,63 @@ Boolean. True if survey data is successfully inserted into DB
 
 -   Add survey data to DB
 
-```SELECT * FROM cd_import_data_json(5,$anystr$[{"_notes":[],"applicant_spouse_name/applicant_name_last":"Henderson","plot_address/plot_address_street":"50th ave SE","deviceid":"enketo.org:rRFxqMTT3EzpjWv6","applicant_name/applicant_name_first":"Daniel","_bamboo_dataset_id":"","_tags":[],"plot_description":"House","applicant_name/applicant_name_postfix":"jr","surveyor":"katechapman","_xform_id_string":"Basic-survey-prototype7","meta/instanceID":"uuid:a4e9fdc9-ec53-42fc-81b6-90b52ba152b2","_duration":143,"plot_number":14316,"applicant_name/geo_location":"47.867583 -122.164306 0 0","end":"2015-08-11T11:01:16.000-07:00","date_land_possession":"2015-01-04","applicant_phone_alt":"no phonenumber property in enketo","applicant_dob":"2008-01-08","applicant_name/applicant_name_last":"Banderson","start":"2015-08-11T10:58:53.000-07:00","_attachments":[],"applicant_name/applicant_name_middle":"Nathan","_status":"submitted_via_web","today":"2015-08-11","plot_address/plot_address_city":"Snohomish","plot_address/plot_address_number”:”62112”,”seller_name/seller_name_first":"Geno","applicant_marital_status":"married","_uuid":"a4e9fdc9-ec53-42fc-81b6-90b52ba152b2","applicant_phone":"no phonenumber property in enketo","means_of_acquire":"inheritance","applicant_spouse_name/applicant_name_middle":"N","_submitted_by":"nhallahan","applicant_name/applicant_name_prefix":"dr","seller_address/seller_address_city":"New Jersey","applicant_spouse_name/applicant_name_prefix":"mrs","seller_name/seller_name_last":"Smith","formhub/uuid":"d427376135c742c995a94a9d18df6614","seller_name/seller_name_postfix":"sr","applicant_spouse_name/applicant_name_first”:”Alessandra”,”_submission_time":"2015-08-11T18:01:13","seller_name/seller_name_prefix":"dr","_version":"201507162126","_geolocation":[47.867583,-122.164306],"seller_address/seller_address_street":"Sucker Drive","seller_address/seller_address_number":"2998","proprietorship":"common_law_freehold","_id":3094351},{"_notes":[],"plot_address/plot_address_street":"Thorndyke Ave W","loan_group/loan_officer/loan_officer_name_last":"Martin","loan":"yes","applicant_name/applicant_name_first":"Sarah","applicant_marital_status":"separated","_tags":[],"plot_description":"Condo","applicant_name/applicant_name_postfix":"sr","surveyor":"danielbaah","loan_group/loan_bank_name":"JP Morgan Chase","meta/instanceID":"uuid:a4156b1c-f46e-4680-9447-66843be162d5","_duration":251,"applicant_name/applicant_name_last":"Bindman","applicant_name/geo_location":"47.670367 -122.387855 0 0","end":"2015-07-16T14:31:16.000-07:00","date_land_possession":"2015-04-28","applicant_phone_alt":"no phonenumber property in enketo","applicant_dob":"2015-06-10","loan_group/loan_officer/loan_officer_name_postfix":"sr","plot_number":2501,"start":"2015-07-16T14:27:05.000-07:00","_attachments":[],"_status":"submitted_via_web","today":"2015-07-16","deviceid":"enketo.org:rRFxqMTT3EzpjWv6","plot_address/plot_address_number":"2501","_xform_id_string":"Basic-survey-prototype7","loan_group/loan_officer/loan_officer_name_prefix":"mr","loan_group/loan_officer/loan_officer_name_first":"Steve","_bamboo_dataset_id":"","_uuid":"a4156b1c-f46e-4680-9447-66843be162d5","applicant_phone":"no phonenumber property in enketo","means_of_acquire":"lease","_submitted_by":"nhallahan","applicant_name/applicant_name_prefix":"dr","seller_name/seller_name_last":"Sam","formhub/uuid":"d427376135c742c995a94a9d18df6614","seller_name/seller_name_first":"Michael","loan_group/loan_bank_branch":"Chase Bank","_submission_time":"2015-07-16T21:31:18","seller_name/seller_name_prefix":"mr","_version":"201507162126","_geolocation":[47.670367,-122.387855],"plot_address/plot_address_city":"Seattle","proprietorship":"allodial","_id":2892616}]$anystr$);```
-
+``` SELECT * FROM cd_import_data_json ($anystr$[{
+          "_notes": [],
+          "applicant_name/applicant_name_first": "Makkonen",
+          "_bamboo_dataset_id": "",
+          "_tags": [],
+          "surveyor": "katechapman",
+          "_xform_id_string": "CJF-minimum-Test",
+          "_geolocation": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -68.13127398490906,
+                  -16.498594502708375
+                ],
+                [
+                  -68.13038885593414,
+                  -16.4990522778716
+                ],
+                [
+                  -68.13022255897522,
+                  -16.49927344975331
+                ],
+                [
+                  -68.1305605173111,
+                  -16.499906102809422
+                ],
+                [
+                  -68.13167631626129,
+                  -16.49923744504563
+                ],
+                [
+                  -68.13127398490906,
+                  -16.498594502708375
+                ]
+              ]
+            ]
+          },
+          "_duration": 27.0,
+          "meta/instanceID": "uuid:6d998c3d-d712-4dbc-b041-16939500f5a7",
+          "end": "2015-10-07T12:55:55.218-07",
+          "date_land_possession": "2010-05-25",
+          "applicant_name/applicant_name_last": "Ontario ",
+          "start": "2015-10-07T12:55:28.024-07",
+          "_attachments": [],
+          "_status": "submitted_via_web",
+          "today": "2015-10-07",
+          "_uuid": "6d998c3d-d712-4dbc-b041-16939500f5a7",
+          "means_of_acquire": "inheritance",
+          "_submitted_by": null,
+          "formhub/uuid": "5b453ab2cbec49f79193293262d68376",
+          "_submission_time": "2015-10-07T19:55:46",
+          "_version": "201510071848",
+          "tenure_type": "common_law_freehold",
+          "deviceid": "35385206286421",
+          "_id": 15}
+        ]$anystr$);```
+        
 ```[ { cd_import_data_json: true } ]```
 

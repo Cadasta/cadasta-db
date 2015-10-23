@@ -2,25 +2,66 @@
 
     cd_create_parcel
 
-    INSERT INTO organization (title) VALUES ('HFH');
-    INSERT INTO project (organization_id, title) VALUES ((SELECT id from organization where title = 'HFH'), 'Bolivia');
-
-    select * from parcel
-    select * from project
-
-    SELECT ST_LENGTH(ST_TRANSFORM((select geom from parcel where id =20),3857))
-    SELECT ST_GeometryType((select geom from parcel where id =20))
     select * from parcel
 
--- SELECT * FROM cd_create_parcel('survey_sketch','11', 1 ,(select geom from parcel where id = 7),null,null,'new description');
+    SELECT * FROM cd_create_parcel(1, 'digitized', null, 'Commercial', null, 'insert description here');
+    
+    SELECT * FROM cd_create_parcel(3, 'survey_sketch', $anystr${
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -121.73335433006287,
+              44.571446955240106
+            ],
+            [
+              -121.73388004302979,
+              44.57033871490996
+            ],
+            [
+              -121.7328178882599,
+              44.56994127185396
+            ],
+            [
+              -121.73189520835876,
+              44.570804942725566
+            ],
+            [
+              -121.73335433006287,
+              44.571446955240106
+            ]
+          ]
+        ]
+      }$anystr$, 'Residential', null, 'insert description here');
+
+
+      SELECT * FROM cd_create_parcel(1, 'digitized', 	$anystr${
+        "type": "LineString",
+        "coordinates": [
+          [
+            -121.73326581716537,
+            44.5723908536272
+          ],
+          [
+            -121.7331075668335,
+            44.57247110339075
+          ]
+        ]
+      }$anystr$, 'Commercial', null, 'insert description here');
+
+
 -- select * from parcel
 -- select * from parcel_history
 
 *********************************************************/
-CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
-                                            ckan_user_id integer,
-                                            project_id integer,
-                                            geom geometry,
+
+-- Function: cd_create_parcel(integer, character varying, geometry, land_use, character varying, character varying)
+
+-- DROP FUNCTION cd_create_parcel(integer, character varying, characer varying, land_use, character varying, character varying);
+
+CREATE OR REPLACE FUNCTION cd_create_parcel(project_id integer,
+                                            spatial_source character varying,
+                                            geojson character varying,
                                             land_use land_use,
                                             gov_pin character varying,
                                             history_description character varying)
@@ -31,22 +72,22 @@ CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
   cd_project_id integer;
   cd_geometry geometry;
   cd_geom_type character varying;
-  cd_user_id int;
   cd_area numeric;
   cd_length numeric;
   cd_spatial_source character varying;
   cd_spatial_source_id int;
   cd_land_use land_use;
+  cd_geojson character varying;
   cd_gov_pin character varying;
   cd_history_description character varying;
   cd_current_date date;
 
 BEGIN
 
-    -- spatial source and ckan id required
+    -- spatial source and project id required
     IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
 
-        SELECT INTO cd_project_id id FROM project where id = $3;
+        SELECT INTO cd_project_id id FROM project where id = $1;
 
         IF cd_project_id IS NOT NULL THEN
             SELECT INTO cd_current_date * FROM current_date;
@@ -55,8 +96,9 @@ BEGIN
             cd_land_use := land_use;
             cd_spatial_source = spatial_source;
             cd_history_description = history_description;
-            cd_user_id = ckan_user_id::int;
-            cd_geometry = geom;
+            cd_geojson = geojson;
+
+            SELECT INTO cd_geometry * FROM ST_SetSRID(ST_GeomFromGeoJSON(cd_geojson),4326); -- convert to LAT LNG GEOM
 
             SELECT INTO cd_spatial_source_id id FROM spatial_source WHERE type = cd_spatial_source;
 
@@ -76,31 +118,32 @@ BEGIN
              END IF;
 
 	        IF cd_spatial_source_id IS NOT NULL THEN
-				    INSERT INTO parcel (spatial_source,project_id, user_id,geom,area,length,land_use,gov_pin,created_by) VALUES
-				    (cd_spatial_source_id,cd_project_id,cd_user_id,cd_geometry,cd_area,cd_length,cd_land_use,cd_gov_pin,cd_user_id) RETURNING id INTO p_id;
+	                -- Create parcel record
+				    INSERT INTO parcel (spatial_source,project_id,geom,area,length,land_use,gov_pin) VALUES
+				    (cd_spatial_source_id,cd_project_id,cd_geometry,cd_area,cd_length,cd_land_use,cd_gov_pin) RETURNING id INTO p_id;
 				    RAISE NOTICE 'Successfully created parcel, id: %', p_id;
 
-				    INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified,created_by) VALUES
-				    (p_id,p_id,cd_history_description,cd_current_date,cd_user_id) RETURNING id INTO ph_id;
+                    -- Create parcel history record
+				    INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified, spatial_source, area, length, geom, land_use, gov_pin)
+				    VALUES (p_id,p_id,cd_history_description,cd_current_date, cd_spatial_source_id, cd_area, cd_length, cd_geometry, cd_land_use, cd_gov_pin)
+				    RETURNING id INTO ph_id;
+
 				    RAISE NOTICE 'Successfully created parcel history, id: %', ph_id;
 		    ELSE
-		        RAISE NOTICE 'Invalid spatial source';
+		        RAISE EXCEPTION 'Invalid spatial source';
 		    END IF;
 
 	        IF p_id IS NOT NULL THEN
 		        RETURN p_id;
 	        ELSE
-		        RAISE NOTICE 'Unable to create Parcel';
-		        RETURN NULL;
+		        RAISE EXCEPTION 'Unable to create Parcel';
 	        END IF;
 	    ELSE
-	        RAISE NOTICE 'Invalid project id';
-	        RETURN NULL;
+	        RAISE EXCEPTION 'Invalid project id';
 	    END IF;
 
 	ELSE
-	    RAISE NOTICE 'The following parameters are required: spatial_source, ckan_user_id, geom_type';
-	    RAISE NOTICE 'spatial_source:%  ckan_user_id:% ', $1, $2;
+	    RAISE EXCEPTION 'The following parameters are required: spatial_source, project_id';
 	    RETURN NULL;
 	END IF;
 END;
