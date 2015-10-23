@@ -109,42 +109,43 @@ Integer. The parcel is successfully created if an integer is returned.
 
 14
 
+
 <a name="cd_update_parcel"/>
 cd\_update\_parcel
 =================
 
 ##### Description
 
-Update a parcel & parcel history
+Update a parcel.
 
 ##### Parameter(s)
 
 1. project\_id (integer) - ***Required***. Cadasta project id 
-2. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
-3. spatial\_source (character varying) – Optional. Parcel Spatial Source
-Options:
-    * digitized
-    * recreational_gps
-    * survey_grade_gps
+ 2. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects) 
+3. spatial\_source (character varying) – Optional. Parcel Spatial Source 
+ Options:     
+    * digitized     
+    * recreational_gps     
+    * survey_grade_gps     
     * survey_sketch
-4.  land\_use (ENUM) - Optional. Type of parcel real estate
-Options:
-    * Commercial
+ 4.  land\_use (ENUM) - Optional. Type of parcel real estate 
+Options:     
+    * Commercial     
     * Residential
-5.  gov\_pin (character varying) - Optional.
+ 5.  gov\_pin (character varying) - Optional. 
 6.  description (character varying) - Optional. A description of the parcels history
 
 ##### Result
 
-Integer. New relationship history id
+Integer. Parcel history id
 
 ##### Example(s)
 
--   Add new digitized Residential parcel to project 3
+-  Update parcel 3's geometry	
 
-``` ```
+```SELECT * FROM cd_update_parcel (3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$, null, null , null, null);```
 
-14
+4
 
 <a name="cd_create_party"/>
 cd\_create\_party
