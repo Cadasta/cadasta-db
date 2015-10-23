@@ -1062,30 +1062,33 @@ END;
   $$ LANGUAGE plpgsql VOLATILE;
 /********************************************************
 
-    cd_update_parcel
+    cd_update_function
 
-    select * from parcel WHERE id = 3
     select * from parcel_history where parcel_id = 3
 
     SELECT NOT(ST_Equals((SELECT geom FROM parcel_history where id = 14), (select geom from parcel_history where id = 15)))
 
     -- Update parcel geom, spatial_source, land_use, gov_pin and description
-    SELECT * FROM cd_update_parcel (3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
+    SELECT * FROM cd_update_parcel (3, 13, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
     'Commercial' , '331321sad', 'we have a new description');
 
     -- Update parcel geometry
-    SELECT * FROM cd_update_parcel (3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$, null, null , null, null);
+    SELECT * FROM cd_update_parcel (1, 3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$, null, null , null, null);
 
     -- Should return an exception: 'All values are null'
-    SELECT * FROM cd_update_parcel (3, null, null, null , null, null);
+    SELECT * FROM cd_update_parcel (1, 3, null, null, null , null, null);
 
     -- Should return exception: 'Invalid spatial_source'
-    SELECT * FROM cd_update_parcel (3, null, 'survey_sketchh', null , null, null);
+    SELECT * FROM cd_update_parcel (1, 3, null, 'survey_sketchh', null , null, null);
+
+    -- Should return exception: 'Project and Parcel id required'
+    SELECT * FROM cd_update_parcel (1, null, null, 'survey_sketch', null , null, null);
 
 *********************************************************/
 -- DROP FUNCTION cd_update_parcel(integer, character varying, character varying, land_use, character varying, character varying);
 
-CREATE OR REPLACE FUNCTION cd_update_parcel(cd_parcel_id integer,
+CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
+                                                     cd_parcel_id integer,
                                                      cd_geojson character varying,
                                                      cd_spatial_source character varying,
                                                      cd_land_use land_use,
@@ -1094,8 +1097,8 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(cd_parcel_id integer,
                                                      )
   RETURNS INTEGER AS $$
   DECLARE
-
-  p_id integer;
+  pro_id integer;   -- project id
+  p_id integer;     -- parcel id
   ph_id integer;
   cd_geom geometry;
   cd_new_version integer;
@@ -1108,7 +1111,18 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(cd_parcel_id integer,
   BEGIN
     -- 1. update parcel record
     -- 2. create parcel hisotry record
-    SELECT INTO p_id id FROM PARCEL WHERE id = $1;
+
+    IF $1 IS NULL OR $2 IS NULL THEN
+        RAISE EXCEPTION 'Project and Parcel id required';
+    END IF;
+
+    SELECT INTO pro_id id FROM project WHERE id = $1;
+
+    IF NOT(SELECT * FROM cd_validate_project(pro_id)) THEN
+        RAISE EXCEPTION 'Invalid project id';
+    END IF;
+
+    SELECT INTO p_id id FROM parcel WHERE id = $2 and project_id = $1;
 
     IF cd_validate_parcel(p_id) THEN
 
