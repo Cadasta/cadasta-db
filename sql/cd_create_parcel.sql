@@ -118,12 +118,16 @@ BEGIN
              END IF;
 
 	        IF cd_spatial_source_id IS NOT NULL THEN
+	                -- Create parcel record
 				    INSERT INTO parcel (spatial_source,project_id,geom,area,length,land_use,gov_pin) VALUES
 				    (cd_spatial_source_id,cd_project_id,cd_geometry,cd_area,cd_length,cd_land_use,cd_gov_pin) RETURNING id INTO p_id;
 				    RAISE NOTICE 'Successfully created parcel, id: %', p_id;
 
-				    INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified) VALUES
-				    (p_id,p_id,cd_history_description,cd_current_date) RETURNING id INTO ph_id;
+                    -- Create parcel history record
+				    INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified, spatial_source, area, length, geom, land_use, gov_pin)
+				    VALUES (p_id,p_id,cd_history_description,cd_current_date, cd_spatial_source_id, cd_area, cd_length, cd_geometry, cd_land_use, cd_gov_pin)
+				    RETURNING id INTO ph_id;
+
 				    RAISE NOTICE 'Successfully created parcel history, id: %', ph_id;
 		    ELSE
 		        RAISE EXCEPTION 'Invalid spatial source';

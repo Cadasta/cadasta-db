@@ -280,6 +280,13 @@ CREATE TABLE relationship_history (
     expiration_date timestamp,
     description character varying not null,
     date_modified date not null,
+
+
+
+
+
+
+
     active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -291,11 +298,20 @@ CREATE TABLE relationship_history (
 CREATE TABLE parcel_history (
     id serial primary key not null,
     parcel_id int references parcel(id) not null,
-    origin_id int not null, --  in case of split, the origin id will always be the parcel id of the original parcel
+    origin_id int references parcel(id) not null, --  in case of split, the origin id will always be the parcel id of the original parcel
     parent_id int references parcel(id), -- in case of split, parent id is parcel id from which the parcel is derived from
     version int default 1 not null, -- version of the original parcel
     description character varying not null,
     date_modified date not null,
+
+    spatial_source int references spatial_source(id) not null, -- required?
+    user_id character varying,
+    area numeric,  -- area of polygon
+    length numeric,  -- lengthof linestring
+    geom geometry,
+    land_use land_use,
+    gov_pin character varying,
+
     active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
