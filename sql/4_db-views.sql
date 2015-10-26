@@ -35,6 +35,13 @@ FROM parcel, spatial_source s, project
 WHERE parcel.spatial_source = s.id
 AND parcel.project_id = project.id
 UNION all
+SELECT 'parcel_history' AS activity_type, ph.parcel_id, s.type, NULL AS name,NULL AS parcel_id, ph.time_created, p.project_id
+FROM parcel_history ph, spatial_source s, project ,parcel p
+WHERE ph.spatial_source = s.id
+AND p.project_id = project.id
+AND ph.parcel_id = p.id
+AND version > 1
+UNION all
 SELECT 'party', party.id, NULL, first_name || ' ' || lASt_name, NULL, party.time_created, party.project_id
 FROM party, project
 WHERE party.project_id = project.id

@@ -1060,9 +1060,10 @@ BEGIN
 
 END;
   $$ LANGUAGE plpgsql VOLATILE;
+
 /********************************************************
 
-    cd_update_function
+    cd_update_parcel
 
     select * from parcel_history where parcel_id = 3
 
@@ -1085,7 +1086,6 @@ END;
     SELECT * FROM cd_update_parcel (1, null, null, 'survey_sketch', null , null, null);
 
 *********************************************************/
--- DROP FUNCTION cd_update_parcel(integer, character varying, character varying, land_use, character varying, character varying);
 
 CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
                                                      cd_parcel_id integer,
@@ -1144,8 +1144,10 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
                  CASE (cd_geom_type)
                     WHEN 'ST_Polygon' THEN
                         cd_area = ST_AREA(ST_TRANSFORM(cd_geom,3857)); -- get area in meters
+                        UPDATE parcel SET area = cd_area, length = cd_length WHERE id = p_id;
                     WHEN 'ST_LineString' THEN
                         cd_length = ST_LENGTH(ST_TRANSFORM(cd_geom,3857)); -- get length in meters
+                        UPDATE parcel SET length = cd_length, area = cd_area WHERE id = p_id;
                     ELSE
                         RAISE NOTICE 'Parcel is a point';
                  END CASE;
@@ -1159,8 +1161,6 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
             UPDATE parcel
             SET
             geom = COALESCE(cd_geom, geom),
-            area = COALESCE(cd_area, area),
-            length = COALESCE(cd_length, length),
             spatial_source = COALESCE(cd_spatial_source_id, spatial_source),
             land_use = COALESCE (cd_land_use, land_use),
             gov_pin  = COALESCE (cd_gov_pin, gov_pin)
