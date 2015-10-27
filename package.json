@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/Cadasta/cadasta-db",
   "dependencies": {
-    "pg": "^4.4.1"
+    "pg": "^4.4.1",
+    "q": "^1.4.1"
   }
 }

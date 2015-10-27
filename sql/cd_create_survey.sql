@@ -1,19 +1,19 @@
--- Create new survey
+-- Create new Field Data
 
-DROP FUNCTION IF EXISTS cd_create_survey(id_string character varying);
+DROP FUNCTION IF EXISTS cd_create_field_data(id_string character varying);
 
-CREATE OR REPLACE FUNCTION cd_create_survey(id_string character varying)
+CREATE OR REPLACE FUNCTION cd_create_field_data(id_string character varying)
   RETURNS INTEGER AS $$
   DECLARE
   s_id integer;
-  survey_id_string character varying;
+  field_data_id_string character varying;
 BEGIN
 
-    survey_id_string = id_string;
+    field_data_id_string = id_string;
 
-    IF survey_id_string IS NOT NULL THEN
+    IF field_data_id_string IS NOT NULL THEN
 	-- Create survey and return survey id
-    INSERT INTO survey (id_string) VALUES (survey_id_string) RETURNING id INTO s_id;
+    INSERT INTO field_data (id_string) VALUES (field_data_id_string) RETURNING id INTO s_id;
 
 	RETURN s_id;
 

@@ -46,17 +46,17 @@ DECLARE
   question_section_id integer;
   section_name text;
   raw_form_id integer;
-  survey_id integer;
-  survey_project_id int;
+  field_data_id integer;
+  field_data_project_id int;
 BEGIN
   raw_form_id := NEW.id;
 
  IF (NEW.json IS NOT NULL) THEN
     RAISE NOTICE 'Form has json to process.';
-    EXECUTE 'INSERT INTO survey (id_string) VALUES ((SELECT value::text FROM json_each_text((select json from raw_form where id = ' || raw_form_id || ')) WHERE key = ''id_string'')) RETURNING id' INTO survey_id;
-    EXECUTE 'UPDATE survey SET name = (SELECT value::text FROM json_each_text((select json from raw_form where id = ' || raw_form_id || ')) WHERE key = ''name'') WHERE id = ' || survey_id;
-    EXECUTE 'UPDATE survey SET label = (SELECT value::text FROM json_each_text((select json from raw_form where id = ' || raw_form_id || ')) WHERE key = ''title'') WHERE id = ' || survey_id;
-    RAISE NOTICE 'Created Survey';
+    EXECUTE 'INSERT INTO field_data (id_string) VALUES ((SELECT value::text FROM json_each_text((select json from raw_form where id = ' || raw_form_id || ')) WHERE key = ''id_string'')) RETURNING id' INTO field_data_id;
+    EXECUTE 'UPDATE field_data SET name = (SELECT value::text FROM json_each_text((select json from raw_form where id = ' || raw_form_id || ')) WHERE key = ''name'') WHERE id = ' || field_data_id;
+    EXECUTE 'UPDATE field_data SET label = (SELECT value::text FROM json_each_text((select json from raw_form where id = ' || raw_form_id || ')) WHERE key = ''title'') WHERE id = ' || field_data_id;
+    RAISE NOTICE 'Created field_data';
  END IF;
 
   -- loop through the parent questions (top level)
@@ -71,27 +71,30 @@ BEGIN
       -- collect the name and label from the parent question
       SELECT INTO parent_question_name value::text FROM json_each_text(parent_question_json.json) WHERE key = 'name';
       SELECT INTO parent_question_label value::text FROM json_each_text(parent_question_json.json) WHERE key = 'label';
+
+      IF(parent_question_name = 'loan_officer') THEN
+     	RAISE NOTICE 'LOAN OFFICE REACHED';
+      END IF;
+
       parent_question_prefix := lower(left(parent_question_name, position('.' in parent_question_name)-1));
       -- parent question type
       CASE (parent_question_type.name)
          -- parent section headings or closing statements
          WHEN ('note') THEN
-         RAISE NOTICE 'Made it Note';
 
-         -- update survey project id
+         -- Use one project until Cadasta API endpoint is built
+         SELECT INTO field_data_project_id id FROM project ORDER by id LIMIT 1;
 
-         SELECT INTO survey_project_id project_id FROM survey WHERE id = survey_id;
-         IF survey_project_id IS NULL AND parent_question_name = 'project_id' THEN
+         IF field_data_project_id IS NULL AND parent_question_name = 'project_id' THEN
             RAISE NOTICE 'Found project id %', parent_question_name;
 
-
-            UPDATE survey SET project_id = (SELECT value::int FROM json_each_text(parent_question_json.json) WHERE key = 'label');
+            UPDATE field_data SET project_id = field_data_project_id;
          END IF;
 
         /******************************************************************************
 	   SECTIONS
 	******************************************************************************/
-	   EXECUTE 'INSERT INTO section (survey_id, name, label) VALUES ('||survey_id||','||quote_literal(parent_question_name)||','||quote_literal(parent_question_label)||') RETURNING id' INTO section_id;
+	   EXECUTE 'INSERT INTO section (field_data_id, name, label) VALUES ('||field_data_id||','||quote_literal(parent_question_name)||','||quote_literal(parent_question_label)||') RETURNING id' INTO section_id;
 	   section_name := parent_question_name;
 	   RAISE NOTICE '-----> NEW SECTION: %', parent_question_label || ' (' || section_id || ')';
          -- parent group
@@ -100,7 +103,7 @@ BEGIN
            CHILDREN QUESTIONS
          ******************************************************************************/
            IF parent_question_name IS NOT NULL AND parent_question_label IS NOT NULL THEN
-             EXECUTE 'INSERT INTO "q_group" (survey_id,name, label) VALUES ('||survey_id||','||quote_literal(parent_question_name)||','||quote_literal(parent_question_label)||') RETURNING id' INTO parent_group_id;
+             EXECUTE 'INSERT INTO "q_group" (field_data_id,name, label) VALUES ('||field_data_id||','||quote_literal(parent_question_name)||','||quote_literal(parent_question_label)||') RETURNING id' INTO parent_group_id;
 	     RAISE NOTICE '----------> NEW GROUP: %', parent_question_label || ' (' || parent_group_id || ')';
 	     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(parent_question_prefix)  ORDER BY id DESC LIMIT 1;
 	     -- if the current section name matches the group prefix (right of period '.') then it belongs to the section
@@ -131,7 +134,8 @@ BEGIN
 		      ******************************************************************************/
 		        -- the child question must have a name and label to be recorded ('meta' types do not get recorded)
 		        IF child_question_name IS NOT NULL AND child_question_label IS NOT NULL THEN
-		          EXECUTE 'INSERT INTO "q_group" (survey_id,parent_id, name, label) VALUES ('||survey_id||','||parent_group_id||','||quote_literal(child_question_name)||','||quote_literal(child_question_label)||') RETURNING id' INTO child_group_id;
+		        	RAISE NOTICE 'GRAND CHILD GROUP QUESTION';
+		          EXECUTE 'INSERT INTO "q_group" (field_data_id,parent_id, name, label) VALUES ('||field_data_id||','||parent_group_id||','||quote_literal(child_question_name)||','||quote_literal(child_question_label)||') RETURNING id' INTO child_group_id;
 			  RAISE NOTICE '---------------> NEW GROUP: %', child_question_label || ' (' || child_group_id || ')';
 			  -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(child_question_prefix)  ORDER BY id DESC LIMIT 1;
 			  -- if the current section name matches the group prefix (right of period '.') then it belongs to the section
@@ -162,7 +166,8 @@ BEGIN
 				    ******************************************************************************/
 				    -- the grandchild question must have a name and label to be recorded ('meta' types do not get recorded)
 				   IF grandchild_question_name IS NOT NULL AND grandchild_question_label IS NOT NULL THEN
-				     EXECUTE 'INSERT INTO "q_group" (survey_id,parent_id, name, label) VALUES ('||survey_id||','||child_group_id||','||quote_literal(grandchild_question_name)||','||quote_literal(grandchild_question_label)||') RETURNING id' INTO grandchild_group_id;
+				   		        	RAISE NOTICE 'GREAT GRAND CHILD GROUP QUESTION';
+				     EXECUTE 'INSERT INTO "q_group" (field_data_id,parent_id, name, label) VALUES ('||field_data_id||','||child_group_id||','||quote_literal(grandchild_question_name)||','||quote_literal(grandchild_question_label)||') RETURNING id' INTO grandchild_group_id;
 				     RAISE NOTICE '--------------------> NEW GROUP: %', grandchild_question_label || ' (' || grandchild_group_id || ')';
 				     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(grandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
 				      -- if the current section name matches the group prefix (right of period '.') then it belongs to the section
@@ -190,7 +195,7 @@ BEGIN
 					 CASE (greatgrandchild_question_type.name)
 					   -- greatgrandchild questions with options
 					   WHEN 'select all that apply','selection one' THEN
-					     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||greatgrandchild_question_type.id||','||quote_literal(greatgrandchild_question_name)||','||quote_literal(greatgrandchild_question_label)||') RETURNING id' INTO greatgrandchild_question_id;
+					     EXECUTE 'INSERT INTO question (field_data_id, type_id, name, label) VALUES ('||field_data_id||','||greatgrandchild_question_type.id||','||quote_literal(greatgrandchild_question_name)||','||quote_literal(greatgrandchild_question_label)||') RETURNING id' INTO greatgrandchild_question_id;
 					     IF section_id IS NOT NULL THEN
 					       EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || greatgrandchild_question_id;
 					     END IF;
@@ -200,7 +205,7 @@ BEGIN
 				             END IF;
 					     RAISE NOTICE '-------------------------> QUESTION: %', greatgrandchild_question_label || ' (' || greatgrandchild_question_type.name || ')';
 					   ELSE
-					     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||greatgrandchild_question_type.id||','||quote_literal(greatgrandchild_question_name)||','||quote_literal(greatgrandchild_question_label)||') RETURNING id' INTO greatgrandchild_question_id;
+					     EXECUTE 'INSERT INTO question (field_data_id, type_id, name, label) VALUES ('||field_data_id||','||greatgrandchild_question_type.id||','||quote_literal(greatgrandchild_question_name)||','||quote_literal(greatgrandchild_question_label)||') RETURNING id' INTO greatgrandchild_question_id;
 					     IF section_id IS NOT NULL THEN
 					       EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || greatgrandchild_question_id;
 					     END IF;
@@ -217,7 +222,7 @@ BEGIN
 				    /******************************************************************************
 				     GRAND-CHILD QUESTIONS (WITH OPTIONS)
 				   ******************************************************************************/
-				     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||grandchild_question_type.id||','||quote_literal(grandchild_question_name)||','||quote_literal(grandchild_question_label)||') RETURNING id' INTO grandchild_question_id;
+				     EXECUTE 'INSERT INTO question (field_data_id, type_id, name, label) VALUES ('||field_data_id||','||grandchild_question_type.id||','||quote_literal(grandchild_question_name)||','||quote_literal(grandchild_question_label)||') RETURNING id' INTO grandchild_question_id;
 				     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(grandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
 				     -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
 				     -- IF question_section_id IS NOT NULL THEN
@@ -246,7 +251,7 @@ BEGIN
 				   /******************************************************************************
 				     GRAND-CHILD QUESTIONS
 				   ******************************************************************************/
-				     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||grandchild_question_type.id||','||quote_literal(grandchild_question_name)||','||quote_literal(grandchild_question_label)||') RETURNING id' INTO grandchild_question_id;
+				     EXECUTE 'INSERT INTO question (field_data_id, type_id, name, label) VALUES ('||field_data_id||','||grandchild_question_type.id||','||quote_literal(grandchild_question_name)||','||quote_literal(grandchild_question_label)||') RETURNING id' INTO grandchild_question_id;
 				     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(grandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
 				     -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
 				     -- IF question_section_id IS NOT NULL THEN
@@ -269,7 +274,7 @@ BEGIN
 		       /******************************************************************************
 			CHILD QUESTIONS (WITH OPTIONS)
 		      ******************************************************************************/
-		        EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||child_question_type.id||','||quote_literal(child_question_name)||','||quote_literal(child_question_label)||') RETURNING id' INTO child_question_id;
+		        EXECUTE 'INSERT INTO question (field_data_id, type_id, name, label) VALUES ('||field_data_id||','||child_question_type.id||','||quote_literal(child_question_name)||','||quote_literal(child_question_label)||') RETURNING id' INTO child_question_id;
 			-- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(child_question_prefix)  ORDER BY id DESC LIMIT 1;
 			-- if the current section name matches the question prefix (right of period '.') then it belongs to the section
 			-- IF question_section_id IS NOT NULL THEN
@@ -298,7 +303,7 @@ BEGIN
 		      /******************************************************************************
 			CHILD QUESTIONS
 		      ******************************************************************************/
-		        EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||child_question_type.id||','||quote_literal(child_question_name)||','||quote_literal(child_question_label)||') RETURNING id' INTO child_question_id;
+		        EXECUTE 'INSERT INTO question (field_data_id, type_id, name, label) VALUES ('||field_data_id||','||child_question_type.id||','||quote_literal(child_question_name)||','||quote_literal(child_question_label)||') RETURNING id' INTO child_question_id;
 			-- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(child_question_prefix)  ORDER BY id DESC LIMIT 1;
 			-- if the current section name matches the question prefix (right of period '.') then it belongs to the section
 			-- IF question_section_id IS NOT NULL THEN
@@ -321,7 +326,7 @@ BEGIN
          /******************************************************************************
 	   PARENT QUESTIONS (WITH OPTIONS)
 	 ******************************************************************************/
-           EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||parent_question_type.id||','||quote_literal(parent_question_name)||','||quote_literal(parent_question_label)||') RETURNING id' INTO parent_question_id;
+           EXECUTE 'INSERT INTO question (field_data_id, type_id, name, label) VALUES ('||field_data_id||','||parent_question_type.id||','||quote_literal(parent_question_name)||','||quote_literal(parent_question_label)||') RETURNING id' INTO parent_question_id;
            -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(parent_question_prefix)  ORDER BY id DESC LIMIT 1;
            -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
            -- IF question_section_id IS NOT NULL THEN
@@ -346,7 +351,7 @@ BEGIN
          /******************************************************************************
 	   PARENT QUESTIONS
 	 ******************************************************************************/
-           INSERT INTO question (survey_id, type_id, name, label) VALUES (survey_id,parent_question_type.id,quote_literal(parent_question_name),quote_literal(parent_question_label)) RETURNING id INTO parent_question_id;
+           INSERT INTO question (field_data_id, type_id, name, label) VALUES (field_data_id,parent_question_type.id,quote_literal(parent_question_name),quote_literal(parent_question_label)) RETURNING id INTO parent_question_id;
            -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(parent_question_prefix)  ORDER BY id DESC LIMIT 1;
            -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
            -- IF question_section_id IS NOT NULL THEN

@@ -1,30 +1,31 @@
-/******************************************************************
-  SURVEY TABLE DEFINITIONS
+﻿/******************************************************************
+  field_data TABLE DEFINITIONS
 ******************************************************************/
 
--- survey
-CREATE TABLE "survey"
+-- field_data
+CREATE TABLE "field_data"
 (
 	"id"			SERIAL				NOT NULL
-	,"project_id" int -- CKAN project id
+	,project_id int references project(id) 
 	,"user_id" int -- CKAN user id
 	,"parcel_id" int
-	,"id_string"		character varying		NOT NULL
+	,"id_string"		character varying unique
+	, "form_id" bigint unique
 	,"name"			character varying
 	,"label"		character varying
 	,"publish"		boolean				DEFAULT TRUE,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
-	,CONSTRAINT survey_id PRIMARY KEY(id)
+	,CONSTRAINT field_data_id PRIMARY KEY(id)
 );
 
--- Media <--> Survey junction table
-CREATE TABLE media_survey (
-    survey_id int references survey(id),
-    media_id int references media(id)
+-- resource <--> field_data junction table
+CREATE TABLE resource_field_data (
+    field_data_id int references field_data(id),
+    resource_id int references resource(id)
 );
 
  -- question type
@@ -33,25 +34,25 @@ CREATE TABLE "type"
 	"id"			SERIAL				NOT NULL
 	,"name"			character varying
 	,"has_options"		boolean,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT type_id PRIMARY KEY(id)
 );
--- questions with type "note": these are section headers and closing comments for a survey; they group questions
+-- questions with type "note": these are section headers and closing comments for a field_data; they group questions
 -- by subject/area of concern; these question types do not have responses;
 CREATE TABLE "section"
 (
 	"id"			SERIAL				NOT NULL
-	,"survey_id"		integer				NOT NULL	REFERENCES "survey"(id)
+	,"field_data_id"		integer				NOT NULL	REFERENCES "field_data"(id)
 	,"name"			character varying		NOT NULL
 	,"label"		character varying
 	,"publish"		boolean				DEFAULT TRUE,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT section_id PRIMARY KEY(id)
@@ -61,14 +62,14 @@ CREATE TABLE "section"
 CREATE TABLE "q_group"
 (
 	"id"			SERIAL				NOT NULL
-	,"survey_id"		integer				NOT NULL	REFERENCES "survey"(id)
+	,"field_data_id"		integer				NOT NULL	REFERENCES "field_data"(id)
 	,"section_id"		integer						REFERENCES "section"(id)
 	,"parent_id"		integer						REFERENCES "q_group"(id)
 	,"name"			character varying		NOT NULL
 	,"label"		character varying,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT group_id PRIMARY KEY(id)
@@ -79,7 +80,7 @@ CREATE TABLE "question"
 	"id"			SERIAL				NOT NULL
 	,"name"			character varying		NOT NULL
 	,"label"		character varying
-	,"survey_id"		integer				NOT NULL	REFERENCES "survey"(id)
+	,"field_data_id"		integer				NOT NULL	REFERENCES "field_data"(id)
 	,"type_id"		integer						REFERENCES "type"(id)
 	,"section_id"		integer						REFERENCES "section"(id)
 	,"group_id"		integer						REFERENCES "q_group"(id)
@@ -91,26 +92,25 @@ CREATE TABLE "question"
 	,"app_column"		character varying
 	,"app_plural"		character varying
 	,"priority"		integer,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT question_id PRIMARY KEY(id)
 );
 
--- the location of the person filling out the survey
+-- respondent
 CREATE TABLE "respondent"
 (
 	"id"			SERIAL				NOT NULL
-	,"survey_id"		integer						REFERENCES "survey"(id)
-	,"person_id" integer references "person"(id)
-	,"group_id" integer references "group"(id)
-	,"id_string"		character varying
+	,"field_data_id"		integer						REFERENCES "field_data"(id)
+	,"uuid" character varying NOT NULL unique
+	,"ona_data_id" character varying NOT NULL unique
 	,"submission_time"	timestamp with time zone,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 	,CONSTRAINT respondent_id PRIMARY KEY(id)
@@ -120,14 +120,14 @@ CREATE TABLE "respondent"
 CREATE TABLE "response"
 (
 	"id"			SERIAL				NOT NULL
-	,"survey_id"	integer							REFERENCES "survey"(id)
+	,"field_data_id"	integer							REFERENCES "field_data"(id)
 	,"respondent_id"	integer						REFERENCES "respondent"(id)
 	,"question_id"		integer						REFERENCES "question"(id)
 	,"text"			character varying
 	,"numeric"		numeric,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
     ,CONSTRAINT response_id PRIMARY KEY(id)
@@ -139,9 +139,9 @@ CREATE TABLE "option"
 	,"question_id"		integer				NOT NULL	REFERENCES "question"(id)
 	,"name"			character varying
 	,"label"		character varying,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
     ,CONSTRAINT option_id PRIMARY KEY(id)
@@ -151,9 +151,9 @@ CREATE TABLE "raw_form"
 (
 	"id"			SERIAL				NOT NULL
 	,"json"			json,
-	active boolean default true,
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
     ,CONSTRAINT raw_form_id PRIMARY KEY(id)
@@ -162,10 +162,12 @@ CREATE TABLE "raw_form"
 CREATE TABLE "raw_data"
 (
 	"id"			SERIAL				NOT NULL
-	,"json"			json,
-	active boolean default true,
+	,"json"			json
+	,"project_id" int references project(id)
+	,"field_data_id" int references field_data(id),
+	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
     ,CONSTRAINT raw_data_id PRIMARY KEY(id)
@@ -190,6 +192,7 @@ INSERT INTO type (name, has_options) VALUES ('integer', FALSE); -- numeric anwse
 INSERT INTO type (name, has_options) VALUES ('decimal', FALSE); -- numeric anwsers only
 INSERT INTO type (name, has_options) VALUES ('subscriberid', FALSE);
 INSERT INTO type (name, has_options) VALUES ('select all that apply', TRUE); -- has a list of options to choose from
+INSERT INTO type (name, has_options) VALUES ('calculate', FALSE);
 
 INSERT INTO type (name, has_options) VALUES ('repeat', FALSE);
 -- the questions in the children object are collected zero to many times

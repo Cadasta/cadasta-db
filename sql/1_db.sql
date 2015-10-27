@@ -1,48 +1,112 @@
--- CADASTA DATABASE V1
+﻿-- CADASTA DATABASE V1
 
 -- CREATE DATABASE cadasta_v1;
+
+-- DROP SCHEMA PUBLIC CASCADE;
+-- CREATE SCHEMA PUBLIC;
 
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE TYPE gender AS ENUM ('Male', 'Female');
 CREATE TYPE json_result AS (response json);
 
--- Normalize?
+-- Normalize
 CREATE TYPE land_use AS ENUM ('Commercial', 'Residential');
 CREATE TYPE id_type AS ENUM ('Drivers License, Passport');
 
--- Project table holds CKAN project extents
-CREATE TABLE Project_Extents (
-    id int primary key not null,
-    project_id int not null,
-    geom geometry
-);
-
--- Project WMS/Tile layers
-CREATE TABLE Project_Layers (
-    id int primary key not null,
-    layer_url character varying not null
-);
-
--- Media table holds all media
-CREATE TABLE media (
+-- CKAN organizaiton
+CREATE TABLE organization (
     id serial primary key not null,
-    type character varying,
-    url character varying,
+    title character varying,
     description character varying,
+    ckan_name character varying unique,
+    ckan_id character varying unique,
     active boolean default true,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
 
--- person table
--- FK: person_type id
-CREATE TABLE person (
+-- CKAN project
+CREATE TABLE project (
     id serial primary key not null,
-    first_name character varying not null,
-    last_name character varying not null,
+    organization_id int not null references organization(id),
+    title character varying,
+    description character varying,
+    ckan_name character varying unique,
+    ckan_id character varying unique,
+    ona_api_key character varying unique,
+    active boolean default true,
+    sys_delete boolean default false,
+    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    created_by integer,
+    updated_by integer
+);
+
+-- Project table holds CKAN project extents
+CREATE TABLE project_extents (
+    id serial primary key not null,
+    project_id int not null references project(id),
+    geom geometry,
+    active boolean default true,
+    sys_delete boolean default false,
+    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    created_by integer,
+    updated_by integer
+);
+
+-- Project WMS/Tile layers
+CREATE TABLE project_Layers (
+    id serial primary key not null,
+    project_id int not null references project(id),
+    layer_url character varying not null,
+    active boolean default true,
+    sys_delete boolean default false,
+    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    created_by integer,
+    updated_by integer
+);
+
+-- resource table holds all resources
+CREATE TABLE resource (
+    id serial primary key not null,
+    project_id int not null references project(id),
+    url character varying unique,
+    file_name character varying,
+    type character varying,
+    description character varying,
+    active boolean default true,
+    sys_delete boolean default false,
+    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
+    created_by integer,
+    updated_by integer
+);
+
+-- resource <--> project junction table
+CREATE TABLE resource_project (
+    project_id int references project(id),
+    resource_id int references resource(id)
+);
+
+-- Party table
+CREATE TABLE party (
+    id serial primary key not null,
+    project_id int not null references project(id),
+    first_name character varying,
+    last_name character varying,
+    group_name character varying,
+    type character varying,
+    title character varying,
+    description character varying,
+    contact character varying,
+    num_members int,
+    legal_states character varying,
     id_type id_type,
     city character varying,
     state character varying,
@@ -53,47 +117,27 @@ CREATE TABLE person (
     occupation character varying,
     gender gender,
     DOB date,
-    active boolean default false,
+    active boolean default true,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
-    updated_by integer
+    updated_by integer,
+    check (first_name IS NOT NULL AND last_name IS NOT NULL OR group_name IS NOT NULL)
 );
 
--- Media <--> Person junction table
-CREATE TABLE media_person (
-    person_id int references person(id),
-    media_id int references media(id)
-);
-
--- group table
-CREATE TABLE "group" (
-    id serial primary key not null,
-    type character varying not null,
-    title character varying not null,
-    description character varying,
-    contact character varying,
-    num_members int,
-    legal_states character varying,
-    active boolean default false,
-    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
-    created_by integer,
-    updated_by integer
-);
-
--- Media <--> Group junction table
-CREATE TABLE media_group (
-    group_id int references "group"(id),
-    media_id int references media(id)
+-- Resource <--> party junction table
+CREATE TABLE resource_party (
+    party_id int references party(id),
+    resource_id int references resource(id)
 );
 
 CREATE TABLE restriction (
     id serial primary key not null,
     description character varying,
-    active boolean default false,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -101,9 +145,9 @@ CREATE TABLE restriction (
 CREATE TABLE responsibility (
     id serial primary key not null,
     description character varying,
-    active boolean default true,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -111,9 +155,9 @@ CREATE TABLE responsibility (
 CREATE TABLE "right" (
     id serial primary key not null,
     description character varying,
-    active boolean default false,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -123,24 +167,24 @@ CREATE TABLE tenure_type (
     id serial primary key not null,
     type character varying not null,
     description character varying,
-    active boolean default false,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
 
-INSERT INTO tenure_type (type) VALUES ('Own');
-INSERT INTO tenure_type (type) VALUES ('Lease');
-INSERT INTO tenure_type (type) VALUES ('Occupy');
-INSERT INTO tenure_type (type) VALUES ('Informal Occupied');
+INSERT INTO tenure_type (type) VALUES ('own');
+INSERT INTO tenure_type (type) VALUES ('lease');
+INSERT INTO tenure_type (type) VALUES ('occupy');
+INSERT INTO tenure_type (type) VALUES ('informal occupy');
 
 CREATE TABLE spatial_source (
     id serial primary key not null,
     type character varying not null,
-    active boolean default false,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -154,60 +198,62 @@ INSERT INTO spatial_source (type) VALUES ('survey_grade_gps');
 -- Parcel Geometry table
 CREATE TABLE parcel (
     id serial primary key not null,
+    project_id int not null references project(id),
     spatial_source int references spatial_source(id) not null, -- required?
-    user_id character varying not null,
-    area numeric,
+    user_id character varying,
+    area numeric,  -- area of polygon
+    length numeric,  -- lengthof linestring
     geom geometry,
     land_use land_use,
     gov_pin character varying,
-    active boolean default false,
-    archived boolean,
+    active boolean default true,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
 
--- Media <--> Parcel junction table
-CREATE TABLE media_parcel (
+-- resource <--> Parcel junction table
+CREATE TABLE resource_parcel (
     parcel_id int references parcel(id),
-    media_id int references media(id)
+    resource_id int references resource(id)
 );
 
--- Parcel Geometry table
-CREATE TABLE parcel_geometry (
+-- Relationship Geometry table
+CREATE TABLE relationship_geometry (
     id serial primary key not null,
     geom geometry not null,
-    active boolean default true,
+    sys_delete boolean default true,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
 
 -- relationship table
--- media will be attached to relationship
+-- resource will be attached to relationship
 CREATE TABLE relationship (
     id serial primary key not null,
+    project_id int not null references project(id),
     parcel_id int references parcel(id) not null,
-    person_id int references person(id),
-    group_id int references "group"(id),
-    geom_id int references parcel_geometry (id),
+    party_id int references party(id),
+    geom_id int references relationship_geometry (id),
     tenure_type int references tenure_type (id) not null,
     acquired_date date,
     how_acquired character varying,
-    archived boolean,
-    active boolean default false,
+    active boolean default true,
+    sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
 
--- Media <--> Parcel junction table
-CREATE TABLE media_relationship (
+-- resource <--> Parcel junction table
+CREATE TABLE resource_relationship (
     relationship_id int references relationship(id),
-    media_id int references media(id)
+    resource_id int references resource(id)
 );
 
 CREATE TABLE restriction_relationship (
@@ -225,19 +271,19 @@ CREATE TABLE right_relationship (
     relationship_id int not null references relationship (id)
 );
 
-
 CREATE TABLE relationship_history (
     id serial primary key not null,
     relationship_id int references relationship(id) not null,
-    origin_id int references parcel(id) not null, -- in case of split, the origin id will always be the parcel id of the original parcel
-    version int default 1 not null,
-    parent_id int references parcel(id),
+    origin_id int references relationship(id) not null, -- in case of split, the origin id will always be the relationship id of the original relationship
+    version int default 1 not null, -- verison of the original relationship
+    parent_id int references relationship(id), --  in case of split, reltionship id is relationship id form which the relaltionship is derived from
     expiration_date timestamp,
     description character varying not null,
     date_modified date not null,
-    active boolean default false not null,
+
+    active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
@@ -246,16 +292,23 @@ CREATE TABLE relationship_history (
 CREATE TABLE parcel_history (
     id serial primary key not null,
     parcel_id int references parcel(id) not null,
-    origin_id int not null, --  in case of split, the origin id will always be the parcel id of the original parcel
-    parent_id int references parcel(id), -- in case of split, parent id is parcel id of the parcel the new parcels are derived from
+    origin_id int references parcel(id) not null, --  in case of split, the origin id will always be the parcel id of the original parcel
+    parent_id int references parcel(id), -- in case of split, parent id is parcel id from which the parcel is derived from
     version int default 1 not null, -- version of the original parcel
     description character varying not null,
     date_modified date not null,
-    active boolean default false not null,
+
+    spatial_source int references spatial_source(id) not null, -- required?
+    user_id character varying,
+    area numeric,  -- area of polygon
+    length numeric,  -- lengthof linestring
+    geom geometry,
+    land_use land_use,
+    gov_pin character varying,
+
+    active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp,
+    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer
 );
-
--- create view that shows all data from parcel history, plus each child per parent

@@ -1,22 +1,35 @@
-/******************************************************************
-    import_formhub_form_json
+﻿/******************************************************************
+    Create New field data form
 
-    Import FormHub form.json file
+    cd_create_field_data
 
 ******************************************************************/
-CREATE OR REPLACE FUNCTION import_formhub_form_json(file_path character varying)
-RETURNS SETOF json_result AS $$
-DECLARE
-  rec record;
+
+-- Create new Field Data
+
+CREATE OR REPLACE FUNCTION cd_create_field_data(project_id integer, id_string character varying, form_id bigint)
+  RETURNS INTEGER AS $$
+  DECLARE
+  f_id integer;
+  field_data_id_string character varying;
+  p_id integer;
 BEGIN
-  EXECUTE 'COPY raw_form(json) from ''' || file_path ||
-	''' CSV QUOTE e''\x01'' DELIMITER e''\x02''';
 
-  FOR rec IN (SELECT row_to_json(j) FROM(select 'Done' as message) j) LOOP
-	RETURN NEXT rec;
-  END LOOP;
+    field_data_id_string = id_string;
 
-END;$$ language plpgsql;
+    SELECT INTO p_id id FROM project WHERE id = project_id;
+
+    IF field_data_id_string IS NOT NULL AND p_id IS NOT NULL AND form_id IS NOT NULL THEN
+
+	-- Create survey and return survey id
+    INSERT INTO field_data (project_id, id_string, form_id) VALUES (project_id, field_data_id_string, form_id) RETURNING id INTO f_id;
+	    RETURN f_id; -- field data id
+    ELSE
+        RETURN f_id;
+	END IF;
+
+END;
+  $$ LANGUAGE plpgsql VOLATILE;
 
 
 /******************************************************************
@@ -56,6 +69,7 @@ CREATE OR REPLACE FUNCTION cd_import_data_json(json_string character varying)
 RETURNS BOOLEAN AS $$
 DECLARE
   raw_data_id int;
+  raw_field_data_id int;
   rec record;
 BEGIN
 
@@ -63,9 +77,15 @@ BEGIN
 
     INSERT INTO raw_data (json) VALUES (json_string::json) RETURNING id INTO raw_data_id;
 
-    IF raw_data_id IS NOT NULL THEN
-        RAISE NOTICE 'Succesfully inserted raw json dadta, id: %', raw_data_id;
+    SELECT INTO raw_field_data_id field_data_id from raw_data where id = raw_data_id;
+
+    IF raw_data_id IS NOT NULL AND raw_field_data_id IS NOT NULL THEN
+        RAISE NOTICE 'Succesfully inserted raw json data, id: %', raw_data_id;
         RETURN TRUE;
+    ELSE
+        -- Remove raw data row
+        DELETE FROM raw_data where id = raw_data_id;
+	    RETURN FALSE;
     END IF;
   ELSE
     RETURN FALSE;
@@ -73,26 +93,6 @@ BEGIN
 
 END;$$ language plpgsql;
 
-
-/******************************************************************
-    import_formhub_data_json
-
-    Import FormHub data.json file
-
-******************************************************************/
-CREATE OR REPLACE FUNCTION import_formhub_data_json(file_path character varying)
-RETURNS SETOF json_result AS $$
-DECLARE
-  rec record;
-BEGIN
-  EXECUTE 'COPY raw_data(json) from ''' || file_path ||
-	''' CSV QUOTE e''\x01'' DELIMITER e''\x02''';
-
-  FOR rec IN (SELECT row_to_json(j) FROM(select 'Done' as message) j) LOOP
-	RETURN NEXT rec;
-  END LOOP;
-
-END;$$ language plpgsql;
 
 /******************************************************************
     is_numeric
@@ -112,57 +112,104 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 
 /******************************************************************
-    cd_create_person
+    cd_cd_create_party
 
-    Create new person
+    Create new party
+
+    -- Create new party Ian O'Guin for project 1
+    SELECT * FROM cd_create_party(1, 'Ian', 'O''Guin', null);
+    -- Create new party group Wal Mart for project 1
+    SELECT * FROM cd_create_party(1, null, null, 'Wal-Mart');
+
 
 ******************************************************************/
 
-DROP FUNCTION IF EXISTS cd_create_person(first_name character varying, last_name character varying);
-
-CREATE OR REPLACE FUNCTION cd_create_person(first_name character varying, last_name character varying)
+CREATE OR REPLACE FUNCTION cd_create_party(project_id int, first_name character varying, last_name character varying, cd_group_name character varying)
   RETURNS INTEGER AS $$
   DECLARE
   p_id integer;
+  cd_project_id int;
 BEGIN
 
-    IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
-	-- Save the original organization ID variable
-    INSERT INTO person (first_name, last_name) VALUES (first_name,last_name) RETURNING id INTO p_id person_id;
+    IF $1 IS NOT NULL AND (($2 IS NOT NULL AND $3 IS NOT NULL) OR ($4 IS NOT NULL)) THEN
 
-	RETURN p_id;
+        SELECT INTO cd_project_id id FROM project where id = $1;
 
+        INSERT INTO party (project_id, first_name, last_name, group_name) VALUES (cd_project_id,first_name,last_name, cd_group_name) RETURNING id INTO p_id;
+
+	    RETURN p_id;
+    ELSE
+        RETURN p_id;
 	END IF;
 
 END;
   $$ LANGUAGE plpgsql VOLATILE;
 
 
-/******************************************************************
+/********************************************************
+
     cd_create_parcel
 
-    Create New Parcel
+    select * from parcel
 
-    -- SELECT * FROM cd_create_parcel ('survey_sketch',5,222.45,'point',null,null,'62.640826','-114.233223',null,null,'just got this yesterday');
-    -- select * from parcel
-    -- select * from parcel_history
+    SELECT * FROM cd_create_parcel(1, 'digitized', null, 'Commercial', null, 'insert description here');
 
-******************************************************************/
+    SELECT * FROM cd_create_parcel(3, 'survey_sketch', $anystr${
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -121.73335433006287,
+              44.571446955240106
+            ],
+            [
+              -121.73388004302979,
+              44.57033871490996
+            ],
+            [
+              -121.7328178882599,
+              44.56994127185396
+            ],
+            [
+              -121.73189520835876,
+              44.570804942725566
+            ],
+            [
+              -121.73335433006287,
+              44.571446955240106
+            ]
+          ]
+        ]
+      }$anystr$, 'Residential', null, 'insert description here');
 
--- SELECT * FROM cd_create_parcel ('survey_sketch',5,222.45,'point',null,null,'62.640826','-114.233223',null,null,'just got this yesterday');
+
+      SELECT * FROM cd_create_parcel(1, 'digitized', 	$anystr${
+        "type": "LineString",
+        "coordinates": [
+          [
+            -121.73326581716537,
+            44.5723908536272
+          ],
+          [
+            -121.7331075668335,
+            44.57247110339075
+          ]
+        ]
+      }$anystr$, 'Commercial', null, 'insert description here');
+
+
 -- select * from parcel
 -- select * from parcel_history
 
-DROP FUNCTION IF EXISTS cd_create_parcel(spatial_source character varying,ckan_user_id integer,area numeric,geom_type character varying,line geometry,
-polygon geometry,lat numeric,lng numeric,land_use land_use,gov_pin character varying);
+*********************************************************/
 
-CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
-                                            ckan_user_id integer,
-                                            area numeric,
-                                            geom_type character varying,
-                                            geom geometry,
-                                            lat numeric,
-                                            lng numeric,
+-- Function: cd_create_parcel(integer, character varying, geometry, land_use, character varying, character varying)
+
+-- DROP FUNCTION cd_create_parcel(integer, character varying, characer varying, land_use, character varying, character varying);
+
+CREATE OR REPLACE FUNCTION cd_create_parcel(project_id integer,
+                                            spatial_source character varying,
+                                            geojson character varying,
                                             land_use land_use,
                                             gov_pin character varying,
                                             history_description character varying)
@@ -170,131 +217,109 @@ CREATE OR REPLACE FUNCTION cd_create_parcel(spatial_source character varying,
   DECLARE
   p_id integer;
   ph_id integer;
-  geometry geometry;
-
-  cd_geometry_type character varying;
-  cd_parcel_timestamp timestamp;
-  cd_user_id int;
+  cd_project_id integer;
+  cd_geometry geometry;
+  cd_geom_type character varying;
   cd_area numeric;
+  cd_length numeric;
   cd_spatial_source character varying;
   cd_spatial_source_id int;
   cd_land_use land_use;
+  cd_geojson character varying;
   cd_gov_pin character varying;
-  cd_lat numeric;
-  cd_lng numeric;
   cd_history_description character varying;
   cd_current_date date;
 
 BEGIN
 
-    -- geometry is not required at first
-    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $4 IS NOT NULL AND ($5 IS NOT NULL OR ($6 IS NOT NULL AND $7 IS NOT NULL)) THEN
+    -- spatial source and project id required
+    IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
 
-        -- get time
-        SELECT INTO cd_parcel_timestamp * FROM localtimestamp;
+        SELECT INTO cd_project_id id FROM project where id = $1;
 
-        -- get geom
-        SELECT INTO cd_geometry_type * FROM initcap(geom_type);
+        IF cd_project_id IS NOT NULL THEN
+            SELECT INTO cd_current_date * FROM current_date;
 
-        SELECT INTO cd_current_date * FROM current_date;
+            cd_gov_pin := gov_pin;
+            cd_land_use := land_use;
+            cd_spatial_source = spatial_source;
+            cd_history_description = history_description;
+            cd_geojson = geojson;
 
+            SELECT INTO cd_geometry * FROM ST_SetSRID(ST_GeomFromGeoJSON(cd_geojson),4326); -- convert to LAT LNG GEOM
 
-        cd_lat := lat::numeric;
-        cd_lng := lng::numeric;
-        cd_area := area::numeric;
-        cd_gov_pin := gov_pin;
-        cd_land_use := land_use;
-        cd_spatial_source = spatial_source;
-        cd_history_description = history_description;
-        cd_user_id = ckan_user_id::int;
+            SELECT INTO cd_spatial_source_id id FROM spatial_source WHERE type = cd_spatial_source;
 
-        SELECT INTO cd_spatial_source_id id FROM spatial_source WHERE type = cd_spatial_source;
+            SELECT INTO cd_geom_type * FROM ST_GeometryType(cd_geometry); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
 
-	    IF cd_spatial_source IS NOT NULL THEN
+             IF cd_geom_type iS NOT NULL THEN
+                  RAISE NOTICE 'cd_geom_type: %', cd_geom_type;
+                 CASE (cd_geom_type)
+                    WHEN 'ST_Polygon' THEN
+                        cd_area = ST_AREA(ST_TRANSFORM(cd_geometry,3857)); -- get area in meters
+                    WHEN 'ST_LineString' THEN
+                        cd_length = ST_LENGTH(ST_TRANSFORM(cd_geometry,3857)); -- get length in meters
+                        RAISE NOTICE 'length: %', cd_length;
+                    ELSE
+                        RAISE NOTICE 'Parcel is a point';
+                 END CASE;
+             END IF;
 
-	    IF cd_geometry_type IS NOT NULL THEN
-	        -- get geom type
-	        IF cd_geometry_type ='Polygon' THEN
-			cd_geometry_type = '';
-		ELSIF cd_geometry_type = 'Point' AND cd_lat IS NOT NULL AND cd_lng IS NOT NULL THEN
+	        IF cd_spatial_source_id IS NOT NULL THEN
+	                -- Create parcel record
+				    INSERT INTO parcel (spatial_source,project_id,geom,area,length,land_use,gov_pin) VALUES
+				    (cd_spatial_source_id,cd_project_id,cd_geometry,cd_area,cd_length,cd_land_use,cd_gov_pin) RETURNING id INTO p_id;
+				    RAISE NOTICE 'Successfully created parcel, id: %', p_id;
 
-			SELECT INTO geometry * FROM ST_SetSRID(ST_MakePoint(cd_lng, cd_lat),4326);
+                    -- Create parcel history record
+				    INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified, spatial_source, area, length, geom, land_use, gov_pin)
+				    VALUES (p_id,p_id,cd_history_description,cd_current_date, cd_spatial_source_id, cd_area, cd_length, cd_geometry, cd_land_use, cd_gov_pin)
+				    RETURNING id INTO ph_id;
 
-			IF geometry IS NOT NULL THEN
-				INSERT INTO parcel (spatial_source,user_id,geom,area,land_use,gov_pin,created_by) VALUES
-				(cd_spatial_source_id,cd_user_id, geom,cd_area,cd_land_use,cd_gov_pin,cd_user_id) RETURNING id INTO p_id;
-				RAISE NOTICE 'Successfully created parcel, id: %', p_id;
+				    RAISE NOTICE 'Successfully created parcel history, id: %', ph_id;
+		    ELSE
+		        RAISE EXCEPTION 'Invalid spatial source';
+		    END IF;
 
-
-				INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified,created_by) VALUES
-				(p_id,p_id,cd_history_description,cd_current_date,cd_user_id) RETURNING id INTO ph_id;
-				RAISE NOTICE 'Successfully created parcel history, id: %', ph_id;
-
-			ELSE
-				RAISE NOTICE 'Geometry is required';
-				RETURN NULL;
-			END IF;
-		END IF;
-
-		END IF;
-
+	        IF p_id IS NOT NULL THEN
+		        RETURN p_id;
+	        ELSE
+		        RAISE EXCEPTION 'Unable to create Parcel';
+	        END IF;
 	    ELSE
-		RAISE NOTICE 'Geometry Type is required. (Point, Polygon, or Line)';
-		RETURN NULL;
-	    END IF;
-
-	    IF p_id IS NOT NULL THEN
-		RETURN p_id;
-	    ELSE
-		RAISE NOTICE 'Unable to create Parcel';
-		RETURN NULL;
+	        RAISE EXCEPTION 'Invalid project id';
 	    END IF;
 
 	ELSE
-	    RAISE NOTICE 'The following parameters are required: spatial_source, ckan_user_id, geom_type';
-	    RAISE NOTICE '1:%  2:%  3:%  4:%  5%:  :6%  :7%   8:%  9:%  10:% ', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10;
+	    RAISE EXCEPTION 'The following parameters are required: spatial_source, project_id';
 	    RETURN NULL;
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
-
--- SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
--- select * from parcel
--- select * from relationship
--- select * from "group"
-
 /******************************************************************
- TESTING cd_create_relationship
 
- select * from relationship
- select * from parcel
- select * from person
+ cd_create_relationship
 
- select * from current_date
+SELECT * FROM cd_create_relationship(3,18,11,15,null,'own','10/22/2001','Passed Down', '1st Owner');
+SELECT * FROM cd_create_relationship(3,18,11,16,null,'lease','10/22/1992','Passed Down', '1st Lease');
+SELECT * FROM cd_create_relationship(3,18,11,18,null,'lease','2/2/2005','Passed Down', '2nd Lease');
+SELECT * FROM cd_create_relationship(3,18,11,20,null,'occupy','5/22/2009','Passed Down', '3rd Owner');
+SELECT * FROM cd_create_relationship(3,18,11,22,null,'own','5/27/2009','Passed Down', '3rd Owner');
+SELECT * FROM cd_create_relationship(3,18,11,24,null,'own','10/23/2009','Passed Down', '3rd Owner'); -- with date
+SELECT * FROM cd_create_relationship(1,7,null,4,null,'lease',current_date,null,null);
 
-
- -- Add person & parcel to relationship
- SELECT * FROM cd_create_relationship(7,5,4,null,null,'lease',null,null,null);
- SELECT * FROM cd_create_relationship(5,1,3,null,NULL,'Own','2001-09-28','Stolen',false);
-
- SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
- SELECT * FROM cd_create_relationship(7,5,2,2,NULL,'Own',null,null,null);
 ******************************************************************/
 
-DROP FUNCTION IF EXISTS cd_create_relationship(parcel_id int,ckan_user_id integer,person_id int,group_id int,geom_id int,
-tenure_type character varying,acquired_date character varying,how_acquired character varying,archived boolean,history_description character varying);
-
 CREATE OR REPLACE FUNCTION cd_create_relationship(
+                                            project_id int,
                                             parcel_id int,
                                             ckan_user_id int,
-                                            person_id int,
-                                            group_id int,
+                                            party_id int,
                                             geom_id int,
                                             tenure_type character varying,
                                             acquired_date date,
                                             how_acquired character varying,
-                                            archived boolean,
                                             history_description character varying)
   RETURNS INTEGER AS $$
   DECLARE
@@ -302,486 +327,76 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
 
   cd_parcel_id int;
   cd_ckan_user_id int;
-  cd_person_id int;
-  cd_group_id int;
+  cd_party_id int;
+  cd_project_id int;
   cd_geom_id int;
   cd_tenure_type_id int;
   cd_tenure_type character varying;
   cd_acquired_date date;
   cd_how_acquired character varying;
-  cd_archived boolean;
   cd_history_description character varying;
-  cd_relationship_timestamp timestamp;
   cd_current_date date;
 
 BEGIN
 
-    IF $1 IS NOT NULL AND $6 IS NOT NULL AND ($3 IS NOT NULL OR $4 IS NOT NULL) THEN
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $4 IS NOT NULL AND $6 IS NOT NULL THEN
 
         cd_history_description = history_description;
+        cd_tenure_type = tenure_type;
 
-	    -- capitalize tenture type
-	    SELECT INTO cd_tenure_type * FROM initcap(tenure_type);
-	    -- get timestamp
-	    SELECT INTO cd_relationship_timestamp * FROM localtimestamp;
+        cd_acquired_date = acquired_date;
+
 	    -- get parcel_id
         SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int;
-        -- get person_id
-        SELECT INTO cd_person_id id FROM person where id = person_id::int;
-        -- get group_id
-        SELECT INTO cd_group_id id FROM "group" where id = group_id::int;
+        -- get party_id
+        SELECT INTO cd_party_id id FROM party where id = party_id::int;
         -- get tenure type id
         SELECT INTO cd_tenure_type_id id FROM tenure_type where type = cd_tenure_type;
+        -- get project id
+        SELECT INTO cd_project_id id FROM project where id = $1;
+        -- get geom id
+        SELECT INTO cd_geom_id id FROM relationship_geometry where id = $5;
+
         -- get ckan user id
         cd_ckan_user_id = ckan_user_id;
 
         SELECT INTO cd_current_date * FROM current_date;
 
-
-        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL THEN
+        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL AND cd_project_id IS NOT NULL THEN
 
             RAISE NOTICE 'Relationship parcel_id: %', cd_parcel_id;
 
-            IF cd_person_id IS NOT NULL AND cd_group_id IS NOT NULL THEN
-                RAISE NOTICE 'Relationship cannot have group AND person id';
+            IF cd_party_id IS NULL THEN
+                RAISE NOTICE 'Relationship must have a party id';
                 RETURN NULL;
 
-            ELSIF cd_person_id IS NULL AND cd_group_id IS NULL THEN
-                RAISE NOTICE 'Cannot find user or group';
-                RETURN NULL;
-
-            ELSIF cd_person_id IS NOT NULL AND cd_group_id IS NULL OR cd_group_id IS NOT NULL AND cd_person_id IS NULL THEN
-                RAISE NOTICE 'Relationship person_id: %', cd_person_id;
-                RAISE NOTICE 'Relationship group_id: %', cd_group_id;
+            ELSIF cd_party_id IS NOT NULL THEN
+                RAISE NOTICE 'Relationship party_id: %', cd_party_id;
 
 		        -- create relationship row
-                INSERT INTO relationship (created_by,parcel_id,person_id,group_id,tenure_type,geom_id,acquired_date,how_acquired, archived)
-                VALUES (ckan_user_id,cd_parcel_id,cd_person_id, cd_group_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired,cd_archived) RETURNING id INTO r_id;
+                INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
+                VALUES (cd_project_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
 
                 -- create relationship history
                 INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
-                VALUES (r_id,cd_parcel_id,true,'History', cd_current_date, cd_ckan_user_id);
+                VALUES (r_id,r_id,true,'History', cd_current_date, cd_ckan_user_id);
 
 		        RAISE NOTICE 'Successfully created new relationship id: %', r_id;
 
---            ELSIF cd_group_id IS NOT NULL AND cd_person_id IS NULL THEN
---                -- create relationship row
---                INSERT INTO relationship (parcel_id,person_id,group_id,tenure_type,geom_id,acquired_date,how_acquired, archived)
---                VALUES (cd_parcel_id,cd_person_id, cd_group_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired,cd_archived) RETURNING id INTO r_id;
---                RAISE NOTICE 'Successfully created new relationship id: %', r_id;
---
---                -- create relationship history
---                INSERT INTO relationship_history (relationship_id,origin_id,active,timestamp,description,date_modified)
---                VALUES (r_id,r_id,true,cd_relationship_timestamp, cd_history_description, cd_current_date);
             END IF;
         ELSE
-            RAISE NOTICE 'Invalid parcel id or tenure type';
+            RAISE NOTICE 'Invalid parcel id:% or tenure type: % or project_id %', cd_parcel_id, cd_tenure_type_id, cd_project_id;
             RETURN NULL;
         END IF;
 
         RETURN r_id;
 
 	ELSE
-	    RAISE NOTICE 'The following parameters are required: cd_parcel_id, tenure_type, & person_id or group_id';
+	    RAISE NOTICE 'The following parameters are required: cd_parcel_id, tenure_type, & party_id';
 	    RETURN NULL;
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
-
-/******************************************************************
-
- Function: cd_process_form()
-
-  Trigger to process FormHub form.json file after loading
-
-******************************************************************/
-
--- DROP FUNCTION cd_process_form();
-
--- Function: cd_process_form()
-
--- DROP FUNCTION cd_process_form();
-
-CREATE OR REPLACE FUNCTION cd_process_form()
-  RETURNS trigger AS
-$BODY$
-DECLARE
-  parent_question_id integer;
-  parent_question_type record;
-  parent_question_json record;
-  parent_question_name text;
-  parent_question_label text;
-  parent_question_children record;
-  parent_group_id integer;
-  parent_question_prefix text;
-
-  child_question_id integer;
-  child_question_type record;
-  child_question_json record;
-  child_question_name text;
-  child_question_label text;
-  child_question_children record;
-  child_group_id integer;
-  child_question_prefix text;
-
-  grandchild_question_id integer;
-  grandchild_question_type record;
-  grandchild_question_json record;
-  grandchild_question_name text;
-  grandchild_question_label text;
-  grandchild_question_children record;
-  grandchild_group_id integer;
-  grandchild_question_prefix text;
-
-  greatgrandchild_question_id integer;
-  greatgrandchild_question_type record;
-  greatgrandchild_question_json record;
-  greatgrandchild_question_name text;
-  greatgrandchild_question_label text;
-  greatgrandchild_question_children record;
-  greatgrandchild_group_id integer;
-  greatgrandchild_question_prefix text;
-
-  section_id integer;
-  question_section_id integer;
-  section_name text;
-  raw_form_id integer;
-  survey_id integer;
-  survey_project_id int;
-BEGIN
-  raw_form_id := NEW.id;
-
- IF (NEW.json IS NOT NULL) THEN
-    RAISE NOTICE 'Form has json to process.';
-    EXECUTE 'INSERT INTO survey (id_string) VALUES ((SELECT value::text FROM json_each_text((select json from raw_form where id = ' || raw_form_id || ')) WHERE key = ''id_string'')) RETURNING id' INTO survey_id;
-    EXECUTE 'UPDATE survey SET name = (SELECT value::text FROM json_each_text((select json from raw_form where id = ' || raw_form_id || ')) WHERE key = ''name'') WHERE id = ' || survey_id;
-    EXECUTE 'UPDATE survey SET label = (SELECT value::text FROM json_each_text((select json from raw_form where id = ' || raw_form_id || ')) WHERE key = ''title'') WHERE id = ' || survey_id;
-    RAISE NOTICE 'Created Survey';
- END IF;
-
-  -- loop through the parent questions (top level)
-  FOR parent_question_json IN (SELECT json_array_elements(value) as json FROM json_each((select json from raw_form where id = raw_form_id)) WHERE key = 'children') LOOP
-    -- get the type
-    SELECT INTO parent_question_type id,name,has_options,time_created FROM type WHERE lower(name) = (SELECT lower(value) FROM json_each_text(parent_question_json.json) WHERE key = 'type');
-
-    RAISE NOTICE 'Made it to parent type %', parent_question_type;
-
-    -- based on the type process the parent question
-    IF parent_question_type IS NOT NULL THEN
-      -- collect the name and label from the parent question
-      SELECT INTO parent_question_name value::text FROM json_each_text(parent_question_json.json) WHERE key = 'name';
-      SELECT INTO parent_question_label value::text FROM json_each_text(parent_question_json.json) WHERE key = 'label';
-      parent_question_prefix := lower(left(parent_question_name, position('.' in parent_question_name)-1));
-      -- parent question type
-      CASE (parent_question_type.name)
-         -- parent section headings or closing statements
-         WHEN ('note') THEN
-         RAISE NOTICE 'Made it Note';
-
-         -- update survey project id
-
-         SELECT INTO survey_project_id project_id FROM survey WHERE id = survey_id;
-         IF survey_project_id IS NULL AND parent_question_name = 'project_id' THEN
-            RAISE NOTICE 'Found project id %', parent_question_name;
-
-
-            UPDATE survey SET project_id = (SELECT value::int FROM json_each_text(parent_question_json.json) WHERE key = 'label');
-         END IF;
-
-        /******************************************************************************
-	   SECTIONS
-	******************************************************************************/
-	   EXECUTE 'INSERT INTO section (survey_id, name, label) VALUES ('||survey_id||','||quote_literal(parent_question_name)||','||quote_literal(parent_question_label)||') RETURNING id' INTO section_id;
-	   section_name := parent_question_name;
-	   RAISE NOTICE '-----> NEW SECTION: %', parent_question_label || ' (' || section_id || ')';
-         -- parent group
-         WHEN 'repeat','group' THEN
-         /******************************************************************************
-           CHILDREN QUESTIONS
-         ******************************************************************************/
-           IF parent_question_name IS NOT NULL AND parent_question_label IS NOT NULL THEN
-             EXECUTE 'INSERT INTO "q_group" (survey_id,name, label) VALUES ('||survey_id||','||quote_literal(parent_question_name)||','||quote_literal(parent_question_label)||') RETURNING id' INTO parent_group_id;
-	     RAISE NOTICE '----------> NEW GROUP: %', parent_question_label || ' (' || parent_group_id || ')';
-	     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(parent_question_prefix)  ORDER BY id DESC LIMIT 1;
-	     -- if the current section name matches the group prefix (right of period '.') then it belongs to the section
-             -- IF question_section_id IS NOT NULL THEN
-               -- EXECUTE 'UPDATE "q_group" SET section_id = ' || question_section_id || ' WHERE id = ' || parent_group_id;
-             -- END IF;
-             IF section_id IS NOT NULL THEN
-		EXECUTE 'UPDATE "q_group" SET section_id = ' || section_id || ' WHERE id = ' || parent_group_id;
-	     END IF;
-	     SELECT INTO parent_question_children json_array_elements(value) as json FROM json_each(parent_question_json.json) WHERE key = 'children';
-	     IF parent_question_children IS NOT NULL THEN
-	       -- loop through the child questions
-	       FOR child_question_json IN (SELECT json_array_elements(value) as json FROM json_each(parent_question_json.json) WHERE key = 'children') LOOP
-	          -- get the type
-		  SELECT INTO child_question_type * FROM type WHERE lower(name) = (SELECT lower(value) FROM json_each_text(child_question_json.json) WHERE key = 'type');
-		  -- based on the type process the child question
-		  IF child_question_type IS NOT NULL THEN
-		    -- collect the name and label from the child question
-		    SELECT INTO child_question_name value::text FROM json_each_text(child_question_json.json) WHERE key = 'name';
-		    SELECT INTO child_question_label value::text FROM json_each_text(child_question_json.json) WHERE key = 'label';
-		    child_question_prefix := lower(left(child_question_name, position('.' in child_question_name)-1));
-		    -- parent question type
-		    CASE (child_question_type.name)
-		      -- child group
-		      WHEN 'repeat','group' THEN
-		      /******************************************************************************
-			GRAND-CHILDREN QUESTIONS
-		      ******************************************************************************/
-		        -- the child question must have a name and label to be recorded ('meta' types do not get recorded)
-		        IF child_question_name IS NOT NULL AND child_question_label IS NOT NULL THEN
-		          EXECUTE 'INSERT INTO "q_group" (survey_id,parent_id, name, label) VALUES ('||survey_id||','||parent_group_id||','||quote_literal(child_question_name)||','||quote_literal(child_question_label)||') RETURNING id' INTO child_group_id;
-			  RAISE NOTICE '---------------> NEW GROUP: %', child_question_label || ' (' || child_group_id || ')';
-			  -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(child_question_prefix)  ORDER BY id DESC LIMIT 1;
-			  -- if the current section name matches the group prefix (right of period '.') then it belongs to the section
-			  -- IF question_section_id IS NOT NULL THEN
-			  --  EXECUTE 'UPDATE "q_group" SET section_id = ' || question_section_id || ' WHERE id = ' || child_group_id;
-			  -- END IF;
-			  IF section_id IS NOT NULL THEN
-			    EXECUTE 'UPDATE "q_group" SET section_id = ' || section_id || ' WHERE id = ' || child_group_id;
-			  END IF;
-			  SELECT INTO child_question_children json_array_elements(value) as json FROM json_each(child_question_json.json) WHERE key = 'children';
-			  IF child_question_children IS NOT NULL THEN
-			    -- loop through the grandchild questions
-			    FOR grandchild_question_json IN (SELECT json_array_elements(value) as json FROM json_each(child_question_json.json) WHERE key = 'children') LOOP
-			      -- get the type
-			      SELECT INTO grandchild_question_type * FROM type WHERE lower(name) = (SELECT lower(value) FROM json_each_text(grandchild_question_json.json) WHERE key = 'type');
-			      -- based on the type process the grandchild question
-			      IF grandchild_question_type IS NOT NULL THEN
-			        -- collect the name and label from the grandchild question
-			        SELECT INTO grandchild_question_name value::text FROM json_each_text(grandchild_question_json.json) WHERE key = 'name';
-			        SELECT INTO grandchild_question_label value::text FROM json_each_text(grandchild_question_json.json) WHERE key = 'label';
-			        grandchild_question_prefix := lower(left(grandchild_question_name, position('.' in grandchild_question_name)-1));
-			        -- grandchild question type
-			        CASE (grandchild_question_type.name)
-				  -- grandchild group
-				   WHEN 'repeat','group' THEN
-				    /******************************************************************************
-					GREAT-GRAND-CHILDREN QUESTIONS
-				    ******************************************************************************/
-				    -- the grandchild question must have a name and label to be recorded ('meta' types do not get recorded)
-				   IF grandchild_question_name IS NOT NULL AND grandchild_question_label IS NOT NULL THEN
-				     EXECUTE 'INSERT INTO "q_group" (survey_id,parent_id, name, label) VALUES ('||survey_id||','||child_group_id||','||quote_literal(grandchild_question_name)||','||quote_literal(grandchild_question_label)||') RETURNING id' INTO grandchild_group_id;
-				     RAISE NOTICE '--------------------> NEW GROUP: %', grandchild_question_label || ' (' || grandchild_group_id || ')';
-				     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(grandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
-				      -- if the current section name matches the group prefix (right of period '.') then it belongs to the section
-				     -- IF question_section_id IS NOT NULL THEN
-				       -- EXECUTE 'UPDATE "q_group" SET section_id = ' || question_section_id || ' WHERE id = ' || grandchild_group_id;
-				     -- END IF;
-				     IF section_id IS NOT NULL THEN
-				       EXECUTE 'UPDATE "q_group" SET section_id = ' || section_id || ' WHERE id = ' || grandchild_group_id;
-				     END IF;
-				     SELECT INTO grandchild_question_children json_array_elements(value) as json FROM json_each(grandchild_question_json.json) WHERE key = 'children';
-				     IF grandchild_question_children IS NOT NULL THEN
-				       -- loop through the greatgrandchild questions
-				       FOR greatgrandchild_question_json IN (SELECT json_array_elements(value) as json FROM json_each(grandchild_question_json.json) WHERE key = 'children') LOOP
-				         -- get the type
-				         SELECT INTO greatgrandchild_question_type * FROM type WHERE lower(name) = (SELECT lower(value) FROM json_each_text(greatgrandchild_question_json.json) WHERE key = 'type');
-				         -- based on the type process the grandchild question
-			                 IF greatgrandchild_question_type IS NOT NULL THEN
-			                   -- collect the name and label from the greatgrandchild question
-					   SELECT INTO greatgrandchild_question_name value::text FROM json_each_text(greatgrandchild_question_json.json) WHERE key = 'name';
-					   SELECT INTO greatgrandchild_question_label value::text FROM json_each_text(greatgrandchild_question_json.json) WHERE key = 'label';
-					   greatgrandchild_question_prefix := lower(left(greatgrandchild_question_name, position('.' in greatgrandchild_question_name)-1));
-			                 END IF;
-			                 -- greatgrandchild question type
-					 CASE (greatgrandchild_question_type.name)
-					   -- greatgrandchild questions with options
-					   WHEN 'select all that apply','selection one' THEN
-					     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||greatgrandchild_question_type.id||','||quote_literal(greatgrandchild_question_name)||','||quote_literal(greatgrandchild_question_label)||') RETURNING id' INTO greatgrandchild_question_id;
-					     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(greatgrandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
-					     -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-					     -- IF question_section_id IS NOT NULL THEN
-					     --  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || greatgrandchild_question_id;
-					     -- END IF;
-					     IF section_id IS NOT NULL THEN
-					       EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || greatgrandchild_question_id;
-					     END IF;
-					     -- this question belongs to the child group of the parent group
-				             IF grandchild_group_id IS NOT NULL THEN
-				               EXECUTE 'UPDATE question SET group_id = ' || grandchild_group_id || ' WHERE id = ' || greatgrandchild_question_id;
-				             END IF;
-					     RAISE NOTICE '-------------------------> QUESTION: %', greatgrandchild_question_label || ' (' || greatgrandchild_question_type.name || ')';
-					   ELSE
-					     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||greatgrandchild_question_type.id||','||quote_literal(greatgrandchild_question_name)||','||quote_literal(greatgrandchild_question_label)||') RETURNING id' INTO greatgrandchild_question_id;
-					     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(greatgrandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
-					     -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-					     -- IF question_section_id IS NOT NULL THEN
-					     --  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || greatgrandchild_question_id;
-					     -- END IF;
-					     IF section_id IS NOT NULL THEN
-					       EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || greatgrandchild_question_id;
-					     END IF;
-					     -- this question belongs to the child group of the parent group
-				             IF grandchild_group_id IS NOT NULL THEN
-				               EXECUTE 'UPDATE question SET group_id = ' || grandchild_group_id || ' WHERE id = ' || greatgrandchild_question_id;
-				             END IF;
-					     RAISE NOTICE '-------------------------> QUESTION: %', greatgrandchild_question_label || ' (' || greatgrandchild_question_type.name || ')';
-					 END CASE;
-			               END LOOP;
-			             END IF;
-				   END IF;
-				   WHEN 'select all that apply','select one' THEN
-				    /******************************************************************************
-				     GRAND-CHILD QUESTIONS (WITH OPTIONS)
-				   ******************************************************************************/
-				     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||grandchild_question_type.id||','||quote_literal(grandchild_question_name)||','||quote_literal(grandchild_question_label)||') RETURNING id' INTO grandchild_question_id;
-				     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(grandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
-				     -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-				     -- IF question_section_id IS NOT NULL THEN
-				     --  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || grandchild_question_id;
-				     -- END IF;
-				     IF section_id IS NOT NULL THEN
-				       EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || grandchild_question_id;
-				     END IF;
-				     -- this question belongs to the child group of the parent group
-				     IF child_group_id IS NOT NULL THEN
-				       EXECUTE 'UPDATE question SET group_id = ' || child_group_id || ' WHERE id = ' || grandchild_question_id;
-				     END IF;
-				     RAISE NOTICE '--------------------> GRAND-CHILD QUESTION: %', grandchild_question_label || ' (' || grandchild_question_type.name || ')';
-				     SELECT INTO grandchild_question_children json_array_elements(value) as json FROM json_each(grandchild_question_json.json) WHERE key = 'children';
-				     IF grandchild_question_children IS NOT NULL THEN
-				       -- loop through the parent childrend to collect the options
-				       FOR greatgrandchild_question_json IN (SELECT json_array_elements(value) as json FROM json_each(grandchild_question_children.json) WHERE key = 'children') LOOP
-					 -- collect the name and label from the grandchild question
-					 SELECT INTO greatgrandchild_question_name value::text FROM json_each_text(greatgrandchild_question_json.json) WHERE key = 'name';
-					 SELECT INTO greatgrandchild_question_label value::text FROM json_each_text(greatgrandchild_question_json.json) WHERE key = 'label';
-					 -- create the option record
-					 EXECUTE 'INSERT INTO option (question_id, name, label) VALUES (' || grandchild_question_id ||','|| quote_literal(greatgrandchild_question_name) ||','|| quote_literal(greatgrandchild_question_label) || ')';
-				       END LOOP;
-				     END IF;
-				   ELSE
-				   /******************************************************************************
-				     GRAND-CHILD QUESTIONS
-				   ******************************************************************************/
-				     EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||grandchild_question_type.id||','||quote_literal(grandchild_question_name)||','||quote_literal(grandchild_question_label)||') RETURNING id' INTO grandchild_question_id;
-				     -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(grandchild_question_prefix)  ORDER BY id DESC LIMIT 1;
-				     -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-				     -- IF question_section_id IS NOT NULL THEN
-				     --  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || grandchild_question_id;
-				     -- END IF;
-				     IF section_id IS NOT NULL THEN
-				       EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || grandchild_question_id;
-				     END IF;
-				      -- this question belongs to the child group of the parent group
-				     IF child_group_id IS NOT NULL THEN
-				       EXECUTE 'UPDATE question SET group_id = ' || child_group_id || ' WHERE id = ' || grandchild_question_id;
-				     END IF;
-				     RAISE NOTICE '--------------------> GRAND-CHILD QUESTION: %', grandchild_question_label || ' (' || grandchild_question_type.name || ')';
-			        END CASE;
-			      END IF;
-			    END LOOP;
-			  END IF;
-		        END IF;
-		      WHEN 'select all that apply','select one' THEN
-		       /******************************************************************************
-			CHILD QUESTIONS (WITH OPTIONS)
-		      ******************************************************************************/
-		        EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||child_question_type.id||','||quote_literal(child_question_name)||','||quote_literal(child_question_label)||') RETURNING id' INTO child_question_id;
-			-- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(child_question_prefix)  ORDER BY id DESC LIMIT 1;
-			-- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-			-- IF question_section_id IS NOT NULL THEN
-			--  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || child_question_id;
-			-- END IF;
-			IF section_id IS NOT NULL THEN
-			  EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || child_question_id;
-			END IF;
-			-- this question belongs to the parent group
-			IF parent_group_id IS NOT NULL THEN
-			  EXECUTE 'UPDATE question SET group_id = ' || parent_group_id || ' WHERE id = ' || child_question_id;
-			END IF;
-		        RAISE NOTICE '---------------> CHILD QUESTION: %', child_question_label || ' (' || child_question_type.name || ')';
-		        SELECT INTO child_question_children json_array_elements(value) as json FROM json_each(child_question_json.json) WHERE key = 'children';
-			IF child_question_children IS NOT NULL THEN
-			  -- loop through the parent childrend to collect the options
-			  FOR grandchild_question_json IN (SELECT json_array_elements(value) as json FROM json_each(child_question_json.json) WHERE key = 'children') LOOP
-			    -- collect the name and label from the grandchild question
-			    SELECT INTO grandchild_question_name value::text FROM json_each_text(grandchild_question_json.json) WHERE key = 'name';
-			    SELECT INTO grandchild_question_label value::text FROM json_each_text(grandchild_question_json.json) WHERE key = 'label';
-			    -- create the option record
-			    EXECUTE 'INSERT INTO option (question_id, name, label) VALUES (' || child_question_id ||','|| quote_literal(grandchild_question_name) ||','|| quote_literal(grandchild_question_label) || ')';
-			  END LOOP;
-			END IF;
-		      ELSE
-		      /******************************************************************************
-			CHILD QUESTIONS
-		      ******************************************************************************/
-		        EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||child_question_type.id||','||quote_literal(child_question_name)||','||quote_literal(child_question_label)||') RETURNING id' INTO child_question_id;
-			-- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(child_question_prefix)  ORDER BY id DESC LIMIT 1;
-			-- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-			-- IF question_section_id IS NOT NULL THEN
-			--  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || child_question_id;
-			-- END IF;
-			IF section_id IS NOT NULL THEN
-			  EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || child_question_id;
-			END IF;
-			-- this question belongs to the parent group
-			IF parent_group_id IS NOT NULL THEN
-			  EXECUTE 'UPDATE question SET group_id = ' || parent_group_id || ' WHERE id = ' || child_question_id;
-			END IF;
-		        RAISE NOTICE '---------------> CHILD QUESTION: %', child_question_label || ' (' || child_question_type.name || ')';
-		    END CASE;
-	         END IF;
-	       END LOOP;  -- child questions (loop)
-	     END IF;
-	   END IF;
-         WHEN 'select all that apply','select one' THEN
-         /******************************************************************************
-	   PARENT QUESTIONS (WITH OPTIONS)
-	 ******************************************************************************/
-           EXECUTE 'INSERT INTO question (survey_id, type_id, name, label) VALUES ('||survey_id||','||parent_question_type.id||','||quote_literal(parent_question_name)||','||quote_literal(parent_question_label)||') RETURNING id' INTO parent_question_id;
-           -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(parent_question_prefix)  ORDER BY id DESC LIMIT 1;
-           -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-           -- IF question_section_id IS NOT NULL THEN
-           --  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || parent_question_id;
-           -- END IF;
-           IF section_id IS NOT NULL THEN
-             EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || parent_question_id;
-           END IF;
-           RAISE NOTICE '-----> PARENT QUESTION: %', parent_question_label;
-           SELECT INTO parent_question_children json_array_elements(value) as json FROM json_each(parent_question_json.json) WHERE key = 'children';
-	   IF parent_question_children IS NOT NULL THEN
-	     -- loop through the parent childrend to collect the options
-	     FOR child_question_json IN (SELECT json_array_elements(value) as json FROM json_each(parent_question_json.json) WHERE key = 'children') LOOP
-	       -- collect the name and label from the child question
-	       SELECT INTO child_question_name value::text FROM json_each_text(child_question_json.json) WHERE key = 'name';
-	       SELECT INTO child_question_label value::text FROM json_each_text(child_question_json.json) WHERE key = 'label';
-               -- create the option record
-               EXECUTE 'INSERT INTO option (question_id, name, label) VALUES (' || parent_question_id ||','|| quote_literal(child_question_name) ||','|| quote_literal(child_question_label) || ')';
-             END LOOP;
-           END IF;
-         ELSE
-         /******************************************************************************
-	   PARENT QUESTIONS
-	 ******************************************************************************/
-           INSERT INTO question (survey_id, type_id, name, label) VALUES (survey_id,parent_question_type.id,quote_literal(parent_question_name),quote_literal(parent_question_label)) RETURNING id INTO parent_question_id;
-           -- SELECT INTO question_section_id id FROM (SELECT id, CASE WHEN position('.' in name) > 0 THEN lower(left(name, position('.' in name)-1)) ELSE name END as sectionname FROM section) sections WHERE lower(sectionname) = lower(parent_question_prefix)  ORDER BY id DESC LIMIT 1;
-           -- if the current section name matches the question prefix (right of period '.') then it belongs to the section
-           -- IF question_section_id IS NOT NULL THEN
-           --  EXECUTE 'UPDATE question SET section_id = ' || question_section_id || ' WHERE id = ' || parent_question_id;
-           -- END IF;
-           IF section_id IS NOT NULL THEN
-             EXECUTE 'UPDATE question SET section_id = ' || section_id || ' WHERE id = ' || parent_question_id;
-           END IF;
-           RAISE NOTICE '-----> PARENT QUESTION: %', parent_question_label;
-      END CASE;
-    END IF;
-   END LOOP; -- parent questions (loop)
-
-  RETURN NEW;
-END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-ALTER FUNCTION cd_process_form()
-  OWNER TO postgres;
-
-DROP TRIGGER IF EXISTS cd_process_form ON raw_form;
-CREATE TRIGGER cd_process_form AFTER INSERT ON raw_form
-    FOR EACH ROW EXECUTE PROCEDURE cd_process_form();
-
-
 /******************************************************************
 
  Function: cd_process_data()
@@ -789,26 +404,37 @@ CREATE TRIGGER cd_process_form AFTER INSERT ON raw_form
  Trigger to process FormHub data.json file after loading
 
 ******************************************************************/
-
 --  Trigger to process FormHub data.json file after loading
+
 CREATE OR REPLACE FUNCTION cd_process_data()
 RETURNS TRIGGER AS $cd_process_data$
 DECLARE
-  raw_data_id integer;
+  raw_data_id integer; -- id of row in raw_data table
+  raw_group_id integer;
   survey record;
   element record;
   options record;
   option record;
+  data_uuid character varying;
   data_respondent_id integer;
+  data_project_id integer;
   data_person_id int;
+  data_ona_data_id integer;
+  data_submission_time timestamp with time zone;
   data_geom_type character varying;
+  data_geom geometry;
+  data_area numeric;
+  data_length numeric;
   question_id integer;
   question_id_l integer;
   data_relationship_id int;
   data_date_land_possession date;
+  data_geojson character varying;
   data_means_aquired character varying;
-  data_survey_id integer;
+  data_field_data_id integer; -- derived from submission _xform_id_string key and matched to id_string field in field_data table
+  data_xform_id_string character varying; -- xform id string is used to find field data id
   data_tenure_type character varying;
+  tenure_type_id int;
   data_parcel_id int;
   data_survey_first_name character varying;
   data_survey_last_name character varying;
@@ -826,32 +452,53 @@ DECLARE
 BEGIN
   -- get the ID from the new record
   raw_data_id := NEW.id;
+
+  -- TODO get real user id from CKAN
+  data_ckan_user_id = 11;
+
   count := 0;
     RAISE NOTICE 'Processing Data..... %', raw_data_id;
 
   -- loop through each survey in the json object
   FOR survey IN (SELECT * FROM json_array_elements((select json from raw_data where id = raw_data_id))) LOOP
 
-    -- get the survey id
-    SELECT INTO data_survey_id id FROM survey WHERE id_string = (SELECT value::text FROM json_each_text(survey.value) WHERE key = '_xform_id_string');
-    -- get ckan user id
-    SELECT INTO data_ckan_user_id id from survey where id = data_survey_id;
+    -- get field data id
+    SELECT INTO data_xform_id_string value::text FROM json_each_text(survey.value) WHERE key = '_xform_id_string';
+    RAISE NOTICE 'id_string =: %', data_xform_id_string;
+
+    -- get field_data_id by matching id_string with data's xform_id_string key
+    SELECT INTO data_field_data_id id FROM field_data where id_string = data_xform_id_string;
+
+    IF data_field_data_id IS NOT NULL THEN
+
+    -- Get project id from field data table
+    SELECT INTO data_project_id id FROM project where id = (SELECT project_id from field_data WHERE id_string = data_xform_id_string);
+
+    RAISE NOTICE 'Project id: %', data_project_id;
+
+    -- save field data id in raw_data table
+    UPDATE raw_data SET field_data_id = data_field_data_id, project_id = data_project_id where id = raw_data_id;
+
     -- get respondent first name
     SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';
     -- get respondent last name
     SELECT INTO data_survey_last_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_last';
+    -- get uuid of response
+    SELECT INTO data_uuid value::text FROM json_each_text(survey.value) WHERE key = '_uuid';
+
+    SELECT INTO data_submission_time value::text FROM json_each_text(survey.value) WHERE key = '_submission_time';
+    SELECT INTO data_ona_data_id value::int FROM json_each_text(survey.value) WHERE key = '_id';
 
     -- process survey data only if there is a survey in the database that matches
-    IF data_survey_id IS NOT NULL THEN
+    IF data_field_data_id IS NOT NULL THEN
+
         -- take the first name , last name fields out of the survey
-        SELECT INTO data_person_id * FROM cd_create_person (data_survey_first_name,data_survey_last_name);
+        IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, data_survey_first_name,data_survey_last_name, null);
+          RAISE NOTICE 'Created Person id: %', data_person_id;
+        END IF;
 
-        RAISE NOTICE 'Created Person id: %', data_person_id;
-
-      EXECUTE 'INSERT INTO respondent (survey_id, time_created) VALUES ('|| data_survey_id || ',' || quote_literal(current_timestamp) || ') RETURNING id' INTO data_respondent_id;
-
-      -- add person_id to respondent
-      UPDATE respondent SET person_id = data_person_id WHERE id = data_respondent_id;
+      INSERT INTO respondent (field_data_id, uuid, submission_time, ona_data_id) VALUES (data_field_data_id,data_uuid,data_submission_time,data_ona_data_id) RETURNING id INTO data_respondent_id;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
@@ -860,41 +507,54 @@ BEGIN
 
         SELECT INTO question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1) as slugs;
         SELECT INTO num_slugs count(slugs) FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum) as slugs;
-        SELECT INTO num_questions count(id) FROM question WHERE lower(name) = lower(question_slug) AND survey_id = data_survey_id;
+        SELECT INTO num_questions count(id) FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
 	-- get question id
-        SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND survey_id = data_survey_id;
+        SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
+
         IF num_questions > 1 THEN
           RAISE NOTICE '---------> MULTIPLE QUESTIONS FOUND!!!: %', num_questions || ' (count) key: ' || element.key || ' question_id found: ' || question_id;
           IF num_slugs > 1 THEN
             SELECT INTO parent_question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1 offset 1) as slugs;
             -- get question id
-            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND survey_id = data_survey_id AND group_id = (select id from "group" where lower(name) = lower(parent_question_slug));
+            RAISE NOTICE 'parent_question_slug: %', parent_question_slug;
+            SELECT INTO raw_group_id id FROM q_group where lower(name) = lower(parent_question_slug) and field_data_id = data_field_data_id;
+
+            RAISE NOTICE 'question_slug: %, field_data_id: %, raw_id: %, group_id: %', question_slug, data_field_data_id, data_field_data_id, raw_group_id;
+            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id AND group_id = (select id from q_group where lower(name) = lower(parent_question_slug) and field_data_id = data_field_data_id);
           ELSE
             -- get question id
-            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND survey_id = data_survey_id AND group_id IS NULL;
+            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id AND group_id IS NULL;
           END IF;
           RAISE NOTICE '---------> QUESTION ID UPDATED: %', question_id;
         END IF;
 
         CASE (element.key)
+          -- get tenure type
           WHEN 'means_of_acquire' THEN
             data_means_aquired = element.value;
           WHEN 'date_land_possession' THEN
             data_date_land_possession = element.value;
-          WHEN 'proprietorship' THEN
+          WHEN 'tenure_type' THEN
             CASE (element.value)
               WHEN 'allodial' THEN
-                data_tenure_type = 'Own';
+                data_tenure_type = 'own';
               WHEN 'freehold' THEN
-                data_tenure_type = 'Own';
+                data_tenure_type = 'own';
               WHEN 'lease' THEN
-                data_tenure_type = 'Lease';
+                data_tenure_type = 'lease';
+              WHEN 'common_law_freehold' THEN
+                data_tenure_type = 'own';
+              WHEN 'occupy' THEN
+                data_tenure_type = 'occupy';
+              WHEN 'informal_occupy' THEN
+                data_tenure_type = 'informal occupy';
+              WHEN 'contractual' THEN
+                data_tenure_type = 'lease';
               ELSE
                 RAISE NOTICE 'Improper Tenure Type';
             END CASE;
             RAISE NOTICE 'Found Loan';
           ELSE
-            RAISE NOTICE 'Cannot Find Loan';
         END CASE;
 
         RAISE NOTICE 'Data tenture type: %', data_tenure_type;
@@ -902,6 +562,8 @@ BEGIN
         -- RAISE NOTICE 'Element: %', element.key;
         -- RAISE NOTICE 'Last slug: %', question_slug;
         IF (question_id IS NOT NULL) THEN
+                RAISE NOTICE 'Found question: %', question_id;
+
           SELECT INTO question_type name FROM type WHERE id = (SELECT type_id FROM question WHERE id = question_id);
           -- RAISE NOTICE 'Found question: %', question_id || ' - ' || question_type;
           -- check to see if this is a loop (group or repeat type)
@@ -910,48 +572,44 @@ BEGIN
               IF is_numeric(element.value) THEN
                 numeric_value := element.value;
                 IF numeric_value >= 0 THEN
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','
-			|| question_id || ',' ||  element.value || ');';
+                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ',' ||  element.value || ');';
                 ELSE
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','
-	  		|| question_id || ', NULL);';
+                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ', NULL);';
                 END IF;
-	      END IF;
+              ELSE
+	          END IF;
             ELSE
-                EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ','
-	  		|| question_id || ',' || quote_literal(element.value) ||');';
+              EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ','|| question_id || ',' || quote_literal(element.value) ||');';
           END CASE;
         -- question is not found in the database
         ELSE
-        -- RAISE NOTICE 'Cant find question: %', element.key;
+
+         RAISE NOTICE 'Cant find question: %', element.key;
           -- elements that have a key starting with an underscore, are not a survey question EXCEPT _geolocation
           IF left(element.key, 1) = '_' THEN
             CASE (lower(element.key))
-              WHEN ('_id') THEN
-                EXECUTE 'UPDATE respondent SET id_string = ' || quote_literal(element.value) || ' WHERE id = ' || data_respondent_id;
               WHEN ('_geolocation') THEN
-                SELECT INTO point regexp_replace(element.value, '"|,|\[|\]', '', 'g');
-                -- RAISE NOTICE 'point: %', point;
-                x := substring(point, 0, position(' ' in point))::numeric;
-                y := substring(point, (position(' ' in point)+1), char_length(point))::numeric;
-                -- RAISE NOTICE 'x: %', x;
-                -- RAISE NOTICE 'y: %', y;
-                IF point IS NOT NULL AND point <> 'null null' THEN
+                RAISE NOTICE 'Found geolocation:' ;
+                  data_geojson = element.value::text;
 
-                  -- Geom type is point
-                  data_geom_type = 'Point';
+                  RAISE NOTICE 'geojson: %', data_geojson;
 
-                  -- Create new parcel with lat lng as geometry
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel ('survey_grade_gps',data_ckan_user_id,null,data_geom_type,null,y,x,null,null,'new description');
-                  RAISE NOTICE 'New parcel id: %', data_parcel_id;
+                  SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326); -- convert to LAT LNG GEOM
 
-                  -- set new parcel id in survey table
-                  UPDATE survey SET parcel_id = data_parcel_id WHERE id = data_survey_id;
-                  RAISE NOTICE 'Updated survey set parcel_id = %', data_parcel_id;
-                ELSE
-                  -- create parcel with no geometry
-                  -- edit cd_create_parcel to create parcels without geom
-                END IF;
+                  SELECT INTO data_geojson * FROM ST_AsGeoJSON(data_geom);
+
+                  RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
+
+		          -- Create new parce
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel(data_project_id,'survey_sketch',data_geojson,null,null,'new description');
+
+                  IF data_parcel_id IS NOT NULL THEN
+                    RAISE NOTICE 'New parcel id: %', data_parcel_id;
+                    UPDATE field_data SET parcel_id = data_parcel_id WHERE id = data_field_data_id;
+                  ELSE
+                    RAISE NOTICE 'Cannot create parcel';
+                  END IF;
+
               WHEN ('_submission_time') THEN
                 IF element.value IS NOT NULL THEN
                   EXECUTE 'UPDATE respondent SET submission_time = ' || quote_literal(replace(element.value,'T',' ')) || ' WHERE id = ' || data_respondent_id;
@@ -962,26 +620,575 @@ BEGIN
         END IF;
       END IF;
     END LOOP;
-      IF data_survey_id IS NOT NULL THEN
-        EXECUTE 'UPDATE response SET survey_id = ' || quote_literal(data_survey_id) || ' WHERE respondent_id = ' || data_respondent_id;
+      IF data_field_data_id IS NOT NULL THEN
+        RAISE NOTICE 'Raw data is not null: %',data_field_data_id ;
+        EXECUTE 'UPDATE response SET field_data_id = ' || quote_literal(data_field_data_id) || ' WHERE respondent_id = ' || data_respondent_id;
       END IF;
       IF data_parcel_id IS NOT NULL AND data_person_id IS NOT NULL THEN
         -- create relationship
-
+        RAISE NOTICE 'Creating relationships tenure type: % project_id %', data_tenure_type, data_project_id;
         SELECT INTO data_relationship_id * FROM cd_create_relationship
-        (data_parcel_id,data_ckan_user_id,data_person_id,null,null,data_tenure_type,data_date_land_possession, data_means_aquired, false, null);
+        (data_project_id,data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
 
         IF data_relationship_id IS NOT NULL THEN
             RAISE NOTICE 'New relationship id: %', data_relationship_id;
         ELSE
-            RAISE NOTICE 'No new relationship';
+            RAISE NOTICE 'No new relationship data_tenure_type: % data_parcel_id: % data_person_id: % data_ckan_user_id: %', data_tenure_type, data_parcel_id, data_person_id, data_ckan_user_id;
         END IF;
       END IF;
     END IF;
+  ELSE
+    RAISE NOTICE 'Cannot find field data form';
+    RETURN NEW;
+  END IF;
   END LOOP;
   RETURN NEW;
 END;
 $cd_process_data$ LANGUAGE plpgsql;
-DROP TRIGGER IF EXISTS cd_process_data ON raw_data;
+
 CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
     FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
+
+/******************************************************************
+ TESTING cd_create_relationship_geometry
+
+ SELECT * FROM cd_create_relationship_geometry(2,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+
+ SELECT * FROM cd_create_relationship_geometry(4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+
+ SELECT * FROM cd_create_relationship_geometry(24,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+
+
+ select * from relationship_geometry
+ select * from relationship
+******************************************************************/
+
+CREATE OR REPLACE FUNCTION cd_create_relationship_geometry(relationship_id int, geojson text)
+  RETURNS INTEGER AS $$
+  DECLARE
+
+  valid_id int;
+  rg_id int; -- new relationship geometry id
+  data_geojson character varying; -- geojson paramater
+  data_geom geometry;
+
+  BEGIN
+
+    IF ($1 IS NOT NULL AND $2 IS NOT NULL) THEN
+
+        -- validate relationshup id
+        IF (cd_validate_relationship($1)) THEN
+
+            data_geojson = geojson::text;
+
+            -- get id from relationship table
+            SELECT INTO valid_id id FROM relationship where id = $1;
+            -- get geom form GEOJSON
+            SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
+
+            IF data_geom IS NOT NULL AND valid_id IS NOT NULL THEN
+
+                -- add relationship geom column
+                INSERT INTO relationship_geometry (geom) VALUES (data_geom) RETURNING id INTO rg_id;
+
+                IF rg_id IS NOT NULL THEN
+                    -- add relationship geom id in relationship table
+                    UPDATE relationship SET geom_id = rg_id, time_updated = current_timestamp WHERE id = valid_id;
+                    RETURN rg_id;
+                END IF;
+
+            ELSE
+                RAISE NOTICE 'Invalid geometry: %', geom;
+                RETURN NULL;
+            END IF;
+
+        ELSE
+            RAISE NOTICE 'Invalid relationship id: %', relationship_id;
+            RETURN NULL;
+        END IF;
+
+    ELSE
+        RAISE NOTICE 'Relationship id and Geometry required';
+        RETURN NULL;
+    END IF;
+
+  END;
+
+$$ LANGUAGE plpgsql VOLATILE;
+
+/******************************************************************
+ TESTING cd_create_project_extents
+
+ SELECT * FROM cd_create_project_extents(2,$anystr${"type": "Polygon",
+    "coordinates": [
+        [
+            [
+                -122.32929289340971,
+                47.674757902221806
+            ],
+            [
+                -122.32930362224579,
+                47.67455201393344
+            ],
+            [
+                -122.32899785041809,
+                47.67455923809767
+            ],
+            [
+                -122.32889592647551,
+                47.67462064345317
+            ],
+            [
+                -122.32885301113127,
+                47.6747253935987
+            ],
+            [
+                -122.32929289340971,
+                47.674757902221806
+            ]
+        ]
+    ]
+}$anystr$);
+
+ SELECT * FROM cd_create_project_extents(1,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+
+ select * from project_extents;
+ select * from relationship_geometry
+ select * from relationship
+******************************************************************/
+
+CREATE OR REPLACE FUNCTION cd_create_project_extents(project_id int, geojson text)
+  RETURNS INTEGER AS $$
+  DECLARE
+
+  p_id int;
+  pe_id int; -- new project extents id
+  data_geojson character varying; -- geojson paramater
+  data_geom geometry;
+  cd_geom_type character varying;
+
+  BEGIN
+
+    IF ($1 IS NOT NULL AND $2 IS NOT NULL) THEN
+
+        data_geojson = geojson::text;
+
+        SELECT INTO p_id id FROM project WHERE id = $1;
+
+        IF (cd_validate_project(p_id)) THEN
+
+            -- get geom form GEOJSON
+            SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
+
+            SELECT INTO cd_geom_type * FROM ST_GeometryType(data_geom); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+
+            IF data_geom IS NOT NULL AND cd_geom_type = 'ST_Polygon' THEN
+                INSERT INTO project_extents (project_id,geom) VALUES (p_id, data_geom) RETURNING id INTO pe_id;
+                RETURN pe_id;
+            ELSE
+                RAISE NOTICE 'Invalid GeoJSON';
+                RETURN pe_id;
+            END IF;
+
+        ELSE
+            RAISE NOTICE 'Invalid Project id';
+            RETURN pe_id;
+        END IF;
+
+    ELSE
+        RAISE NOTICE 'Relationship id and Geometry required';
+        RETURN pe_id;
+    END IF;
+
+  END;
+
+$$ LANGUAGE plpgsql VOLATILE;
+
+  /********************************************************
+
+    cd_create_organization
+
+    select * from organization;
+
+    SELECT * FROM cd_create_organization('grow','123fadsaa', 'GROW Project', 'Created in response to GROW');`
+
+*********************************************************/
+
+CREATE OR REPLACE FUNCTION cd_create_organization(ckan_name character varying, ckan_org_id character varying , title character varying, description character varying)
+  RETURNS INTEGER AS $$
+  DECLARE
+  o_id integer;
+  cd_ckan_org_name character varying;
+  cd_description character varying;
+  cd_title character varying;
+  cd_ckan_id character varying;
+BEGIN
+
+    cd_ckan_org_name = $1;
+    cd_ckan_id = $2;
+    cd_title = $3;
+    cd_description = $4;
+
+    IF $1 IS NOT NULL AND $2 IS NOT NULL THEN
+
+	    -- Save the original organization ID variable
+        INSERT INTO organization (title, description, ckan_name, ckan_id) VALUES (cd_title,cd_description,cd_ckan_org_name,cd_ckan_id) RETURNING id INTO o_id;
+
+	    RETURN o_id;
+    ELSE
+        RAISE EXCEPTION 'Missing ckan_name or ckan_org_id';
+        RETURN o_id;
+	END IF;
+
+END;
+  $$ LANGUAGE plpgsql VOLATILE;
+
+
+   /********************************************************
+
+    cd_create_project
+
+    select * from project;
+    select * from organization;
+
+    SELECT * FROM cd_create_project(1,'meddyypilot', 'Meddy', 'Medeyy Pilor', 'descripton', '1qewdasaseq1eqeweqasda11ewq');
+
+*********************************************************/
+CREATE OR REPLACE FUNCTION cd_create_project(org_id integer, ckan_project_id character varying, ckan_name character varying, title character varying, description character varying, api_key character varying)
+  RETURNS INTEGER AS $$
+  DECLARE
+  p_id integer;
+  o_id integer;
+  cd_ckan_name character varying;
+  cd_ckan_project_id character varying;
+  cd_title character varying;
+  cd_description character varying;
+  cd_api_key character varying;
+BEGIN
+
+    cd_ckan_project_id = regexp_replace($2, U&'\2028', '', 'g');
+    cd_ckan_name = $3;
+    cd_title = $4;
+    cd_description = $5;
+    cd_api_key = $6;
+
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL THEN
+
+        -- Grab org id from org table
+        SELECT INTO o_id id FROM organization WHERE id = $1;
+
+        -- Validate organization id
+        IF o_id IS NOT NULL AND cd_validate_organization($1) THEN
+
+	        -- Create project and store project id
+            INSERT INTO project (organization_id, ckan_name, ckan_id, title, description, ona_api_key) VALUES (o_id, cd_ckan_name, cd_ckan_project_id,cd_title, cd_description, cd_api_key) RETURNING id INTO p_id;
+
+            RETURN p_id;
+        ELSE
+            RAISE EXCEPTION 'Invalid organization';
+            RETURN p_id;
+        END IF;
+
+    ELSE
+        RAISE EXCEPTION 'Parameters org_id, ckan_project_id, and ckan_name required';
+        RETURN p_id;
+    END IF;
+
+END;
+  $$ LANGUAGE plpgsql VOLATILE;
+
+-- Create new resource
+/********************************************************
+
+    cd_create_resource
+
+    -- Create resource for parcel 20 in project 1
+    SELECT * FROM cd_create_resource(1,'parcel',20,'http://www.cadasta.org/20/parcel','Description', 'filename');
+
+    -- Create resource for project 3
+    SELECT * FROM cd_create_resource(3,'project',3,'http://www.cadasta.org/3/project','Description', 'daniel-home');
+
+    -- Create resource for relationship 30 in project 3
+    SELECT * FROM cd_create_resource(3,'relationship',30,'http://www.cadasta.org/30/relationship','Description', 'filename');
+
+*********************************************************/
+CREATE OR REPLACE FUNCTION cd_create_resource(projectId int, resource_type character varying, resource_type_id integer, url character varying, description character varying, filename character varying)
+  RETURNS INTEGER AS $$
+  DECLARE
+  o_id integer; -- organization id
+  p_id integer; -- project id
+  r_id integer; -- resource id
+  type_id integer; -- type of resource id (parcel, party, or relationship id)
+  cd_description character varying;
+  cd_url character varying;
+  cd_file_name character varying;
+BEGIN
+
+    cd_description = description;
+    cd_url = url;
+    cd_file_name = filename;
+
+    -- project id, resource type, and url are required
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL AND $4 IS NOT NULL AND $6 IS NOT NULL THEN
+
+        -- validate project id
+        SELECT INTO p_id id FROM project WHERE id = $1;
+
+        IF cd_validate_project(p_id) THEN
+
+                CASE lower(resource_type)
+                    -- ensure resource type is supported
+                    WHEN 'parcel' THEN
+                        -- get resource type id from parcel table
+                        SELECT INTO type_id id FROM parcel WHERE id = resource_type_id AND project_id = p_id;
+
+                        -- validate parcel id
+                        IF cd_validate_parcel(type_id) THEN
+
+                             -- Create new resource and save resource id
+                            INSERT INTO resource (project_id, description, url, file_name) VALUES (p_id, cd_description, cd_url, cd_file_name) RETURNING id INTO r_id;
+
+                            IF r_id IS NOT NULL THEN
+                                -- create resource
+                                INSERT INTO resource_parcel(parcel_id, resource_id) VALUES (type_id, r_id);
+
+                                -- update resource type
+                                UPDATE resource SET type = lower(resource_type) WHERE id = r_id;
+
+                                RETURN r_id;
+                            ELSE
+                                RAISE EXCEPTION 'Cannot create resource';
+                                RETURN r_id;
+                            END IF;
+                        ELSE
+                            RAISE EXCEPTION 'Invalid parcel id';
+                            RETURN r_id;
+                        END IF;
+                    WHEN 'party' THEN
+                        -- get resource type id from parcel table
+                        SELECT INTO type_id id FROM party WHERE id = resource_type_id AND project_id = p_id;
+
+                        -- validate parcel id
+                        IF cd_validate_party(type_id) THEN
+
+                             -- Create new resource and save resource id
+                            INSERT INTO resource (project_id, description, url,file_name) VALUES (p_id, cd_description, cd_url,cd_file_name) RETURNING id INTO r_id;
+
+                            IF r_id IS NOT NULL THEN
+                                -- create resource
+                                INSERT INTO resource_party(party_id, resource_id) VALUES (type_id, r_id);
+
+                                -- update resource type
+                                UPDATE resource SET type = lower(resource_type) WHERE id = r_id;
+
+                                RETURN r_id;
+                            ELSE
+                                RAISE EXCEPTION 'Cannot create resource';
+                                RETURN r_id;
+                            END IF;
+                        ELSE
+                            RAISE EXCEPTION 'Invalid party id';
+                            RETURN r_id;
+                        END IF;
+                    WHEN 'relationship' THEN
+                        -- get resource type id from relationship table
+                        SELECT INTO type_id id FROM relationship WHERE id = resource_type_id AND project_id = p_id;
+
+                        -- validate parcel id
+                        IF cd_validate_relationship(type_id) THEN
+
+                             -- Create new resource and save resource id
+                            INSERT INTO resource (project_id, description, url,file_name) VALUES (p_id, cd_description, cd_url,cd_file_name) RETURNING id INTO r_id;
+
+                            IF r_id IS NOT NULL THEN
+                                -- create resource
+                                INSERT INTO resource_relationship(relationship_id, resource_id) VALUES (type_id, r_id);
+
+                                -- update resource type
+                                UPDATE resource SET type = lower(resource_type) WHERE id = r_id;
+
+                                RETURN r_id;
+                            ELSE
+                                RAISE EXCEPTION 'Cannot create resource';
+                                RETURN r_id;
+                            END IF;
+                        ELSE
+                            RAISE EXCEPTION 'Invalid relationship id';
+                            RETURN r_id;
+                        END IF;
+                    WHEN 'project' THEN
+
+                        -- get resource type id from project table
+                        SELECT INTO type_id id FROM project WHERE id = resource_type_id;
+
+                        -- validate project id
+                        IF cd_validate_project(type_id) AND type_id = p_id THEN
+
+                             -- Create new resource and save resource id
+                            INSERT INTO resource (project_id, description, url,file_name) VALUES (p_id, cd_description, cd_url,cd_file_name) RETURNING id INTO r_id;
+
+                            IF r_id IS NOT NULL THEN
+                                -- create resource
+                                INSERT INTO resource_project(project_id, resource_id) VALUES (type_id, r_id);
+
+                                -- update resource type
+                                UPDATE resource SET type = lower(resource_type) WHERE id = r_id;
+
+                                RETURN r_id;
+                            ELSE
+                                RAISE EXCEPTION 'Cannot create resource';
+                                RETURN r_id;
+                            END IF;
+                        ELSE
+                            RAISE EXCEPTION 'Invalid project id';
+                            RETURN r_id;
+                        END IF;
+
+                ELSE
+                    RAISE EXCEPTION 'Invalid resource type';
+                    RETURN r_id;
+                END CASE;
+
+        ELSE
+            RAISE EXCEPTION 'Invalid project id';
+            RETURN r_id;
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'project_id, resource_type, and url are required';
+        RETURN r_id;
+	END IF;
+
+END;
+  $$ LANGUAGE plpgsql VOLATILE;
+
+/********************************************************
+
+    cd_update_parcel
+
+    select * from parcel_history where parcel_id = 3
+
+    SELECT NOT(ST_Equals((SELECT geom FROM parcel_history where id = 14), (select geom from parcel_history where id = 15)))
+
+    -- Update parcel geom, spatial_source, land_use, gov_pin and description
+    SELECT * FROM cd_update_parcel (3, 13, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
+    'Commercial' , '331321sad', 'we have a new description');
+
+    -- Update parcel geometry
+    SELECT * FROM cd_update_parcel (1, 3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$, null, null , null, null);
+
+    -- Should return an exception: 'All values are null'
+    SELECT * FROM cd_update_parcel (1, 3, null, null, null , null, null);
+
+    -- Should return exception: 'Invalid spatial_source'
+    SELECT * FROM cd_update_parcel (1, 3, null, 'survey_sketchh', null , null, null);
+
+    -- Should return exception: 'Project and Parcel id required'
+    SELECT * FROM cd_update_parcel (1, null, null, 'survey_sketch', null , null, null);
+
+*********************************************************/
+
+CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
+                                                     cd_parcel_id integer,
+                                                     cd_geojson character varying,
+                                                     cd_spatial_source character varying,
+                                                     cd_land_use land_use,
+                                                     cd_gov_pin character varying,
+                                                     cd_description character varying
+                                                     )
+  RETURNS INTEGER AS $$
+  DECLARE
+  pro_id integer;   -- project id
+  p_id integer;     -- parcel id
+  ph_id integer;
+  cd_geom geometry;
+  cd_new_version integer;
+  cd_current_date date;
+  cd_geom_type character varying;
+  cd_area numeric;
+  cd_length numeric;
+  cd_spatial_source_id integer;
+
+  BEGIN
+    -- 1. update parcel record
+    -- 2. create parcel hisotry record
+
+    IF $1 IS NULL OR $2 IS NULL THEN
+        RAISE EXCEPTION 'Project and Parcel id required';
+    END IF;
+
+    SELECT INTO pro_id id FROM project WHERE id = $1;
+
+    IF NOT(SELECT * FROM cd_validate_project(pro_id)) THEN
+        RAISE EXCEPTION 'Invalid project id';
+    END IF;
+
+    SELECT INTO p_id id FROM parcel WHERE id = $2 and project_id = $1;
+
+    IF cd_validate_parcel(p_id) THEN
+
+        SELECT INTO cd_spatial_source_id id FROM spatial_source where type = cd_spatial_source;
+
+        IF cd_spatial_source_id IS NULL AND cd_spatial_source IS NOT NULL THEN
+	    RAISE EXCEPTION 'Invalid spatial source.';
+        END IF;
+
+        SELECT INTO cd_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(cd_geojson),4326); -- convert to LAT LNG GEOM
+
+        -- Ensure at least one is not null
+        IF cd_geojson IS NOT NULL OR cd_spatial_source IS NOT NULL OR cd_land_use IS NOT NULL or cd_gov_pin IS NOT NULL OR cd_description IS NOT NULL THEN
+           SELECT INTO cd_geom_type * FROM ST_GeometryType(cd_geom); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+
+             -- need geometry type for area, length calculation
+             IF cd_geom_type iS NOT NULL THEN
+                  RAISE NOTICE 'cd_geom_type: %', cd_geom_type;
+                 CASE (cd_geom_type)
+                    WHEN 'ST_Polygon' THEN
+                        cd_area = ST_AREA(ST_TRANSFORM(cd_geom,3857)); -- get area in meters
+                        UPDATE parcel SET area = cd_area, length = cd_length WHERE id = p_id;
+                    WHEN 'ST_LineString' THEN
+                        cd_length = ST_LENGTH(ST_TRANSFORM(cd_geom,3857)); -- get length in meters
+                        UPDATE parcel SET length = cd_length, area = cd_area WHERE id = p_id;
+                    ELSE
+                        RAISE NOTICE 'Parcel is a point';
+                 END CASE;
+             END IF;
+
+            -- increment version for parcel_history record
+            SELECT INTO cd_new_version SUM(version + 1) FROM parcel_history where parcel_id = p_id GROUP BY VERSION ORDER BY VERSION DESC LIMIT 1;
+            SELECT INTO cd_current_date * FROM current_date;
+
+            -- update parcel record
+            UPDATE parcel
+            SET
+            geom = COALESCE(cd_geom, geom),
+            spatial_source = COALESCE(cd_spatial_source_id, spatial_source),
+            land_use = COALESCE (cd_land_use, land_use),
+            gov_pin  = COALESCE (cd_gov_pin, gov_pin)
+            WHERE id = p_id;
+
+            IF cd_new_version IS NOT NULL THEN
+                -- add parcel history record
+                INSERT INTO parcel_history(
+                parcel_id, origin_id, parent_id, version, description, date_modified,
+                spatial_source, user_id, area, length, geom, land_use, gov_pin)
+	            VALUES (p_id, p_id, (SELECT parent_id FROM parcel_history where parcel_id = p_id ORDER BY version DESC LIMIT 1), cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
+                (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), cd_area, cd_length, cd_geom,
+                (SELECT land_use FROM parcel WHERE id = p_id), (SELECT gov_pin FROM parcel WHERE id = p_id)) RETURNING id INTO ph_id;
+            ELSE
+	            RAISE EXCEPTION 'Cannot increment version';
+            END IF;
+
+            IF ph_id IS NOT NULL THEN
+		        RETURN ph_id;
+		    END IF;
+
+        ELSE
+            RAISE EXCEPTION 'All values are null';
+        END IF;
+
+    ELSE
+        RAISE EXCEPTION 'Invalid Parcel id';
+    END IF;
+
+END;
+$$ LANGUAGE plpgsql VOLATILE;
