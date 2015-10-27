@@ -256,6 +256,7 @@ Create Project for an Organization
 3.  ckan\_name (character varying) - ***Required***. CKAN project name
 4.  title (character varying) – ***Required***. Project title
 5.  description (character varying) -- Project description
+6.  api_key (character varying) -- ONA API Key
 
 ##### Result
 
@@ -265,7 +266,7 @@ Integer. The project is successfully created if an integer is returned.
 
 -   Create new Project 'Medellin Pilot' for Cadasta Organization (id: 6)
 
-```     SELECT * FROM cd_create_project(6,'34282jhsjjad839011', 'Medellin', 'Medellin Pilot', 'description'); ```
+```     SELECT * FROM cd_create_project(6,'34282jhsjjad839011', 'Medellin', 'Medellin Pilot', 'description', null); ```
 
 2
 

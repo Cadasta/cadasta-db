@@ -44,11 +44,10 @@ END;
     select * from project;
     select * from organization;
 
-    SELECT * FROM cd_create_project(6,'ckanprojectid132', 'Medellin', 'Medellin Pilot', 'descripton');
+    SELECT * FROM cd_create_project(1,'meddyypilot', 'Meddy', 'Medeyy Pilor', 'descripton', '1qewdasaseq1eqeweqasda11ewq');
 
 *********************************************************/
-
-CREATE OR REPLACE FUNCTION cd_create_project(org_id integer, ckan_project_id character varying, ckan_name character varying, title character varying, description character varying)
+CREATE OR REPLACE FUNCTION cd_create_project(org_id integer, ckan_project_id character varying, ckan_name character varying, title character varying, description character varying, api_key character varying)
   RETURNS INTEGER AS $$
   DECLARE
   p_id integer;
@@ -57,12 +56,14 @@ CREATE OR REPLACE FUNCTION cd_create_project(org_id integer, ckan_project_id cha
   cd_ckan_project_id character varying;
   cd_title character varying;
   cd_description character varying;
+  cd_api_key character varying;
 BEGIN
 
     cd_ckan_project_id = regexp_replace($2, U&'\2028', '', 'g');
     cd_ckan_name = $3;
     cd_title = $4;
     cd_description = $5;
+    cd_api_key = $6;
 
     IF $1 IS NOT NULL AND $2 IS NOT NULL AND $3 IS NOT NULL THEN
 
@@ -73,7 +74,7 @@ BEGIN
         IF o_id IS NOT NULL AND cd_validate_organization($1) THEN
 
 	        -- Create project and store project id
-            INSERT INTO project (organization_id, ckan_name, ckan_id, title, description) VALUES (o_id, cd_ckan_name, cd_ckan_project_id,cd_title, cd_description) RETURNING id INTO p_id;
+            INSERT INTO project (organization_id, ckan_name, ckan_id, title, description, ona_api_key) VALUES (o_id, cd_ckan_name, cd_ckan_project_id,cd_title, cd_description, cd_api_key) RETURNING id INTO p_id;
 
             RETURN p_id;
         ELSE
@@ -82,7 +83,7 @@ BEGIN
         END IF;
 
     ELSE
-        RAISE EXCEPTION 'All parameters required';
+        RAISE EXCEPTION 'Parameters org_id, ckan_project_id, and ckan_name required';
         RETURN p_id;
     END IF;
 
