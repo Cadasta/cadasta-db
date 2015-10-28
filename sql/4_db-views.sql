@@ -3,6 +3,7 @@
 
 *************************************************/
 /**
+DROP VIEW show_parties;
 DROP VIEW show_relationships;
 DROP VIEW show_activity;
 DROP VIEW show_parcels_list;
@@ -14,6 +15,13 @@ DROP VIEW show_party_resources;
 DROP VIEW show_relationship_resources;
 DROP VIEW show_project_extents;
 **/
+
+-- Show all parties and relationship count
+CREATE OR REPLACE VIEW show_parties AS
+select pro.id as project_id, p.id, count(r.id) as num_relationships, p.group_name, first_name, last_name, type,  p.active, p.time_created, p.time_updated
+from party p left join relationship r on r.party_id = p.id, project pro
+where p.project_id = pro.id
+group by p.id, pro.id;
 
 -- Show all relationships
 CREATE OR replace view show_relationships AS

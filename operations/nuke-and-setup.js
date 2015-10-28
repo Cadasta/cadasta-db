@@ -20,20 +20,30 @@ var conString = "postgres://" +
  */
 function nukeDB() {
 
+    console.log(conString);
+
     var deferred = Q.defer();
 
     var db = settings.database;
-    var kill = 'psql -d ' + db + ' -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = \'' + db
+    var kill = 'psql -h ' + settings.server + ' -p ' +  settings.port +  ' -d ' + db + ' -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = \'' + db
         + '\' AND pid <> pg_backend_pid()";';
     var drop = 'dropdb ' + db;
     var create = 'createdb ' + db + ' -O ' + settings.user;
 
     exec(kill, function(error, stdout, stderr) {
 
+        console.log(kill);
+
         exec(drop, function(error, stdout, stderr) {
+
+            console.log(drop);
+
             if (stderr) console.error(stderr);
 
             exec(create, function (error, stdout, stderr) {
+
+                console.log(create);
+
                 if (stderr) {
                     console.error(stderr);
                     return deferred.reject(stderr);

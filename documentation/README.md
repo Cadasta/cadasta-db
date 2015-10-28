@@ -154,9 +154,13 @@ Create a new party
 ##### Parameter(s)
 
 1.  project\_id (integer) - ***Required***. Cadasta project id
-2.  first\_name (character varying) – ***Required if org\_name is NULL***.
-3.  last\_name (character varying) – ***Required if org\_name is NULL***.
-4.  cd\_group\_name (character varying) - ***Required if first\_name and last\_name is null***. - Name of Group
+2.  party\_type (ENUM) - ***Required***. Type of Party
+Options: ***Case Sensitive***
+    * individual
+    * group
+3.  first\_name (character varying) – ***Required if org\_name is NULL***.
+4.  last\_name (character varying) – ***Required if org\_name is NULL***.
+5.  cd\_group\_name (character varying) - ***Required if first\_name and last\_name is null***. - Name of Group
 
 ##### Result
 
@@ -166,13 +170,13 @@ Integer. The person is successfully created if an integer is returned.
 
 -   Create new party Ian O'Guin for project 1
 
-```SELECT * FROM cd_create_party(1, 'Ian', 'O''Guin', null);```
+```SELECT * FROM cd_create_party(1, 'individual', 'Ian', 'O''Guin', null);```
 
 2
 
 -   Create new party group Wal-Mart for project 1
 
-``` SELECT * FROM cd_create_party(1, null, null, 'Wal-Mart');```
+``` SELECT * FROM cd_create_party(1, 'group', null, null, 'Wal-Mart');```
 
 3
 
