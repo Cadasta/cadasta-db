@@ -133,6 +133,22 @@ BEGIN
 
     IF $1 IS NOT NULL AND $2 IS NOT NULL AND (($3 IS NOT NULL) OR ($5 IS NOT NULL)) THEN
 
+        IF ($3 IS NOT NULL AND $5 IS NOT NULL) THEN
+            RAISE EXCEPTION 'Cannot have an individual and group name';
+        END IF;
+
+        IF ($4 IS NOT NULL AND $3 IS NULL) THEN
+            RAISE EXCEPTION 'Cannot have an last name without first name';
+        END IF;
+
+        IF ($3 IS NOT NULL AND $2 = 'group') THEN
+            RAISE EXCEPTION 'Invalid party type';
+        END IF;
+
+        IF ($5 IS NOT NULL AND $2 = 'individual') THEN
+            RAISE EXCEPTION 'Invalid party type';
+        END IF;
+
         SELECT INTO cd_project_id id FROM project where id = $1;
 
         INSERT INTO party (project_id, type, first_name, last_name, group_name) VALUES (cd_project_id, cd_party_type, first_name,last_name, cd_group_name) RETURNING id INTO p_id;
