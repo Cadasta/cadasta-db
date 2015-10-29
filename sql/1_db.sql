@@ -124,7 +124,7 @@ CREATE TABLE party (
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer,
-    check (first_name IS NOT NULL AND last_name IS NOT NULL OR group_name IS NOT NULL)
+    check (first_name IS NOT NULL OR group_name IS NOT NULL)
 );
 
 -- Resource <--> party junction table

@@ -158,9 +158,9 @@ Create a new party
 Options: ***Case Sensitive***
     * individual
     * group
-3.  first\_name (character varying) – ***Required if org\_name is NULL***.
-4.  last\_name (character varying) – ***Required if org\_name is NULL***.
-5.  cd\_group\_name (character varying) - ***Required if first\_name and last\_name is null***. - Name of Group
+3.  first\_name (character varying) – ***Required if group\_name is NULL***.
+4.  last\_name (character varying) – 
+5.  cd\_group\_name (character varying) - ***Required if first\_name is null***. - Name of Group
 
 ##### Result
 

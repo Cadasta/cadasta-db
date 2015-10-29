@@ -131,7 +131,7 @@ CREATE OR REPLACE FUNCTION cd_create_party(project_id int, cd_party_type party_t
   cd_party_type_lower character varying;
 BEGIN
 
-    IF $1 IS NOT NULL AND $2 IS NOT NULL AND (($3 IS NOT NULL AND $4 IS NOT NULL) OR ($5 IS NOT NULL)) THEN
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND (($3 IS NOT NULL) OR ($5 IS NOT NULL)) THEN
 
         SELECT INTO cd_project_id id FROM project where id = $1;
 
@@ -139,7 +139,7 @@ BEGIN
 
 	    RETURN p_id;
     ELSE
-        RETURN p_id;
+        RAISE EXCEPTION 'project_id, party_type , first_name OR group_name required';
 	END IF;
 
 END;
