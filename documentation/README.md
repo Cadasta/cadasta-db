@@ -193,7 +193,7 @@ Create a new relationship and relationship history.
 
 1.  project\_id (integer) - ***Required***. Project id
 2.  parcel\_id (integer) – ***Required***. Parcel id
-3.  ckan\_user\_id (integer) – ***Required***. The id associated with the specific CKAN user
+3.  ckan\_user\_id (integer) – The id associated with the specific CKAN user
 4.  party\_id (integer) – ***Required***. Party id
 5.  geom_id - (integer) - Optional. Geometry id
 6.  tenure\_type (ENUM) - ***Required. Case sensitive*** Tenure type of relationship
