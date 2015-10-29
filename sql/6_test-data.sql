@@ -1,14 +1,14 @@
 ﻿-- Create fake org and project until API is wrapped in CKAN API
 
-SELECT * FROM cd_create_organization('demo-organization','demo-organization', 'Demo Organization', null);
-
-SELECT * FROM cd_create_project((Select id from organization where ckan_name = 'demo-organization'),'demo-project ' ,'demo-project ','Friday Night', null,null);
-SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'nick-project','nick-project ','Nick Project', null,null);
-
 SELECT * FROM cd_create_organization('habit','habitat','Habitat for Humanity',null);
 
 SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'habitat'),'la-paz', 'la-paz', 'La Paz', 'test',null);
 SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'habitat'),'grow', 'grow', 'GROW', 'grow description',null);
+
+SELECT * FROM cd_create_organization('demo-organization','demo-organization', 'Demo Organization', null);
+
+SELECT * FROM cd_create_project((Select id from organization where ckan_name = 'demo-organization'),'demo-project ' ,'demo-project ','Friday Night', null,null);
+SELECT * FROM cd_create_project((Select id from organization where ckan_id = 'demo-organization'),'nick-project','nick-project ','Nick Project', null,null);
 
 
 -- Add project extents
