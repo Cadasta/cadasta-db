@@ -119,9 +119,10 @@ AND r.active = true;
 
 -- Parcel History w/ project_id
 CREATE OR REPLACE VIEW show_parcel_history AS
-select ph.id, p.project_id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.description, ph.date_modified, ph.active, ph.time_created, ph.time_updated, ph.created_by, ph.updated_by
-from parcel_history ph, parcel p, project pro
+SELECT p.project_id, ph.id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.date_modified, ph.description, ph.land_use, ph.gov_pin, ph.geom, ph.length, ph.area, s.type as spatial_source, ph.active, ph.time_created, ph.time_updated, ph.created_by, ph.updated_by
+FROM parcel_history ph, parcel p, spatial_source s, project pro
 where ph.parcel_id = p.id
+and ph.spatial_source = s.id
 and p.project_id = pro.id;
 
 -- Parcel Resource Views

@@ -110,7 +110,7 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
                 parcel_id, origin_id, parent_id, version, description, date_modified,
                 spatial_source, user_id, area, length, geom, land_use, gov_pin)
 	            VALUES (p_id, p_id, (SELECT parent_id FROM parcel_history where parcel_id = p_id ORDER BY version DESC LIMIT 1), cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
-                (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), cd_area, cd_length, cd_geom,
+                (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), (SELECT area FROM parcel WHERE id = p_id), (SELECT length FROM parcel where id = p_id), (SELECT geom FROM parcel where id = p_id),
                 (SELECT land_use FROM parcel WHERE id = p_id), (SELECT gov_pin FROM parcel WHERE id = p_id)) RETURNING id INTO ph_id;
             ELSE
 	            RAISE EXCEPTION 'Cannot increment version';
