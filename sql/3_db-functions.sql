@@ -381,32 +381,36 @@ BEGIN
 
         SELECT INTO cd_current_date * FROM current_date;
 
-        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL THEN
+        IF cd_tenure_type_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid Tenure Type';
+        END IF;
 
-            RAISE NOTICE 'Relationship parcel_id: %', cd_parcel_id;
+        IF geom_id IS NOT NULL AND cd_geom_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid geom id';
+        END IF;
 
-            IF cd_party_id IS NULL THEN
-                RAISE EXCEPTION 'Invalid party id';
-                RETURN NULL;
+        IF cd_party_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid party id';
+        END IF;
 
-            ELSIF cd_party_id IS NOT NULL THEN
+        IF cd_parcel_id IS NOT NULL THEN
+
 		        -- create relationship row
-                INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
-                VALUES (p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
+            INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
+            VALUES (p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
 
-                -- create relationship history
-                INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
-                VALUES (r_id,r_id,true,'History', cd_current_date, cd_ckan_user_id);
+            -- create relationship history
+            INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
+            VALUES (r_id,r_id,true,cd_history_description, cd_current_date, cd_ckan_user_id);
 
-		        RAISE NOTICE 'Successfully created new relationship id: %', r_id;
 
-            END IF;
         ELSE
             RAISE EXCEPTION 'Invalid parcel id';
             RETURN NULL;
         END IF;
 
         RETURN r_id;
+
 
 	    ELSE
 	        RAISE EXCEPTION 'Invalid project id';
@@ -1085,6 +1089,7 @@ END;
   $$ LANGUAGE plpgsql VOLATILE;
 
 
+
 /********************************************************
 
     cd_update_parcel
@@ -1192,10 +1197,10 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
 
             IF cd_new_version IS NOT NULL THEN
                 -- add parcel history record
-                INSERT INTO parcel_history(
+                INSERT INTO parcel_history(active,
                 parcel_id, origin_id, parent_id, version, description, date_modified,
                 spatial_source, user_id, area, length, geom, land_use, gov_pin)
-	            VALUES (p_id, p_id, (SELECT parent_id FROM parcel_history where parcel_id = p_id ORDER BY version DESC LIMIT 1), cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
+	            VALUES (false,p_id, p_id, (SELECT parent_id FROM parcel_history where parcel_id = p_id ORDER BY version DESC LIMIT 1), cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
                 (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), (SELECT area FROM parcel WHERE id = p_id), (SELECT length FROM parcel where id = p_id), (SELECT geom FROM parcel where id = p_id),
                 (SELECT land_use FROM parcel WHERE id = p_id), (SELECT gov_pin FROM parcel WHERE id = p_id)) RETURNING id INTO ph_id;
             ELSE

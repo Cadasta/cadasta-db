@@ -279,9 +279,8 @@ CREATE TABLE relationship_history (
     version int default 1 not null, -- verison of the original relationship
     parent_id int references relationship(id), --  in case of split, reltionship id is relationship id form which the relaltionship is derived from
     expiration_date timestamp,
-    description character varying not null,
+    description character varying,
     date_modified date not null,
-
     active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,

@@ -1,27 +1,17 @@
-﻿
+/******************************************************************
+Change Script 0.0.2
+Date: 10/30/15
+
+    1. Remove not null constraint on relationship_history description
+    2. Update create relationship function
+    3. Set active false on update parcel function
+
+******************************************************************/
+
+ALTER TABLE relationship ALTER COLUMN description DROP NOT NULL;
+
 /********************************************************
-
     cd_update_parcel
-
-    select * from parcel_history where parcel_id = 3
-
-    SELECT NOT(ST_Equals((SELECT geom FROM parcel_history where id = 14), (select geom from parcel_history where id = 15)))
-
-    -- Update parcel geom, spatial_source, land_use, gov_pin and description
-    SELECT * FROM cd_update_parcel (3, 13, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
-    'Commercial' , '331321sad', 'we have a new description');
-
-    -- Update parcel geometry
-    SELECT * FROM cd_update_parcel (1, 3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$, null, null , null, null);
-
-    -- Should return an exception: 'All values are null'
-    SELECT * FROM cd_update_parcel (1, 3, null, null, null , null, null);
-
-    -- Should return exception: 'Invalid spatial_source'
-    SELECT * FROM cd_update_parcel (1, 3, null, 'survey_sketchh', null , null, null);
-
-    -- Should return exception: 'Project and Parcel id required'
-    SELECT * FROM cd_update_parcel (1, null, null, 'survey_sketch', null , null, null);
 
 *********************************************************/
 
@@ -128,5 +118,102 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
         RAISE EXCEPTION 'Invalid Parcel id';
     END IF;
 
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+/******************************************************************
+    cd_create_relationship
+
+******************************************************************/
+-- DROP FUNCTION cd_create_relationship(integer, integer, integer, integer, integer, character varying, date, character varying, character varying);
+
+CREATE OR REPLACE FUNCTION cd_create_relationship(
+                                            p_id int,
+                                            parcel_id int,
+                                            ckan_user_id int,
+                                            party_id int,
+                                            geom_id int,
+                                            tenure_type character varying,
+                                            acquired_date date,
+                                            how_acquired character varying,
+                                            history_description character varying)
+  RETURNS INTEGER AS $$
+  DECLARE
+  r_id integer;
+
+  cd_parcel_id int;
+  cd_ckan_user_id int;
+  cd_party_id int;
+  cd_geom_id int;
+  cd_tenure_type_id int;
+  cd_tenure_type character varying;
+  cd_acquired_date date;
+  cd_how_acquired character varying;
+  cd_history_description character varying;
+  cd_current_date date;
+
+BEGIN
+
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $4 IS NOT NULL AND $6 IS NOT NULL THEN
+
+        IF(cd_validate_project(p_id)) THEN
+
+        cd_history_description = history_description;
+        cd_tenure_type = tenure_type;
+
+        cd_acquired_date = acquired_date;
+
+	    -- get parcel_id
+        SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int AND project_id = p_id;
+        -- get party_id
+        SELECT INTO cd_party_id id FROM party where id = party_id::int AND project_id = p_id;
+        -- get tenure type id
+        SELECT INTO cd_tenure_type_id id FROM tenure_type where type = cd_tenure_type;
+        -- get geom id
+        SELECT INTO cd_geom_id id FROM relationship_geometry where id = $5;
+
+        -- get ckan user id
+        cd_ckan_user_id = ckan_user_id;
+
+        SELECT INTO cd_current_date * FROM current_date;
+
+        IF cd_tenure_type_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid Tenure Type';
+        END IF;
+
+        IF geom_id IS NOT NULL AND cd_geom_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid geom id';
+        END IF;
+
+        IF cd_party_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid party id';
+        END IF;
+
+        IF cd_parcel_id IS NOT NULL THEN
+
+		        -- create relationship row
+            INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
+            VALUES (p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
+
+            -- create relationship history
+            INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
+            VALUES (r_id,r_id,true,cd_history_description, cd_current_date, cd_ckan_user_id);
+
+        ELSE
+            RAISE EXCEPTION 'Invalid parcel id';
+            RETURN NULL;
+        END IF;
+
+        RETURN r_id;
+
+
+	    ELSE
+	        RAISE EXCEPTION 'Invalid project id';
+	    END IF;
+
+	ELSE
+	    RAISE EXCEPTION 'The following parameters are required: cd_parcel_id, tenure_type, & party_id';
+	    RETURN NULL;
+	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;

@@ -65,26 +65,29 @@ BEGIN
 
         SELECT INTO cd_current_date * FROM current_date;
 
-        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL THEN
+        IF cd_tenure_type_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid Tenure Type';
+        END IF;
 
-            RAISE NOTICE 'Relationship parcel_id: %', cd_parcel_id;
+        IF geom_id IS NOT NULL AND cd_geom_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid geom id';
+        END IF;
 
-            IF cd_party_id IS NULL THEN
-                RAISE EXCEPTION 'Invalid party id';
-                RETURN NULL;
+        IF cd_party_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid party id';
+        END IF;
 
-            ELSIF cd_party_id IS NOT NULL THEN
+        IF cd_parcel_id IS NOT NULL THEN
+
 		        -- create relationship row
-                INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
-                VALUES (p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
+            INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
+            VALUES (p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
 
-                -- create relationship history
-                INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
-                VALUES (r_id,r_id,true,'History', cd_current_date, cd_ckan_user_id);
+            -- create relationship history
+            INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
+            VALUES (r_id,r_id,true,cd_history_description, cd_current_date, cd_ckan_user_id);
 
-		        RAISE NOTICE 'Successfully created new relationship id: %', r_id;
 
-            END IF;
         ELSE
             RAISE EXCEPTION 'Invalid parcel id';
             RETURN NULL;
