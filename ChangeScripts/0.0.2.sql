@@ -1,4 +1,4 @@
-/******************************************************************
+﻿/******************************************************************
 Change Script 0.0.2
 Date: 10/30/15
 
@@ -8,7 +8,7 @@ Date: 10/30/15
 
 ******************************************************************/
 
-ALTER TABLE relationship ALTER COLUMN description DROP NOT NULL;
+ALTER TABLE relationship_history ALTER COLUMN description DROP NOT NULL;
 
 /********************************************************
     cd_update_parcel
