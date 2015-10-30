@@ -8,12 +8,15 @@ SELECT * FROM cd_create_relationship(3,18,11,18,null,'lease','2/2/2005','Passed 
 SELECT * FROM cd_create_relationship(3,18,11,20,null,'occupy','5/22/2009','Passed Down', '3rd Owner');
 SELECT * FROM cd_create_relationship(3,18,11,22,null,'own','5/27/2009','Passed Down', '3rd Owner');
 SELECT * FROM cd_create_relationship(3,18,11,24,null,'own','10/23/2009','Passed Down', '3rd Owner'); -- with date
-SELECT * FROM cd_create_relationship(1,7,null,4,null,'lease',current_date,null,null);
+SELECT * FROM cd_create_relationship(3,7,null,4,null,'lease',current_date,null,null);
+
+select * from parcel
 
 ******************************************************************/
+-- DROP FUNCTION cd_create_relationship(integer, integer, integer, integer, integer, character varying, date, character varying, character varying);
 
 CREATE OR REPLACE FUNCTION cd_create_relationship(
-                                            project_id int,
+                                            p_id int,
                                             parcel_id int,
                                             ckan_user_id int,
                                             party_id int,
@@ -29,7 +32,6 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
   cd_parcel_id int;
   cd_ckan_user_id int;
   cd_party_id int;
-  cd_project_id int;
   cd_geom_id int;
   cd_tenure_type_id int;
   cd_tenure_type character varying;
@@ -42,19 +44,19 @@ BEGIN
 
     IF $1 IS NOT NULL AND $2 IS NOT NULL AND $4 IS NOT NULL AND $6 IS NOT NULL THEN
 
+        IF(cd_validate_project(p_id)) THEN
+
         cd_history_description = history_description;
         cd_tenure_type = tenure_type;
 
         cd_acquired_date = acquired_date;
 
 	    -- get parcel_id
-        SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int;
+        SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int AND project_id = p_id;
         -- get party_id
-        SELECT INTO cd_party_id id FROM party where id = party_id::int;
+        SELECT INTO cd_party_id id FROM party where id = party_id::int AND project_id = p_id;
         -- get tenure type id
         SELECT INTO cd_tenure_type_id id FROM tenure_type where type = cd_tenure_type;
-        -- get project id
-        SELECT INTO cd_project_id id FROM project where id = $1;
         -- get geom id
         SELECT INTO cd_geom_id id FROM relationship_geometry where id = $5;
 
@@ -63,20 +65,18 @@ BEGIN
 
         SELECT INTO cd_current_date * FROM current_date;
 
-        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL AND cd_project_id IS NOT NULL THEN
+        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL THEN
 
             RAISE NOTICE 'Relationship parcel_id: %', cd_parcel_id;
 
             IF cd_party_id IS NULL THEN
-                RAISE NOTICE 'Relationship must have a party id';
+                RAISE EXCEPTION 'Invalid party id';
                 RETURN NULL;
 
             ELSIF cd_party_id IS NOT NULL THEN
-                RAISE NOTICE 'Relationship party_id: %', cd_party_id;
-
 		        -- create relationship row
                 INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
-                VALUES (cd_project_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
+                VALUES (p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
 
                 -- create relationship history
                 INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
@@ -86,14 +86,19 @@ BEGIN
 
             END IF;
         ELSE
-            RAISE NOTICE 'Invalid parcel id:% or tenure type: % or project_id %', cd_parcel_id, cd_tenure_type_id, cd_project_id;
+            RAISE EXCEPTION 'Invalid parcel id';
             RETURN NULL;
         END IF;
 
         RETURN r_id;
 
+
+	    ELSE
+	        RAISE EXCEPTION 'Invalid project id';
+	    END IF;
+
 	ELSE
-	    RAISE NOTICE 'The following parameters are required: cd_parcel_id, tenure_type, & party_id';
+	    RAISE EXCEPTION 'The following parameters are required: cd_parcel_id, tenure_type, & party_id';
 	    RETURN NULL;
 	END IF;
 END;

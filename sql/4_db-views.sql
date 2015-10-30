@@ -3,6 +3,8 @@
 
 *************************************************/
 /**
+DROP VIEW show_party_parcels;
+DROP VIEW show_parties;
 DROP VIEW show_relationships;
 DROP VIEW show_activity;
 DROP VIEW show_parcels_list;
@@ -15,9 +17,26 @@ DROP VIEW show_relationship_resources;
 DROP VIEW show_project_extents;
 **/
 
+-- All parcels associated with parties
+CREATE VIEW show_party_parcels AS
+SELECT pro.id as project_id, par.id as parcel_id, par.geom, p.id as party_id, r.id as relationship_id
+FROM party p, relationship r, parcel par, project pro
+where r.party_id = p.id
+and p.project_id = pro.id
+and par.project_id = pro.id
+and r.project_id = pro.id
+and r.parcel_id = par.id;
+
+-- Show all parties and relationship count
+CREATE OR REPLACE VIEW show_parties AS
+select pro.id as project_id, p.id, count(r.id) as num_relationships, p.group_name, first_name, last_name, type,  p.active, p.time_created, p.time_updated
+from party p left join relationship r on r.party_id = p.id, project pro
+where p.project_id = pro.id
+group by p.id, pro.id;
+
 -- Show all relationships
 CREATE OR replace view show_relationships AS
-SELECT r.id AS relationship_id, t.type AS relationship_type, parcel.id AS parcel_id, project.id AS project_id,s.type AS spatial_source, project.title as project_title, COALESCE(rg.geom,parcel.geom) as geom,
+SELECT r.id AS id, t.type AS tenure_type, r.how_acquired, r.acquired_date, parcel.id AS parcel_id, project.id AS project_id,s.type AS spatial_source, rg.geom as geom,
 party.id AS party_id, first_name, lASt_name, r.time_created,r.active, r.time_updated
 FROM parcel,party,relationship r left join relationship_geometry rg on r.geom_id = rg.id, spatial_source s, tenure_type t, project
 WHERE r.party_id = party.id
@@ -42,11 +61,11 @@ AND p.project_id = project.id
 AND ph.parcel_id = p.id
 AND version > 1
 UNION all
-SELECT 'party', party.id, NULL, first_name || ' ' || lASt_name, NULL, party.time_created, party.project_id
+SELECT 'party', party.id, NULL, COALESCE(first_name || ' ' || lASt_name, group_name), NULL, party.time_created, party.project_id
 FROM party, project
 WHERE party.project_id = project.id
 UNION all
-SELECT 'relationship', r.id, t.type, p.first_name || ' ' || p.lASt_name AS owners, par.id::text AS parcel_id, r.time_created, r.project_id
+SELECT 'relationship', r.id, t.type, COALESCE(p.first_name || ' ' || p.lASt_name, p.group_name) AS owners, par.id::text AS parcel_id, r.time_created, r.project_id
 FROM relationship r, tenure_type t, party p, parcel par, project pro
 WHERE r.party_id = p.id
 AND r.parcel_id = par.id
@@ -100,9 +119,10 @@ AND r.active = true;
 
 -- Parcel History w/ project_id
 CREATE OR REPLACE VIEW show_parcel_history AS
-select ph.id, p.project_id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.description, ph.date_modified, ph.active, ph.time_created, ph.time_updated, ph.created_by, ph.updated_by
-from parcel_history ph, parcel p, project pro
+SELECT p.project_id, ph.id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.date_modified, ph.description, ph.land_use, ph.gov_pin, ph.geom, ph.length, ph.area, s.type as spatial_source, ph.active, ph.time_created, ph.time_updated, ph.created_by, ph.updated_by
+FROM parcel_history ph, parcel p, spatial_source s, project pro
 where ph.parcel_id = p.id
+and ph.spatial_source = s.id
 and p.project_id = pro.id;
 
 -- Parcel Resource Views

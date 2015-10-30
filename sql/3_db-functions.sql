@@ -110,40 +110,57 @@ EXCEPTION WHEN others THEN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
-
 /******************************************************************
-    cd_cd_create_party
+    cd_create_party
 
     Create new party
 
     -- Create new party Ian O'Guin for project 1
-    SELECT * FROM cd_create_party(1, 'Ian', 'O''Guin', null);
+    SELECT * FROM cd_create_party(1, 'individual', 'Ian', 'O''Guin', null);
     -- Create new party group Wal Mart for project 1
-    SELECT * FROM cd_create_party(1, null, null, 'Wal-Mart');
-
+    SELECT * FROM cd_create_party(1, 'group', null, null, 'Wal-Mart');
 
 ******************************************************************/
 
-CREATE OR REPLACE FUNCTION cd_create_party(project_id int, first_name character varying, last_name character varying, cd_group_name character varying)
+
+CREATE OR REPLACE FUNCTION cd_create_party(project_id int, cd_party_type party_type, first_name character varying, last_name character varying, cd_group_name character varying)
   RETURNS INTEGER AS $$
   DECLARE
   p_id integer;
   cd_project_id int;
+  cd_party_type_lower character varying;
 BEGIN
 
-    IF $1 IS NOT NULL AND (($2 IS NOT NULL AND $3 IS NOT NULL) OR ($4 IS NOT NULL)) THEN
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND (($3 IS NOT NULL) OR ($5 IS NOT NULL)) THEN
+
+        IF ($3 IS NOT NULL AND $5 IS NOT NULL) THEN
+            RAISE EXCEPTION 'Cannot have an individual and group name';
+        END IF;
+
+        IF ($4 IS NOT NULL AND $3 IS NULL) THEN
+            RAISE EXCEPTION 'Cannot have an last name without first name';
+        END IF;
+
+        IF ($3 IS NOT NULL AND $2 = 'group') THEN
+            RAISE EXCEPTION 'Invalid party type';
+        END IF;
+
+        IF ($5 IS NOT NULL AND $2 = 'individual') THEN
+            RAISE EXCEPTION 'Invalid party type';
+        END IF;
 
         SELECT INTO cd_project_id id FROM project where id = $1;
 
-        INSERT INTO party (project_id, first_name, last_name, group_name) VALUES (cd_project_id,first_name,last_name, cd_group_name) RETURNING id INTO p_id;
+        INSERT INTO party (project_id, type, first_name, last_name, group_name) VALUES (cd_project_id, cd_party_type, first_name,last_name, cd_group_name) RETURNING id INTO p_id;
 
 	    RETURN p_id;
     ELSE
-        RETURN p_id;
+        RAISE EXCEPTION 'project_id, party_type , first_name OR group_name required';
 	END IF;
 
 END;
   $$ LANGUAGE plpgsql VOLATILE;
+
 
 
 /********************************************************
@@ -307,12 +324,15 @@ SELECT * FROM cd_create_relationship(3,18,11,18,null,'lease','2/2/2005','Passed 
 SELECT * FROM cd_create_relationship(3,18,11,20,null,'occupy','5/22/2009','Passed Down', '3rd Owner');
 SELECT * FROM cd_create_relationship(3,18,11,22,null,'own','5/27/2009','Passed Down', '3rd Owner');
 SELECT * FROM cd_create_relationship(3,18,11,24,null,'own','10/23/2009','Passed Down', '3rd Owner'); -- with date
-SELECT * FROM cd_create_relationship(1,7,null,4,null,'lease',current_date,null,null);
+SELECT * FROM cd_create_relationship(3,7,null,4,null,'lease',current_date,null,null);
+
+select * from parcel
 
 ******************************************************************/
+-- DROP FUNCTION cd_create_relationship(integer, integer, integer, integer, integer, character varying, date, character varying, character varying);
 
 CREATE OR REPLACE FUNCTION cd_create_relationship(
-                                            project_id int,
+                                            p_id int,
                                             parcel_id int,
                                             ckan_user_id int,
                                             party_id int,
@@ -328,7 +348,6 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
   cd_parcel_id int;
   cd_ckan_user_id int;
   cd_party_id int;
-  cd_project_id int;
   cd_geom_id int;
   cd_tenure_type_id int;
   cd_tenure_type character varying;
@@ -341,19 +360,19 @@ BEGIN
 
     IF $1 IS NOT NULL AND $2 IS NOT NULL AND $4 IS NOT NULL AND $6 IS NOT NULL THEN
 
+        IF(cd_validate_project(p_id)) THEN
+
         cd_history_description = history_description;
         cd_tenure_type = tenure_type;
 
         cd_acquired_date = acquired_date;
 
 	    -- get parcel_id
-        SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int;
+        SELECT INTO cd_parcel_id id FROM parcel where id = parcel_id::int AND project_id = p_id;
         -- get party_id
-        SELECT INTO cd_party_id id FROM party where id = party_id::int;
+        SELECT INTO cd_party_id id FROM party where id = party_id::int AND project_id = p_id;
         -- get tenure type id
         SELECT INTO cd_tenure_type_id id FROM tenure_type where type = cd_tenure_type;
-        -- get project id
-        SELECT INTO cd_project_id id FROM project where id = $1;
         -- get geom id
         SELECT INTO cd_geom_id id FROM relationship_geometry where id = $5;
 
@@ -362,20 +381,18 @@ BEGIN
 
         SELECT INTO cd_current_date * FROM current_date;
 
-        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL AND cd_project_id IS NOT NULL THEN
+        IF cd_parcel_id IS NOT NULL AND cd_tenure_type_id IS NOT NULL THEN
 
             RAISE NOTICE 'Relationship parcel_id: %', cd_parcel_id;
 
             IF cd_party_id IS NULL THEN
-                RAISE NOTICE 'Relationship must have a party id';
+                RAISE EXCEPTION 'Invalid party id';
                 RETURN NULL;
 
             ELSIF cd_party_id IS NOT NULL THEN
-                RAISE NOTICE 'Relationship party_id: %', cd_party_id;
-
 		        -- create relationship row
                 INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
-                VALUES (cd_project_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
+                VALUES (p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,how_acquired) RETURNING id INTO r_id;
 
                 -- create relationship history
                 INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by)
@@ -385,18 +402,24 @@ BEGIN
 
             END IF;
         ELSE
-            RAISE NOTICE 'Invalid parcel id:% or tenure type: % or project_id %', cd_parcel_id, cd_tenure_type_id, cd_project_id;
+            RAISE EXCEPTION 'Invalid parcel id';
             RETURN NULL;
         END IF;
 
         RETURN r_id;
 
+	    ELSE
+	        RAISE EXCEPTION 'Invalid project id';
+	    END IF;
+
 	ELSE
-	    RAISE NOTICE 'The following parameters are required: cd_parcel_id, tenure_type, & party_id';
+	    RAISE EXCEPTION 'The following parameters are required: cd_parcel_id, tenure_type, & party_id';
 	    RETURN NULL;
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
 /******************************************************************
 
  Function: cd_process_data()
@@ -494,7 +517,7 @@ BEGIN
 
         -- take the first name , last name fields out of the survey
         IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
-          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, data_survey_first_name,data_survey_last_name, null);
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, 'individual', data_survey_first_name,data_survey_last_name, null);
           RAISE NOTICE 'Created Person id: %', data_person_id;
         END IF;
 
@@ -1061,6 +1084,7 @@ BEGIN
 END;
   $$ LANGUAGE plpgsql VOLATILE;
 
+
 /********************************************************
 
     cd_update_parcel
@@ -1172,7 +1196,7 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
                 parcel_id, origin_id, parent_id, version, description, date_modified,
                 spatial_source, user_id, area, length, geom, land_use, gov_pin)
 	            VALUES (p_id, p_id, (SELECT parent_id FROM parcel_history where parcel_id = p_id ORDER BY version DESC LIMIT 1), cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
-                (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), cd_area, cd_length, cd_geom,
+                (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), (SELECT area FROM parcel WHERE id = p_id), (SELECT length FROM parcel where id = p_id), (SELECT geom FROM parcel where id = p_id),
                 (SELECT land_use FROM parcel WHERE id = p_id), (SELECT gov_pin FROM parcel WHERE id = p_id)) RETURNING id INTO ph_id;
             ELSE
 	            RAISE EXCEPTION 'Cannot increment version';

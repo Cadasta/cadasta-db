@@ -13,6 +13,7 @@ CREATE TYPE json_result AS (response json);
 -- Normalize
 CREATE TYPE land_use AS ENUM ('Commercial', 'Residential');
 CREATE TYPE id_type AS ENUM ('Drivers License, Passport');
+CREATE TYPE party_type AS ENUM ('individual', 'group');
 
 -- CKAN organizaiton
 CREATE TABLE organization (
@@ -101,7 +102,7 @@ CREATE TABLE party (
     first_name character varying,
     last_name character varying,
     group_name character varying,
-    type character varying,
+    type party_type not null,
     title character varying,
     description character varying,
     contact character varying,
@@ -123,7 +124,7 @@ CREATE TABLE party (
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer,
-    check (first_name IS NOT NULL AND last_name IS NOT NULL OR group_name IS NOT NULL)
+    check (first_name IS NOT NULL OR group_name IS NOT NULL)
 );
 
 -- Resource <--> party junction table
