@@ -3,6 +3,7 @@
 
 *************************************************/
 /**
+DROP VIEW show_party_parcels;
 DROP VIEW show_parties;
 DROP VIEW show_relationships;
 DROP VIEW show_activity;
@@ -15,6 +16,16 @@ DROP VIEW show_party_resources;
 DROP VIEW show_relationship_resources;
 DROP VIEW show_project_extents;
 **/
+
+-- All parcels associated with parties
+CREATE VIEW show_party_parcels AS
+SELECT pro.id as project_id, par.id as parcel_id, par.geom, p.id as party_id, r.id as relationship_id
+FROM party p, relationship r, parcel par, project pro
+where r.party_id = p.id
+and p.project_id = pro.id
+and par.project_id = pro.id
+and r.project_id = pro.id
+and r.parcel_id = par.id;
 
 -- Show all parties and relationship count
 CREATE OR REPLACE VIEW show_parties AS
@@ -50,11 +61,11 @@ AND p.project_id = project.id
 AND ph.parcel_id = p.id
 AND version > 1
 UNION all
-SELECT 'party', party.id, NULL, first_name || ' ' || lASt_name, NULL, party.time_created, party.project_id
+SELECT 'party', party.id, NULL, COALESCE(first_name || ' ' || lASt_name, group_name), NULL, party.time_created, party.project_id
 FROM party, project
 WHERE party.project_id = project.id
 UNION all
-SELECT 'relationship', r.id, t.type, p.first_name || ' ' || p.lASt_name AS owners, par.id::text AS parcel_id, r.time_created, r.project_id
+SELECT 'relationship', r.id, t.type, COALESCE(p.first_name || ' ' || p.lASt_name, p.group_name) AS owners, par.id::text AS parcel_id, r.time_created, r.project_id
 FROM relationship r, tenure_type t, party p, parcel par, project pro
 WHERE r.party_id = p.id
 AND r.parcel_id = par.id
@@ -108,9 +119,10 @@ AND r.active = true;
 
 -- Parcel History w/ project_id
 CREATE OR REPLACE VIEW show_parcel_history AS
-select ph.id, p.project_id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.description, ph.date_modified, ph.active, ph.time_created, ph.time_updated, ph.created_by, ph.updated_by
-from parcel_history ph, parcel p, project pro
+SELECT p.project_id, ph.id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.date_modified, ph.description, ph.land_use, ph.gov_pin, ph.geom, ph.length, ph.area, s.type as spatial_source, ph.active, ph.time_created, ph.time_updated, ph.created_by, ph.updated_by
+FROM parcel_history ph, parcel p, spatial_source s, project pro
 where ph.parcel_id = p.id
+and ph.spatial_source = s.id
 and p.project_id = pro.id;
 
 -- Parcel Resource Views
