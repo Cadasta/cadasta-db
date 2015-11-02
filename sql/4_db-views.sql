@@ -101,9 +101,9 @@ CREATE OR replace view show_relationship_history AS
 SELECT 
 project.id as project_id,
 -- relationship history columns
-rh.relationship_id, rh.origin_id, rh.version, rh.parent_id, COALESCE(rg.geom,parcel.geom) as geom,
+rh.relationship_id, rh.origin_id, rh.version, rh.parent_id, rh.geom_id, rh.tenure_type, rh.acquired_date, rh.how_acquired,
 parcel.id AS parcel_id,
-rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created,
+rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created, rg.geom, rg.length, rg.area,
 rh.time_updated, rh.created_by, rh.updated_by,
 -- relationship table columns
 t.type AS relationship_type,
