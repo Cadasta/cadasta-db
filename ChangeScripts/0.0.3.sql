@@ -1,11 +1,224 @@
 ﻿/******************************************************************
+Change Script 0.0.3
+Date: 11/2/15
 
- Function: cd_process_data()
-
- Trigger to process FormHub data.json file after loading
+    1. Add project_id, area & length to relationship geometry table
+    2. Update create relationship function to take geojson gemoetry object
+    3. Update create relationship geometry function to take project_id & generate area and length
+    4. Remove hard coded ckan user id from processdata ONA function trigger
 
 ******************************************************************/
---  Trigger to process FormHub data.json file after loading
+
+ALTER TABLE relationship_geometry ADD COLUMN project_id integer not null references project(id);
+ALTER TABLE relationship_geometry ADD COLUMN area numeric;
+ALTER TABLE relationship_geometry ADD COLUMN length numeric;
+ALTER TABLE relationship_history ADD COLUMN parcel_id int references parcel(id);
+ALTER TABLE relationship_history ADD COLUMN party_id int references party(id);
+ALTER TABLE relationship_history ADD COLUMN geom_id int references relationship_geometry (id);
+ALTER TABLE relationship_history ADD COLUMN tenure_type int references tenure_type(id);
+ALTER TABLE relationship_history ADD COLUMN acquired_date date;
+ALTER TABLE relationship_history ADD COLUMN how_acquired character varying;
+
+DROP FUNCTION cd_create_relationship_geometry(integer, text);
+DROP FUNCTION cd_create_relationship(integer, integer, integer, integer, integer, character varying, date, character varying, character varying);
+
+/******************************************************************
+
+ cd_create_relationship
+
+-- Create relationship with relationship geometry
+
+SELECT * FROM cd_create_relationship(1,7,null,4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,'lease',current_date,'stolen','family fortune');
+SELECT * FROM cd_create_relationship(1,3,null,4,$anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'lease',current_date,null,null);
+
+select * from relationship_geometry where id = 15
+select * from relationship_history where relationship_id = 45
+select * from relationship where id = 45
+
+******************************************************************/
+
+CREATE OR REPLACE FUNCTION cd_create_relationship(
+                                            p_id int,
+                                            parcelId int,
+                                            ckan_user_id int,
+                                            partyId int,
+                                            geojson character varying,
+                                            tenureType character varying,
+                                            acquiredDate date,
+                                            howAcquired character varying,
+                                            historyDescription character varying)
+  RETURNS INTEGER AS $$
+  DECLARE
+  r_id integer;
+  rh_id integer; -- relationship history id
+  cd_parcel_id int;
+  cd_ckan_user_id int;
+  cd_party_id int;
+  cd_geom_id int;
+  cd_tenure_type_id int;
+  cd_tenure_type character varying;
+  cd_acquired_date date;
+  cd_how_acquired character varying;
+  cd_history_description character varying;
+  cd_current_date date;
+  cd_geojson character varying; -- geojson paramater
+
+
+
+BEGIN
+
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND $4 IS NOT NULL AND $6 IS NOT NULL THEN
+
+        IF(cd_validate_project(p_id)) THEN
+
+        cd_history_description = historyDescription;
+        cd_geojson = geojson::text;
+        cd_acquired_date = acquiredDate;
+        cd_how_acquired = howAcquired;
+
+	    -- get parcel_id
+        SELECT INTO cd_parcel_id id FROM parcel where id = $2 AND project_id = p_id;
+        -- get party_id
+        SELECT INTO cd_party_id id FROM party where id = $4 AND project_id = p_id;
+        -- get tenure type id
+        SELECT INTO cd_tenure_type_id id FROM tenure_type where type = $6;
+
+        -- get ckan user id
+        cd_ckan_user_id = ckan_user_id;
+
+        SELECT INTO cd_current_date * FROM current_date;
+
+        IF cd_tenure_type_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid Tenure Type';
+        END IF;
+
+        IF cd_party_id IS NULL THEN
+            RAISE EXCEPTION 'Invalid party id';
+        END IF;
+
+        IF cd_parcel_id IS NOT NULL THEN
+
+		        -- create relationship row
+            INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
+            VALUES (p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired) RETURNING id INTO r_id;
+
+            IF r_id IS NOT NULL THEN
+
+                -- create relationship history
+                INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by, parcel_id, party_id, geom_id, tenure_type, acquired_date, how_acquired)
+                VALUES (r_id,r_id,true,cd_history_description, cd_current_date, cd_ckan_user_id, (SELECT parcel_id FROM relationship where id = r_id), (SELECT party_id FROM relationship where id = r_id),
+                (SELECT geom_id FROM relationship where id = r_id), (SELECT tenure_type FROM relationship where id = r_id), (SELECT acquired_date FROM relationship where id = r_id), (SELECT how_acquired FROM relationship where id = r_id)) RETURNING id INTO rh_id;
+
+                IF geojson IS NOT NULL THEN
+                    -- create relationship geometry
+                    SELECT INTO cd_geom_id * FROM cd_create_relationship_geometry(p_id, r_id, cd_geojson);
+                    IF cd_geom_id IS NOT NULL AND rh_id IS NOT NULL THEN
+                        UPDATE relationship_history SET geom_id = cd_geom_id WHERE id = rh_id;
+                        RETURN r_id;
+                    ELSE
+                        RAISE EXCEPTION 'Unable to create relationship geometry';
+                    END IF;
+                ELSE
+                    RETURN r_id;
+                END IF;
+
+            ELSE
+                RAISE EXCEPTION 'Unable to complete request';
+            END IF;
+
+        ELSE
+            RAISE EXCEPTION 'Invalid parcel id';
+            RETURN NULL;
+        END IF;
+
+	    ELSE
+	        RAISE EXCEPTION 'Invalid project id';
+	    END IF;
+
+	ELSE
+	    RAISE EXCEPTION 'The following parameters are required: cd_parcel_id, tenure_type, & party_id';
+	    RETURN NULL;
+	END IF;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION cd_create_relationship_geometry(p_id int, relationship_id int, geojson text)
+  RETURNS INTEGER AS $$
+  DECLARE
+
+  valid_relationship_id int;
+  rg_id int; -- new relationship geometry id
+  data_geojson character varying; -- geojson paramater
+  data_geom geometry;
+  cd_area numeric;
+  cd_geom_type character varying;
+  cd_length numeric;
+
+  BEGIN
+
+  IF cd_validate_project($1) THEN
+
+    IF ($2 IS NOT NULL AND $3 IS NOT NULL) THEN
+
+        -- validate relationshup id
+        IF (cd_validate_relationship($1)) THEN
+
+            data_geojson = geojson::text;
+
+            -- get id from relationship table
+            SELECT INTO valid_relationship_id id FROM relationship where id = $2 and project_id = p_id;
+            -- get geom form GEOJSON
+            SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
+
+            IF data_geom IS NOT NULL AND valid_relationship_id IS NOT NULL THEN
+
+            SELECT INTO cd_geom_type * FROM ST_GeometryType(data_geom); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+
+             IF cd_geom_type iS NOT NULL THEN
+                 CASE (cd_geom_type)
+                    WHEN 'ST_Polygon' THEN
+                        cd_area = ST_AREA(ST_TRANSFORM(data_geom,3857)); -- get area in meters
+                    WHEN 'ST_LineString' THEN
+                        cd_length = ST_LENGTH(ST_TRANSFORM(data_geom,3857)); -- get length in meters
+                    ELSE
+                        RAISE NOTICE 'Parcel is a point';
+                 END CASE;
+             END IF;
+
+                -- add relationship geom column
+                INSERT INTO relationship_geometry (project_id,geom, area, length) VALUES (p_id, data_geom, cd_area, cd_length) RETURNING id INTO rg_id;
+
+                IF rg_id IS NOT NULL THEN
+                    -- add relationship geom id in relationship table
+                    UPDATE relationship SET geom_id = rg_id, time_updated = current_timestamp WHERE id = valid_relationship_id and project_id = p_id;
+
+		    RAISE NOTICE 'rg_id IS NOT NULL %', rg_id;
+
+                    RETURN rg_id;
+                ELSE
+			RAISE NOTICE 'rg_id IS NULL';
+                END IF;
+
+            ELSE
+                RAISE EXCEPTION 'Invalid geometry';
+            END IF;
+
+        ELSE
+            RAISE EXCEPTION 'Invalid relationship id';
+        END IF;
+
+    ELSE
+        RAISE EXCEPTION 'Relationship id and Geometry required';
+    END IF;
+
+    ELSE
+        RAISE EXCEPTION 'Invalid project';
+    END IF;
+
+  END;
+
+$$ LANGUAGE plpgsql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION cd_process_data()
@@ -244,71 +457,3 @@ BEGIN
   RETURN NEW;
 END;
 $cd_process_data$ LANGUAGE plpgsql;
-
-CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
-    FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
-
-/***
-
-
-Test data load
-
-***/
-
-SELECT * FROM cd_import_data_json ($anystr$[{
-      "_notes": [],
-      "applicant_name/applicant_name_first": "Makkonen",
-      "_bamboo_dataset_id": "",
-      "_tags": [],
-      "surveyor": "katechapman",
-      "_xform_id_string": "CJF-minimum",
-      "_geolocation": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -68.13127398490906,
-              -16.498594502708375
-            ],
-            [
-              -68.13038885593414,
-              -16.4990522778716
-            ],
-            [
-              -68.13022255897522,
-              -16.49927344975331
-            ],
-            [
-              -68.1305605173111,
-              -16.499906102809422
-            ],
-            [
-              -68.13167631626129,
-              -16.49923744504563
-            ],
-            [
-              -68.13127398490906,
-              -16.498594502708375
-            ]
-          ]
-        ]
-      },
-      "_duration": 27.0,
-      "meta/instanceID": "uuid:6d998c13123213d-d712-4dbc-b041-16939500f5a7",
-      "end": "2015-10-07T12:55:55.218-07",
-      "date_land_possession": "2010-05-25",
-      "applicant_name/applicant_name_last": "Ontario ",
-      "start": "2015-10-07T12:55:28.024-07",
-      "_attachments": [],
-      "_status": "submitted_via_web",
-      "today": "2015-10-07",
-      "_uuid": "6d998c3d-d712-4dbc-b0132131241-16939500f5a7",
-      "means_of_acquire": "inheritance",
-      "_submitted_by": null,
-      "formhub/uuid": "5b453ab2cbec49f13123279193293262d68376",
-      "_submission_time": "2015-10-07T19:55:46",
-      "_version": "201510071848",
-      "tenure_type": "common_law_freehold",
-      "deviceid": "35385206286421",
-      "_id": 11312315}
-    ]$anystr$);

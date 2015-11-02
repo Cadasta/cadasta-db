@@ -1,29 +1,35 @@
-/******************************************************************
+﻿/******************************************************************
  TESTING cd_create_relationship_geometry
 
- SELECT * FROM cd_create_relationship_geometry(2,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+ SELECT * FROM cd_create_relationship_geometry(1,2,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
 
- SELECT * FROM cd_create_relationship_geometry(4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+ SELECT * FROM cd_create_relationship_geometry(1,4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
 
- SELECT * FROM cd_create_relationship_geometry(24,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
+ SELECT * FROM cd_create_relationship_geometry(1,4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
 
 
  select * from relationship_geometry
  select * from relationship
 ******************************************************************/
+-- DROP FUNCTION cd_create_relationship_geometry(integer, text);
 
-CREATE OR REPLACE FUNCTION cd_create_relationship_geometry(relationship_id int, geojson text)
+CREATE OR REPLACE FUNCTION cd_create_relationship_geometry(p_id int, relationship_id int, geojson text)
   RETURNS INTEGER AS $$
   DECLARE
 
-  valid_id int;
+  valid_relationship_id int;
   rg_id int; -- new relationship geometry id
   data_geojson character varying; -- geojson paramater
   data_geom geometry;
+  cd_area numeric;
+  cd_geom_type character varying;
+  cd_length numeric;
 
   BEGIN
 
-    IF ($1 IS NOT NULL AND $2 IS NOT NULL) THEN
+  IF cd_validate_project($1) THEN
+
+    IF ($2 IS NOT NULL AND $3 IS NOT NULL) THEN
 
         -- validate relationshup id
         IF (cd_validate_relationship($1)) THEN
@@ -31,34 +37,53 @@ CREATE OR REPLACE FUNCTION cd_create_relationship_geometry(relationship_id int, 
             data_geojson = geojson::text;
 
             -- get id from relationship table
-            SELECT INTO valid_id id FROM relationship where id = $1;
+            SELECT INTO valid_relationship_id id FROM relationship where id = $2 and project_id = p_id;
             -- get geom form GEOJSON
             SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
 
-            IF data_geom IS NOT NULL AND valid_id IS NOT NULL THEN
+            IF data_geom IS NOT NULL AND valid_relationship_id IS NOT NULL THEN
+
+            SELECT INTO cd_geom_type * FROM ST_GeometryType(data_geom); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+
+             IF cd_geom_type iS NOT NULL THEN
+                 CASE (cd_geom_type)
+                    WHEN 'ST_Polygon' THEN
+                        cd_area = ST_AREA(ST_TRANSFORM(data_geom,3857)); -- get area in meters
+                    WHEN 'ST_LineString' THEN
+                        cd_length = ST_LENGTH(ST_TRANSFORM(data_geom,3857)); -- get length in meters
+                    ELSE
+                        RAISE NOTICE 'Parcel is a point';
+                 END CASE;
+             END IF;
 
                 -- add relationship geom column
-                INSERT INTO relationship_geometry (geom) VALUES (data_geom) RETURNING id INTO rg_id;
+                INSERT INTO relationship_geometry (project_id,geom, area, length) VALUES (p_id, data_geom, cd_area, cd_length) RETURNING id INTO rg_id;
 
                 IF rg_id IS NOT NULL THEN
                     -- add relationship geom id in relationship table
-                    UPDATE relationship SET geom_id = rg_id, time_updated = current_timestamp WHERE id = valid_id;
+                    UPDATE relationship SET geom_id = rg_id, time_updated = current_timestamp WHERE id = valid_relationship_id and project_id = p_id;
+
+		    RAISE NOTICE 'rg_id IS NOT NULL %', rg_id;
+
                     RETURN rg_id;
+                ELSE 
+			RAISE NOTICE 'rg_id IS NULL';
                 END IF;
 
             ELSE
-                RAISE NOTICE 'Invalid geometry: %', geom;
-                RETURN NULL;
+                RAISE EXCEPTION 'Invalid geometry';
             END IF;
 
         ELSE
-            RAISE NOTICE 'Invalid relationship id: %', relationship_id;
-            RETURN NULL;
+            RAISE EXCEPTION 'Invalid relationship id';
         END IF;
 
     ELSE
-        RAISE NOTICE 'Relationship id and Geometry required';
-        RETURN NULL;
+        RAISE EXCEPTION 'Relationship id and Geometry required';
+    END IF;
+
+    ELSE
+        RAISE EXCEPTION 'Invalid project';
     END IF;
 
   END;

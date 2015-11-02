@@ -224,7 +224,10 @@ CREATE TABLE resource_parcel (
 -- Relationship Geometry table
 CREATE TABLE relationship_geometry (
     id serial primary key not null,
+    project_id int not null references project(id),
     geom geometry not null,
+    area numeric,  -- area of polygon
+    length numeric,  -- lengthof linestring
     sys_delete boolean default true,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -238,7 +241,7 @@ CREATE TABLE relationship (
     id serial primary key not null,
     project_id int not null references project(id),
     parcel_id int references parcel(id) not null,
-    party_id int references party(id),
+    party_id int references party(id) not null,
     geom_id int references relationship_geometry (id),
     tenure_type int references tenure_type (id) not null,
     acquired_date date,
@@ -281,6 +284,14 @@ CREATE TABLE relationship_history (
     expiration_date timestamp,
     description character varying,
     date_modified date not null,
+
+    parcel_id int references parcel(id) not null,
+    party_id int references party(id) not null,
+    geom_id int references relationship_geometry (id),
+    tenure_type int references tenure_type (id) not null,
+    acquired_date date,
+    how_acquired character varying,
+
     active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,

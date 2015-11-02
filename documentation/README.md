@@ -195,7 +195,7 @@ Create a new relationship and relationship history.
 2.  parcel\_id (integer) – ***Required***. Parcel id
 3.  ckan\_user\_id (integer) – The id associated with the specific CKAN user
 4.  party\_id (integer) – ***Required***. Party id
-5.  geom_id - (integer) - Optional. Geometry id
+5.  geojson - (character varying) - Optional. Relationship Geometry [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
 6.  tenure\_type (ENUM) - ***Required. Case sensitive*** Tenure type of relationship
 Options:
     * own
@@ -318,8 +318,9 @@ Create Relationship geometry
 
 ##### Parameter(s)
 
-1.  relationship\_id (integer) – ***Required***. Relationship id
-2.  geojson (text) – ***Required***. Valid GEOJSON
+1.  project_id (integer) ***Required***. Project id
+2.  relationship\_id (integer) – ***Required***. Relationship id
+3.  geojson (text) – ***Required***. [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
 
 ##### Result
 
@@ -327,9 +328,9 @@ Integer. The relationship geometry is successfully created if an integer is retu
 
 ##### Example(s)
 
--   Create new relationship geometry and update the relationship id:2 geom_id to 14
+-   Create new relationship geometry for relationship id: 2
 
-```SELECT * FROM cd_create_relationship_geometry(2,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);```
+```SELECT * FROM cd_create_relationship_geometry(1,2,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);```
 
 14
 
