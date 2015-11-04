@@ -228,7 +228,7 @@ CREATE TABLE relationship (
     parcel_id int references parcel(id) not null,
     party_id int references party(id) not null,
 
-    geom geometry not null,
+    geom geometry,
     area numeric,  -- area of polygon
     length numeric,  -- lengthof linestring
 

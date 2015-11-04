@@ -93,7 +93,7 @@ BEGIN
 
         -- take the first name , last name fields out of the survey
         IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
-          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, 'individual', data_survey_first_name,data_survey_last_name, null);
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, 'individual', data_survey_first_name,data_survey_last_name, null, null, null, null, null);
           RAISE NOTICE 'Created Person id: %', data_person_id;
         END IF;
 
