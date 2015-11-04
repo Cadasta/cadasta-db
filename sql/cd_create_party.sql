@@ -14,7 +14,7 @@ CREATE OR REPLACE FUNCTION cd_create_party(project_id int,
                                             first_name character varying,
                                             last_name character varying,
                                             cd_group_name character varying,
-                                            cd_gender gender,
+                                            cd_gender character varying,
                                             cd_dob date,
                                             cd_description character varying,
                                             cd_national_id character varying)

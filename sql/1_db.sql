@@ -6,8 +6,6 @@
 -- CREATE SCHEMA PUBLIC;
 
 CREATE EXTENSION IF NOT EXISTS postgis;
-
-CREATE TYPE gender AS ENUM ('Male', 'Female');
 CREATE TYPE json_result AS (response json);
 
 -- Normalize
@@ -115,7 +113,7 @@ CREATE TABLE party (
     martial_status character varying,
     edu_level character varying,
     occupation character varying,
-    gender gender,
+    gender character varying,
     DOB date,
     active boolean default true,
     sys_delete boolean default false,
