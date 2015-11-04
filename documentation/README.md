@@ -12,6 +12,8 @@ Cadasta Database Function Reference
 
 [cd\_create\_relationship](#cd_create_relationship)
 
+[cd\_update\_relationship](#cd_update_relationship)
+
 [cd\_create\_organization](#cd_create_organization)
 
 [cd\_create\_project](#cd_create_project)
@@ -133,7 +135,7 @@ Options:
 
 ##### Result
 
-Integer. New relationship history id
+Integer. New parcel history id
 
 ##### Example(s)
 
@@ -202,7 +204,7 @@ Options:
     * lease
     * occupy
     * informal occupy
-7. acquired\_date (date) - Optional. ('mm/dd/yyyy') Date of land acquisition
+7. acquired\_date (date) - Optional. ***YYYY-MM-DD*** Date of land acquisition
 8. how\_acquired (character varying) - Optional. A description of how the land was acquired
 9. history\_description (character varying) - A description of the relationships history
 
@@ -217,6 +219,43 @@ Integer. The relationship is successfully created if an integer is returned.
 ```SELECT * FROM cd_create_relationship(3, 18, 11, 24, null, 'own', '10/23/2009', 'Passed Down', '3rd Owner'); ```
 
 14
+
+<a name="cd_update_relationship"/>
+cd\_update\_relationship
+=================
+
+##### Description
+
+Update a relationship & relationship history
+
+##### Parameter(s)
+
+1. project\_id (integer) - ***Required***. Cadasta project id 
+2. relationship\_id (integer) - ***Required***. Cadasta relationship id
+3. party\_id (integer) - Optional. Cadasta Party id
+4. parcel\_id (integer) - Optional. Cadasta Parcel id
+5. geojson - Optional. Relationship geometry [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
+6. tenure\_type (ENUM) - Optional. ***Case sensitive*** Tenure type of relationship
+Options:
+    * own
+    * lease
+    * occupy
+    * informal occupy 
+7.  acquired\_date (Date) - Optional. ***YYYY-MM-DD*** Date of tenure acquisition
+8.  how\_acquired (character varying) - Optional. A description of how acquisition was acquired
+9.  description (character varying) - Optional. A description of the relationships history
+
+##### Result
+
+Integer. New relationship history id
+
+##### Example(s)
+
+-   Update relationship 1's tenure type, how acquired, and history description
+
+```SELECT * FROM cd_update_relationship(1,1,null,null,null,'occupy',null, 'taken over by government', 'informed in the mail');```
+
+13
 
 <a name="cd_create_organization"/>
 cd\_create\_organization

@@ -8,7 +8,7 @@
     SELECT NOT(ST_Equals((SELECT geom FROM parcel_history where id = 14), (select geom from parcel_history where id = 15)))
 
     -- Update parcel geom, spatial_source, land_use, gov_pin and description
-    SELECT * FROM cd_update_parcel (3, 13, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
+    SELECT * FROM cd_update_parcel (1, 3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
     'Commercial' , '331321sad', 'we have a new description');
 
     -- Update parcel geometry
@@ -106,12 +106,15 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
 
             IF cd_new_version IS NOT NULL THEN
                 -- add parcel history record
-                INSERT INTO parcel_history(active,
-                parcel_id, origin_id, parent_id, version, description, date_modified,
+                INSERT INTO parcel_history(
+                parcel_id, origin_id, version, description, date_modified,
                 spatial_source, user_id, area, length, geom, land_use, gov_pin)
-	            VALUES (false,p_id, p_id, (SELECT parent_id FROM parcel_history where parcel_id = p_id ORDER BY version DESC LIMIT 1), cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
+	            VALUES (p_id, p_id, cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
                 (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), (SELECT area FROM parcel WHERE id = p_id), (SELECT length FROM parcel where id = p_id), (SELECT geom FROM parcel where id = p_id),
                 (SELECT land_use FROM parcel WHERE id = p_id), (SELECT gov_pin FROM parcel WHERE id = p_id)) RETURNING id INTO ph_id;
+
+                -- Deactivate all versions lower than new version
+                UPDATE parcel_history SET active = false WHERE parcel_id = p_id AND version < cd_new_version;
             ELSE
 	            RAISE EXCEPTION 'Cannot increment version';
             END IF;

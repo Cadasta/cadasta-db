@@ -36,9 +36,9 @@ group by p.id, pro.id;
 
 -- Show all relationships
 CREATE OR replace view show_relationships AS
-SELECT r.id AS id, t.type AS tenure_type, r.how_acquired, r.acquired_date, parcel.id AS parcel_id, project.id AS project_id,s.type AS spatial_source, rg.geom as geom,
-party.id AS party_id, first_name, lASt_name, r.time_created,r.active, r.time_updated
-FROM parcel,party,relationship r left join relationship_geometry rg on r.geom_id = rg.id, spatial_source s, tenure_type t, project
+SELECT r.id AS id, t.type AS tenure_type, r.how_acquired, r.acquired_date, parcel.id AS parcel_id, project.id AS project_id,s.type AS spatial_source, r.geom,
+party.id AS party_id, first_name, lASt_name, group_name, r.time_created,r.active, r.time_updated
+FROM parcel,party,relationship r, spatial_source s, tenure_type t, project
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
 AND parcel.spatial_source = s.id
@@ -47,7 +47,7 @@ AND r.project_id = project.id
 AND r.active = true;
 
 -- Show latest parcel, party, & relationship activity
-CREATE OR replace view show_activity AS
+CREATE OR REPLACE VIEW show_activity AS
 SELECT * FROM
 (SELECT 'parcel' AS activity_type, parcel.id, s.type, NULL AS name,NULL AS parcel_id, parcel.time_created, parcel.project_id
 FROM parcel, spatial_source s, project
@@ -70,7 +70,14 @@ FROM relationship r, tenure_type t, party p, parcel par, project pro
 WHERE r.party_id = p.id
 AND r.parcel_id = par.id
 AND r.tenure_type = t.id
-AND r.project_id = pro.id)
+AND r.project_id = pro.id
+UNION ALL
+SELECT 'relationship_history' AS activity_type, r.id, t.type, NULL AS name,NULL AS parcel_id, rh.time_created, r.project_id
+FROM relationship_history rh, tenure_type t, project, relationship r
+WHERE rh.tenure_type = t.id
+AND rh.relationship_id = r.id
+AND r.project_id = project.id
+AND version > 1)
 AS foo
 Order BY time_created DESC;
 
@@ -98,22 +105,21 @@ from parcel p join relationship r on r.parcel_id = p.id);
 
 -- Relationship History View
 CREATE OR replace view show_relationship_history AS
-SELECT 
+SELECT
 project.id as project_id,
 -- relationship history columns
-rh.relationship_id, rh.origin_id, rh.version, rh.parent_id, rh.geom_id, rh.tenure_type, rh.acquired_date, rh.how_acquired,
-parcel.id AS parcel_id,
-rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created, rg.geom, rg.length, rg.area,
+rh.relationship_id, rh.origin_id, rh.version, rh.parent_id, rh.geom, rh.tenure_type, rh.acquired_date, rh.how_acquired,
+parcel.id AS parcel_id, t.type as relationship_type,
+rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created, rh.length, rh.area,
 rh.time_updated, rh.created_by, rh.updated_by,
 -- relationship table columns
-t.type AS relationship_type,
 s.type AS spatial_source, party.id AS party_id, first_name, last_name
-FROM parcel,party,relationship r left join relationship_geometry rg on r.geom_id = rg.id, spatial_source s, tenure_type t, relationship_history rh, project
+FROM parcel,party,relationship r, spatial_source s, tenure_type t, relationship_history rh, project
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
 AND rh.relationship_id = r.id
 AND parcel.spatial_source = s.id
-AND r.tenure_type = t.id
+AND rh.tenure_type = t.id
 AND r.project_id = project.id
 AND r.active = true;
 

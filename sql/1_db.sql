@@ -221,20 +221,6 @@ CREATE TABLE resource_parcel (
     resource_id int references resource(id)
 );
 
--- Relationship Geometry table
-CREATE TABLE relationship_geometry (
-    id serial primary key not null,
-    project_id int not null references project(id),
-    geom geometry not null,
-    area numeric,  -- area of polygon
-    length numeric,  -- lengthof linestring
-    sys_delete boolean default true,
-    time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
-    created_by integer,
-    updated_by integer
-);
-
 -- relationship table
 -- resource will be attached to relationship
 CREATE TABLE relationship (
@@ -242,7 +228,11 @@ CREATE TABLE relationship (
     project_id int not null references project(id),
     parcel_id int references parcel(id) not null,
     party_id int references party(id) not null,
-    geom_id int references relationship_geometry (id),
+
+    geom geometry not null,
+    area numeric,  -- area of polygon
+    length numeric,  -- lengthof linestring
+
     tenure_type int references tenure_type (id) not null,
     acquired_date date,
     how_acquired character varying,
@@ -280,14 +270,16 @@ CREATE TABLE relationship_history (
     relationship_id int references relationship(id) not null,
     origin_id int references relationship(id) not null, -- in case of split, the origin id will always be the relationship id of the original relationship
     version int default 1 not null, -- verison of the original relationship
-    parent_id int references relationship(id), --  in case of split, reltionship id is relationship id form which the relaltionship is derived from
+    parent_id int references relationship(id), --  in case of split, parent id is relationship id form which the relaltionship is derived from
     expiration_date timestamp,
     description character varying,
     date_modified date not null,
 
     parcel_id int references parcel(id) not null,
     party_id int references party(id) not null,
-    geom_id int references relationship_geometry (id),
+    geom geometry,
+    area numeric,  -- area of polygon
+    length numeric,  -- lengthof linestring
     tenure_type int references tenure_type (id) not null,
     acquired_date date,
     how_acquired character varying,

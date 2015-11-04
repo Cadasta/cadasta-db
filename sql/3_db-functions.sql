@@ -313,6 +313,8 @@ BEGIN
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
 /******************************************************************
 
  cd_create_relationship
@@ -321,6 +323,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 
 SELECT * FROM cd_create_relationship(1,7,null,4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,'lease',current_date,'stolen','family fortune');
 SELECT * FROM cd_create_relationship(1,3,null,4,$anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'lease',current_date,null,null);
+
 
 ******************************************************************/
 
@@ -340,9 +343,12 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
   rh_id integer; -- relationship history id
   cd_parcel_id int;
   cd_ckan_user_id int;
+  data_geom geometry;
+  cd_geom_type character varying;
   cd_party_id int;
-  cd_geom_id int;
   cd_tenure_type_id int;
+  cd_area numeric;
+  cd_length numeric;
   cd_tenure_type character varying;
   cd_acquired_date date;
   cd_how_acquired character varying;
@@ -359,7 +365,6 @@ BEGIN
         IF(cd_validate_project(p_id)) THEN
 
         cd_history_description = historyDescription;
-        cd_geojson = geojson::text;
         cd_acquired_date = acquiredDate;
         cd_how_acquired = howAcquired;
 
@@ -369,6 +374,22 @@ BEGIN
         SELECT INTO cd_party_id id FROM party where id = $4 AND project_id = p_id;
         -- get tenure type id
         SELECT INTO cd_tenure_type_id id FROM tenure_type where type = $6;
+
+        -- create relationship geometry
+        SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(geojson),4326);
+
+        SELECT INTO cd_geom_type * FROM ST_GeometryType(data_geom); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+
+        IF cd_geom_type iS NOT NULL THEN
+            CASE (cd_geom_type)
+            WHEN 'ST_Polygon' THEN
+                cd_area = ST_AREA(ST_TRANSFORM(data_geom,3857)); -- get area in meters
+            WHEN 'ST_LineString' THEN
+                cd_length = ST_LENGTH(ST_TRANSFORM(data_geom,3857)); -- get length in meters
+            ELSE
+                RAISE NOTICE 'Parcel is a point';
+            END CASE;
+        END IF;
 
         -- get ckan user id
         cd_ckan_user_id = ckan_user_id;
@@ -385,29 +406,20 @@ BEGIN
 
         IF cd_parcel_id IS NOT NULL THEN
 
-		        -- create relationship row
-            INSERT INTO relationship (project_id,created_by,parcel_id,party_id,tenure_type,geom_id,acquired_date,how_acquired)
-            VALUES (p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_geom_id, cd_acquired_date,cd_how_acquired) RETURNING id INTO r_id;
+            -- create relationship row
+            INSERT INTO relationship (geom, length, area, project_id,created_by,parcel_id,party_id,tenure_type,acquired_date,how_acquired)
+            VALUES (data_geom, cd_length, cd_area, p_id,ckan_user_id,cd_parcel_id,cd_party_id, cd_tenure_type_id, cd_acquired_date,cd_how_acquired) RETURNING id INTO r_id;
 
             IF r_id IS NOT NULL THEN
 
                 -- create relationship history
-                INSERT INTO relationship_history (relationship_id,origin_id,active,description,date_modified, created_by, parcel_id, party_id, geom_id, tenure_type, acquired_date, how_acquired)
-                VALUES (r_id,r_id,true,cd_history_description, cd_current_date, cd_ckan_user_id, (SELECT parcel_id FROM relationship where id = r_id), (SELECT party_id FROM relationship where id = r_id),
-                (SELECT geom_id FROM relationship where id = r_id), (SELECT tenure_type FROM relationship where id = r_id), (SELECT acquired_date FROM relationship where id = r_id), (SELECT how_acquired FROM relationship where id = r_id)) RETURNING id INTO rh_id;
+                INSERT INTO relationship_history (area, length, relationship_id,origin_id,active,description,date_modified, created_by, parcel_id, party_id, geom, tenure_type, acquired_date, how_acquired)
 
-                IF geojson IS NOT NULL THEN
-                    -- create relationship geometry
-                    SELECT INTO cd_geom_id * FROM cd_create_relationship_geometry(p_id, r_id, cd_geojson);
-                    IF cd_geom_id IS NOT NULL AND rh_id IS NOT NULL THEN
-                        UPDATE relationship_history SET geom_id = cd_geom_id WHERE id = rh_id;
-                        RETURN r_id;
-                    ELSE
-                        RAISE EXCEPTION 'Unable to create relationship geometry';
-                    END IF;
-                ELSE
-                    RETURN r_id;
-                END IF;
+                VALUES ((SELECT area FROM relationship where id = r_id), (SELECT length FROM relationship where id = r_id), r_id,r_id,true,cd_history_description, cd_current_date, cd_ckan_user_id, (SELECT parcel_id FROM relationship where id = r_id), (SELECT party_id FROM relationship where id = r_id),
+                (SELECT geom FROM relationship where id = r_id), (SELECT tenure_type FROM relationship where id = r_id), (SELECT acquired_date FROM relationship where id = r_id), (SELECT how_acquired FROM relationship where id = r_id))
+                RETURNING id INTO rh_id;
+
+                RETURN r_id;
 
             ELSE
                 RAISE EXCEPTION 'Unable to complete request';
@@ -428,6 +440,7 @@ BEGIN
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
 
 /******************************************************************
 
@@ -679,97 +692,6 @@ $cd_process_data$ LANGUAGE plpgsql;
 CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
     FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
 
-/******************************************************************
- cd_create_relationship_geometry
-
- SELECT * FROM cd_create_relationship_geometry(1,2,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
-
- SELECT * FROM cd_create_relationship_geometry(1,4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
-
- SELECT * FROM cd_create_relationship_geometry(1,4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$);
-
-
- select * from relationship_geometry
- select * from relationship
-******************************************************************/
--- DROP FUNCTION cd_create_relationship_geometry(integer, text);
-
-CREATE OR REPLACE FUNCTION cd_create_relationship_geometry(p_id int, relationship_id int, geojson text)
-  RETURNS INTEGER AS $$
-  DECLARE
-
-  valid_relationship_id int;
-  rg_id int; -- new relationship geometry id
-  data_geojson character varying; -- geojson paramater
-  data_geom geometry;
-  cd_area numeric;
-  cd_geom_type character varying;
-  cd_length numeric;
-
-  BEGIN
-
-  IF cd_validate_project($1) THEN
-
-    IF ($2 IS NOT NULL AND $3 IS NOT NULL) THEN
-
-        -- validate relationshup id
-        IF (cd_validate_relationship($1)) THEN
-
-            data_geojson = geojson::text;
-
-            -- get id from relationship table
-            SELECT INTO valid_relationship_id id FROM relationship where id = $2 and project_id = p_id;
-            -- get geom form GEOJSON
-            SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326);
-
-            IF data_geom IS NOT NULL AND valid_relationship_id IS NOT NULL THEN
-
-            SELECT INTO cd_geom_type * FROM ST_GeometryType(data_geom); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
-
-             IF cd_geom_type iS NOT NULL THEN
-                 CASE (cd_geom_type)
-                    WHEN 'ST_Polygon' THEN
-                        cd_area = ST_AREA(ST_TRANSFORM(data_geom,3857)); -- get area in meters
-                    WHEN 'ST_LineString' THEN
-                        cd_length = ST_LENGTH(ST_TRANSFORM(data_geom,3857)); -- get length in meters
-                    ELSE
-                        RAISE NOTICE 'Parcel is a point';
-                 END CASE;
-             END IF;
-
-                -- add relationship geom column
-                INSERT INTO relationship_geometry (project_id,geom, area, length) VALUES (p_id, data_geom, cd_area, cd_length) RETURNING id INTO rg_id;
-
-                IF rg_id IS NOT NULL THEN
-                    -- add relationship geom id in relationship table
-                    UPDATE relationship SET geom_id = rg_id, time_updated = current_timestamp WHERE id = valid_relationship_id and project_id = p_id;
-
-		    RAISE NOTICE 'rg_id IS NOT NULL %', rg_id;
-
-                    RETURN rg_id;
-                ELSE
-			RAISE NOTICE 'rg_id IS NULL';
-                END IF;
-
-            ELSE
-                RAISE EXCEPTION 'Invalid geometry';
-            END IF;
-
-        ELSE
-            RAISE EXCEPTION 'Invalid relationship id';
-        END IF;
-
-    ELSE
-        RAISE EXCEPTION 'Relationship id and Geometry required';
-    END IF;
-
-    ELSE
-        RAISE EXCEPTION 'Invalid project';
-    END IF;
-
-  END;
-
-$$ LANGUAGE plpgsql VOLATILE;
 
 /******************************************************************
  TESTING cd_create_project_extents
@@ -1127,7 +1049,7 @@ END;
     SELECT NOT(ST_Equals((SELECT geom FROM parcel_history where id = 14), (select geom from parcel_history where id = 15)))
 
     -- Update parcel geom, spatial_source, land_use, gov_pin and description
-    SELECT * FROM cd_update_parcel (3, 13, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
+    SELECT * FROM cd_update_parcel (1, 3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
     'Commercial' , '331321sad', 'we have a new description');
 
     -- Update parcel geometry
@@ -1225,12 +1147,15 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
 
             IF cd_new_version IS NOT NULL THEN
                 -- add parcel history record
-                INSERT INTO parcel_history(active,
-                parcel_id, origin_id, parent_id, version, description, date_modified,
+                INSERT INTO parcel_history(
+                parcel_id, origin_id, version, description, date_modified,
                 spatial_source, user_id, area, length, geom, land_use, gov_pin)
-	            VALUES (false,p_id, p_id, (SELECT parent_id FROM parcel_history where parcel_id = p_id ORDER BY version DESC LIMIT 1), cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
+	            VALUES (p_id, p_id, cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
                 (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), (SELECT area FROM parcel WHERE id = p_id), (SELECT length FROM parcel where id = p_id), (SELECT geom FROM parcel where id = p_id),
                 (SELECT land_use FROM parcel WHERE id = p_id), (SELECT gov_pin FROM parcel WHERE id = p_id)) RETURNING id INTO ph_id;
+
+                -- Deactivate all versions lower than new version
+                UPDATE parcel_history SET active = false WHERE parcel_id = p_id AND version < cd_new_version;
             ELSE
 	            RAISE EXCEPTION 'Cannot increment version';
             END IF;
@@ -1245,6 +1170,148 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
 
     ELSE
         RAISE EXCEPTION 'Invalid Parcel id';
+    END IF;
+
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+/********************************************************
+
+    cd_update_relationship
+
+    SELECT * FROM cd_create_relationship(1,7,null,4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,'lease',current_date,'stolen','family fortune');
+
+    -- Update relationship 1's tenure type, how acqured, and history description
+    SELECT * FROM cd_update_relationship(1,1,null,null,null,'occupy',null, 'taken over by government', 'informed in the mail');
+
+    -- Update relationship 1's geometry
+    SELECT * FROM cd_update_relationship(1,1,null,null,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,null,null,null,null);
+
+    -- Update relationship with wrong project id:
+    SELECT * FROM cd_update_relationship(3,1,null,null,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,null,null,null,null);
+
+    -- Update no values on relationship 1
+    SELECT * FROM cd_update_relationship(1,1,null,null,null,null,null,null,null);
+
+*********************************************************/
+
+CREATE OR REPLACE FUNCTION cd_update_relationship(	cd_project_id integer,
+							cd_relationship_id integer,
+							cd_party_id int,
+							cd_parcel_id int,
+							geojson character varying,
+							cd_tenure_type character varying,
+							cd_acquired_date date,
+							cd_how_acquired character varying,
+							cd_history_description character varying)
+  RETURNS INTEGER AS $$
+  DECLARE
+  r_id integer;   -- relationship id
+  p_id integer;     -- project id
+  rh_id int;
+  valid_party_id int;
+  valid_relationship_id int;
+  valid_parcel_id int;
+  cd_geom geometry;
+  cd_area numeric;
+  cd_length numeric;
+  cd_geom_type character varying;
+  cd_tenure_type_id int;
+  cd_new_version int;
+  cd_current_date date;
+  cd_parent_id date;
+
+  BEGIN
+    -- 1. update relationship record
+    -- 2. create parcel history record
+
+    SELECT INTO valid_relationship_id id FROM relationship where id = $2 and project_id = $1;
+    SELECT INTO valid_party_id id FROM party where id = $3 and project_id = $1;
+    SELECT INTO valid_parcel_id id FROM parcel where id = $4 and project_id = $1;
+    SELECT INTO cd_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(geojson),4326); -- convert to LAT LNG GEOM
+    SELECT INTO cd_geom_type * FROM ST_GeometryType(cd_geom); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+    SELECT INTO cd_tenure_type_id id FROM tenure_type where type = cd_tenure_type;
+
+    IF NOT(SELECT * FROM cd_validate_project($1)) THEN
+        RAISE EXCEPTION 'Invalid project';
+    END IF;
+
+    IF NOT(SELECT * FROM cd_validate_relationship(valid_relationship_id)) THEN
+        RAISE EXCEPTION 'Invalid relationship';
+    END IF;
+
+    IF $6 IS NOT NULL AND cd_tenure_type_id IS NULL THEN
+	RAISE EXCEPTION 'Invalid tenure type';
+    END IF;
+
+    IF $3 IS NOT NULL AND NOT(SELECT * FROM cd_validate_party(valid_party_id)) THEN
+        RAISE EXCEPTION 'Invalid party';
+    END IF;
+
+    IF $4 IS NOT NULL AND NOT(SELECT * FROM cd_validate_parcel(valid_parcel_id)) THEN
+        RAISE EXCEPTION 'Invalid parcel';
+    END IF;
+
+    IF $3 IS NULL AND $4 IS NULL AND $5 IS NULL AND $6 IS NULL AND $7 IS NULL AND $8 IS NULL THEN
+	RAISE EXCEPTION 'All updatable values are null';
+    END IF;
+
+    IF cd_geom_type iS NOT NULL THEN
+        CASE (cd_geom_type)
+        WHEN 'ST_Polygon' THEN
+            cd_area = ST_AREA(ST_TRANSFORM(cd_geom,3857)); -- get area in meters
+            UPDATE relationship SET area = cd_area, length = cd_length WHERE id = valid_relationship_id;
+        WHEN 'ST_LineString' THEN
+            cd_length = ST_LENGTH(ST_TRANSFORM(cd_geom,3857)); -- get length in meters
+            UPDATE relationship SET area = cd_area, length = cd_length WHERE id = valid_relationship_id;
+        ELSE
+            RAISE NOTICE 'geom is a point';
+        END CASE;
+    END IF;
+
+    -- increment version for parcel_history record
+    SELECT INTO cd_new_version SUM(version + 1) FROM relationship_history where relationship_id = valid_relationship_id GROUP BY VERSION ORDER BY VERSION DESC LIMIT 1;
+    SELECT INTO cd_current_date * FROM current_date;
+
+    -- update parcel record
+    UPDATE relationship
+    SET
+    geom = COALESCE(cd_geom, geom),
+    party_id = COALESCE(valid_party_id, party_id),
+    parcel_id = COALESCE (valid_parcel_id, parcel_id),
+    tenure_type  = COALESCE (cd_tenure_type_id, tenure_type),
+    acquired_date = COALESCE (cd_acquired_date, acquired_date),
+    how_acquired = COALESCE (cd_how_acquired, how_acquired)
+    WHERE id = $2;
+
+    IF cd_new_version IS NOT NULL THEN
+
+        -- create relationship history
+        INSERT INTO relationship_history (version, area, length, relationship_id, origin_id,description,date_modified, parcel_id, party_id, geom, tenure_type, acquired_date, how_acquired)
+
+        VALUES (cd_new_version,
+        (SELECT area FROM relationship where id = valid_relationship_id),
+        (SELECT length FROM relationship where id = valid_relationship_id),
+        valid_relationship_id,
+        valid_relationship_id,
+        COALESCE(cd_history_description,(SELECT description FROM relationship_history where relationship_id = valid_relationship_id GROUP BY description, version ORDER BY version DESC LIMIT 1)),
+        cd_current_date,
+        (SELECT parcel_id FROM relationship where id = valid_relationship_id),
+        (SELECT party_id FROM relationship where id = valid_relationship_id),
+        (SELECT geom FROM relationship where id = valid_relationship_id),
+        (SELECT tenure_type FROM relationship where id = valid_relationship_id),
+        (SELECT acquired_date FROM relationship where id = valid_relationship_id),
+        (SELECT how_acquired FROM relationship where id = valid_relationship_id))
+        RETURNING id INTO rh_id;
+
+        -- Deactivate all older versions
+        UPDATE relationship_history SET active = false WHERE relationship_id = valid_relationship_id AND version < cd_new_version;
+
+        RETURN rh_id;
+
+    ELSE
+        RAISE EXCEPTION 'Cannot increment version';
     END IF;
 
 END;
