@@ -29,7 +29,7 @@ and r.parcel_id = par.id;
 
 -- Show all parties and relationship count
 CREATE OR REPLACE VIEW show_parties AS
-select pro.id as project_id, p.id, count(r.id) as num_relationships, p.group_name, first_name, last_name, type,  p.active, p.time_created, p.time_updated
+select pro.id as project_id, p.id, count(r.id) as num_relationships, p.group_name, first_name, last_name, type,  p.national_id, p.gender, p.dob, p.description as notes, p.active, p.time_created, p.time_updated
 from party p left join relationship r on r.party_id = p.id, project pro
 where p.project_id = pro.id
 group by p.id, pro.id;
@@ -120,8 +120,7 @@ AND r.parcel_id = parcel.id
 AND rh.relationship_id = r.id
 AND parcel.spatial_source = s.id
 AND rh.tenure_type = t.id
-AND r.project_id = project.id
-AND r.active = true;
+AND r.project_id = project.id;
 
 -- Parcel History w/ project_id
 CREATE OR REPLACE VIEW show_parcel_history AS

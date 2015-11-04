@@ -12,7 +12,6 @@ CREATE TYPE json_result AS (response json);
 
 -- Normalize
 CREATE TYPE land_use AS ENUM ('Commercial', 'Residential');
-CREATE TYPE id_type AS ENUM ('Drivers License, Passport');
 CREATE TYPE party_type AS ENUM ('individual', 'group');
 
 -- CKAN organizaiton
@@ -108,7 +107,7 @@ CREATE TABLE party (
     contact character varying,
     num_members int,
     legal_states character varying,
-    id_type id_type,
+    national_id character varying,
     city character varying,
     state character varying,
     zip character varying,

@@ -163,6 +163,13 @@ Options: ***Case Sensitive***
 3.  first\_name (character varying) – ***Required if group\_name is NULL***.
 4.  last\_name (character varying) – 
 5.  cd\_group\_name (character varying) - ***Required if first\_name is null***. - Name of Group
+6. cd\_gender (gender) - Optional Gender
+Options:
+    * Male
+    * Female
+7. cd\_dob (date) -  ***YYYY-MM-DD*** Date if Birth
+8. description (character varying) - Notes
+9. cd\_national_id (character varying) - National ID number
 
 ##### Result
 
@@ -172,13 +179,13 @@ Integer. The person is successfully created if an integer is returned.
 
 -   Create new party Ian O'Guin for project 1
 
-```SELECT * FROM cd_create_party(1, 'individual', 'Ian', 'O''Guin', null);```
+```    SELECT * FROM cd_create_party(1, 'individual', 'Ian', 'O''Quinn', null, 'Male', '4-25-1990', 'my name is Ian', '14u1oakldaCCCC');```
 
 2
 
 -   Create new party group Wal-Mart for project 1
 
-``` SELECT * FROM cd_create_party(1, 'group', null, null, 'Wal-Mart');```
+```SELECT * FROM cd_create_party(1, 'group', null, null, 'Wal-Mart', null, null, 'Wal Mart Corporation', null);```
 
 3
 
