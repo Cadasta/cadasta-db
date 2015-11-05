@@ -1,4 +1,4 @@
-﻿-- Create fake org and project until API is wrapped in CKAN API
+-- Create fake org and project until API is wrapped in CKAN API
 
 SELECT * FROM cd_create_organization('habit','habitat','Habitat for Humanity',null);
 

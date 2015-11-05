@@ -1,4 +1,4 @@
-﻿-- Create new resource
+-- Create new resource
 /********************************************************
 
     cd_create_resource
