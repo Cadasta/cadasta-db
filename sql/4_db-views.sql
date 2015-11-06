@@ -169,3 +169,15 @@ CREATE OR REPLACE VIEW show_project_extents AS
 SELECT p.id, p.organization_id, p.title, pe.geom, p.active, p.sys_delete, p.time_created, p.time_updated, p.created_by, p.updated_by
 FROM project_extents pe right join project p on pe.project_id = p.id;
 
+CREATE OR REPLACE VIEW show_field_data_responses AS
+select f.project_id, r.field_data_id, r.respondent_id, json_object_agg(r.question_id, r.text) as response, r.validated, r.time_created, r.time_updated
+from response r, field_data f
+where r.field_data_id = f.id
+group by r.respondent_id, r.field_data_id, r.time_created, r.time_updated, f.project_id,r.validated;
+
+CREATE OR REPLACE VIEW show_field_data_questions AS
+select distinct(q.id) as question_id, t.name as type, q.name, q.label, q.field_data_id, f.project_id
+from response r, question q, type t, field_data f
+where r.question_id = q.id
+and q.type_id = t.id
+and r.field_data_id = f.id;
