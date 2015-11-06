@@ -10,6 +10,8 @@ Cadasta Database Function Reference
 
 [cd\_create\_party](#cd_create_party)
 
+[cd\_update\_party](#cd_update_party)
+
 [cd\_create\_relationship](#cd_create_relationship)
 
 [cd\_update\_relationship](#cd_update_relationship)
@@ -163,17 +165,14 @@ Options: ***Case Sensitive***
 3.  first\_name (character varying) – ***Required if group\_name is NULL***.
 4.  last\_name (character varying) – 
 5.  cd\_group\_name (character varying) - ***Required if first\_name is null***. - Name of Group
-6. cd\_gender (gender) - Optional Gender
-Options:
-    * Male
-    * Female
+6. cd\_gender (character varying) - Optional Gender
 7. cd\_dob (date) -  ***YYYY-MM-DD*** Date if Birth
 8. description (character varying) - Notes
-9. cd\_national_id (character varying) - National ID number
+9. cd\_national_id (character varying) - National ID
 
 ##### Result
 
-Integer. The person is successfully created if an integer is returned.
+Integer. The party is successfully created if an integer is returned.
 
 ##### Example(s)
 
@@ -186,6 +185,49 @@ Integer. The person is successfully created if an integer is returned.
 -   Create new party group Wal-Mart for project 1
 
 ```SELECT * FROM cd_create_party(1, 'group', null, null, 'Wal-Mart', null, null, 'Wal Mart Corporation', null);```
+
+3
+
+<a name="cd_update_party"/>
+cd\_update\_party
+=================
+
+##### Description
+
+Update a party
+
+##### Parameter(s)
+
+1.  project\_id (integer) - ***Required***. Cadasta project id
+2.  party\_id (integer) - ***Required*** Cadasta party id
+3.  party\_type (ENUM) - ***Required***. Type of Party
+Options: ***Case Sensitive***
+    * individual
+    * group
+4.  first\_name (character varying) – ***Required if group\_name is NULL***.
+5.  last\_name (character varying) – 
+6.  cd\_group\_name (character varying) - ***Required if first\_name is null***. - Name of Group
+7. cd\_gender (character varying) - Optional Gender
+8. cd\_dob (date) -  ***YYYY-MM-DD*** Date if Birth
+9. description (character varying) - Notes
+10. cd\_national_id (character varying) - National ID
+
+##### Result
+
+Integer. The party is successfully updated if party id is returned
+
+##### Example(s)
+
+- Update party 2 - Change to individual, set name to Sam Hernandez
+    
+```SELECT * FROM cd_update_party(1,2,'individual','Sam','Hernandez',null,'free text gender','1990-04-25','individual description','xxx661222x'); ```   
+	
+2
+
+
+- Update party 1 - Change to group, set group_name to Walmart
+
+```SELECT * FROM cd_update_party(1,1,'group',null,null,'Walmart',null,null,'group description','xxx661222x');```
 
 3
 
