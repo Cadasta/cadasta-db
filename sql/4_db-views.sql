@@ -182,8 +182,7 @@ where r.question_id = q.id
 and q.type_id = t.id
 and r.field_data_id = f.id;
 
-CREATE VIEW show_field_data_list AS
+CREATE OR REPLACE VIEW show_field_data_list AS
 SELECT f.id, f.project_id, count(r.id) as num_submissions, f.user_id, f.id_string, f.form_id, f.name, f.label, f.publish, f.sys_delete, f.time_created, f.time_updated
-FROM field_data f, respondent r
-WHERE r.field_data_id = f.id
+FROM field_data f left join respondent r on r.field_data_id = f.id
 GROUP BY f.id;
