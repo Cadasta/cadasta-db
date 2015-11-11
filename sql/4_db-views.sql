@@ -113,7 +113,7 @@ parcel.id AS parcel_id, t.type as relationship_type,
 rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created, rh.length, rh.area,
 rh.time_updated, rh.created_by, rh.updated_by,
 -- relationship table columns
-s.type AS spatial_source, party.id AS party_id, full_name
+s.type AS spatial_source, party.id AS party_id, full_name, group_name
 FROM parcel,party,relationship r, spatial_source s, tenure_type t, relationship_history rh, project
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
