@@ -114,17 +114,20 @@ $$ LANGUAGE plpgsql IMMUTABLE;
     cd_create_party
 
     -- Create new party Ian O'Guin for project 1
-    SELECT * FROM cd_create_party(1, 'individual', 'Ian', 'O''Guin', null, 'Male', '4-25-1990', 'my name is Ian', '14u1oakldaCCCC');
+    SELECT * FROM cd_create_party(1, 'individual', 'Ian', null, 'Male', '4-25-1990', 'my name is Ian', '14u1oakldaCCCC');
 
     -- Create new party group Wal Mart for project 1
-    SELECT * FROM cd_create_party(1, 'group', null, null, 'Wal-Mart', null, null, null, null);
+    SELECT * FROM cd_create_party(1, 'group', null, 'Wal-Mart', null, null, null, null);
+
+    -- FAIL: Add a group with a full name
+    SELECT * FROM cd_create_party(1, 'group', 'Daniel Baah', 'Wal-Mart', null, null, null, null);
+
 
 ******************************************************************/
 
 CREATE OR REPLACE FUNCTION cd_create_party(project_id int,
                                             cd_party_type party_type,
-                                            first_name character varying,
-                                            last_name character varying,
+                                            full_name character varying,
                                             cd_group_name character varying,
                                             cd_gender character varying,
                                             cd_dob date,
@@ -137,32 +140,29 @@ CREATE OR REPLACE FUNCTION cd_create_party(project_id int,
   cd_party_type_lower character varying;
 BEGIN
 
-    IF $1 IS NOT NULL AND $2 IS NOT NULL AND (($3 IS NOT NULL) OR ($5 IS NOT NULL)) THEN
+    IF $1 IS NOT NULL AND $2 IS NOT NULL AND (($3 IS NOT NULL) OR ($4 IS NOT NULL)) THEN
 
-        IF ($3 IS NOT NULL AND $5 IS NOT NULL) THEN
+        IF ($3 IS NOT NULL AND $4 IS NOT NULL) THEN
             RAISE EXCEPTION 'Cannot have an individual and group name';
         END IF;
 
-        IF ($4 IS NOT NULL AND $3 IS NULL) THEN
-            RAISE EXCEPTION 'Cannot have an last name without first name';
-        END IF;
 
         IF ($3 IS NOT NULL AND $2 = 'group') THEN
             RAISE EXCEPTION 'Invalid party type';
         END IF;
 
-        IF ($5 IS NOT NULL AND $2 = 'individual') THEN
+        IF ($4 IS NOT NULL AND $2 = 'individual') THEN
             RAISE EXCEPTION 'Invalid party type';
         END IF;
 
         SELECT INTO cd_project_id id FROM project where id = $1;
 
-        INSERT INTO party (project_id, type, first_name, last_name, group_name, gender, dob, description, national_id)
-        VALUES (cd_project_id, cd_party_type, first_name,last_name, cd_group_name, cd_gender, cd_dob, cd_description, cd_national_id) RETURNING id INTO p_id;
+        INSERT INTO party (project_id, type, full_name, group_name, gender, dob, description, national_id)
+        VALUES (cd_project_id, cd_party_type, full_name, cd_group_name, cd_gender, cd_dob, cd_description, cd_national_id) RETURNING id INTO p_id;
 
 	    RETURN p_id;
     ELSE
-        RAISE EXCEPTION 'project_id, party_type , first_name OR group_name required';
+        RAISE EXCEPTION 'project_id, party_type , full_name OR group_name required';
 	END IF;
 
 END;
@@ -486,10 +486,11 @@ DECLARE
   data_field_data_id integer; -- derived from submission _xform_id_string key and matched to id_string field in field_data table
   data_xform_id_string character varying; -- xform id string is used to find field data id
   data_tenure_type character varying;
+  party_type party_type;
   tenure_type_id int;
   data_parcel_id int;
-  data_survey_first_name character varying;
-  data_survey_last_name character varying;
+  data_survey_full_name character varying;
+  data_survey_group_name character varying;
   question_slug text;
   parent_question_slug text;
   data_ckan_user_id int;
@@ -528,26 +529,41 @@ BEGIN
     -- save field data id in raw_data table
     UPDATE raw_data SET field_data_id = data_field_data_id, project_id = data_project_id where id = raw_data_id;
 
-    -- get respondent first name
-    SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';
+    -- get respondent full name
+    SELECT INTO data_survey_full_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name_full';
+    -- get respondent group name
+    SELECT INTO data_survey_group_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name_group';
+
     -- get respondent last name
-    SELECT INTO data_survey_last_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_last';
+    --SELECT INTO data_survey_last_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_last';
     -- get uuid of response
     SELECT INTO data_uuid value::text FROM json_each_text(survey.value) WHERE key = '_uuid';
 
     SELECT INTO data_submission_time value::text FROM json_each_text(survey.value) WHERE key = '_submission_time';
     SELECT INTO data_ona_data_id value::int FROM json_each_text(survey.value) WHERE key = '_id';
 
+    SELECT INTO party_type value::party_type FROM json_each_text(survey.value) WHERE key = 'party_type';
+
     -- process survey data only if there is a survey in the database that matches
     IF data_field_data_id IS NOT NULL THEN
 
+        -- Add respondent row and return id
+        INSERT INTO respondent (field_data_id, uuid, submission_time, ona_data_id) VALUES (data_field_data_id,data_uuid,data_submission_time,data_ona_data_id) RETURNING id INTO data_respondent_id;
+
         -- take the first name , last name fields out of the survey
-        IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
-          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, 'individual', data_survey_first_name,data_survey_last_name, null, null, null, null, null);
-          RAISE NOTICE 'Created Person id: %', data_person_id;
+        IF party_type = 'individual' AND data_survey_full_name IS NOT NULL THEN
+        raise notice 'party type: %  person name: %', party_type, data_survey_full_name;
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, party_type, data_survey_full_name, null, null, null, null, null);
+        ELSIF party_type = 'group' AND data_survey_group_name IS NOT NULL THEN
+        raise notice 'party type: %  group name: %', party_type, data_survey_group_name;
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, party_type, null, data_survey_group_name, null, null, null, null);
         END IF;
 
-      INSERT INTO respondent (field_data_id, uuid, submission_time, ona_data_id) VALUES (data_field_data_id,data_uuid,data_submission_time,data_ona_data_id) RETURNING id INTO data_respondent_id;
+          IF data_person_id IS NOT NULL THEN
+            UPDATE respondent SET party_id = data_person_id WHERE id = data_respondent_id;
+          ELSE
+            RAISE EXCEPTION 'Cannot create party %',party_type;
+          END IF;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
@@ -584,29 +600,33 @@ BEGIN
           WHEN 'date_land_possession' THEN
             data_date_land_possession = element.value;
           WHEN 'tenure_type' THEN
+          RAISE NOTICE 'made it to tenure type %', element.value;
             CASE (element.value)
-              WHEN 'allodial' THEN
-                data_tenure_type = 'own';
-              WHEN 'freehold' THEN
-                data_tenure_type = 'own';
-              WHEN 'lease' THEN
-                data_tenure_type = 'lease';
-              WHEN 'common_law_freehold' THEN
-                data_tenure_type = 'own';
-              WHEN 'occupy' THEN
-                data_tenure_type = 'occupy';
-              WHEN 'informal_occupy' THEN
-                data_tenure_type = 'informal occupy';
-              WHEN 'contractual' THEN
-                data_tenure_type = 'lease';
+              WHEN 'indigenous_land_rights' THEN
+                data_tenure_type = 'indigenous land rights';
+              WHEN 'joint_tenancy' THEN
+                data_tenure_type = 'joint tenancy';
+              WHEN 'tenancy_in_common' THEN
+                data_tenure_type = 'tenancy in common';
+              WHEN 'undivided_co_ownership' THEN
+                data_tenure_type = 'undivided co-ownership';
+              WHEN 'easment' THEN
+                data_tenure_type = 'easement';
+              WHEN 'equitable_servitude' THEN
+                data_tenure_type = 'equitable servitude';
+              WHEN 'mineral_rights' THEN
+                data_tenure_type = 'mineral rights';
+              WHEN 'water_rights' THEN
+                data_tenure_type = 'water rights';
+               WHEN 'concessionary_rights' THEN
+                data_tenure_type = 'concessionary rights';
+               WHEN 'carbon_rights' THEN
+                data_tenure_type = 'carbon rights';
               ELSE
-                RAISE NOTICE 'Improper Tenure Type';
+                RAISE EXCEPTION 'Invalid tenure type CASE %', data_tenure_type;
             END CASE;
-            RAISE NOTICE 'Found Loan';
           ELSE
         END CASE;
-
-        RAISE NOTICE 'Data tenture type: %', data_tenure_type;
 
         -- RAISE NOTICE 'Element: %', element.key;
         -- RAISE NOTICE 'Last slug: %', question_slug;
@@ -654,7 +674,7 @@ BEGIN
 
                   IF data_parcel_id IS NOT NULL THEN
                     RAISE NOTICE 'New parcel id: %', data_parcel_id;
-                    UPDATE field_data SET parcel_id = data_parcel_id WHERE id = data_field_data_id;
+                    UPDATE respondent SET parcel_id = data_parcel_id WHERE id = data_respondent_id;
                   ELSE
                     RAISE NOTICE 'Cannot create parcel';
                   END IF;
@@ -680,9 +700,9 @@ BEGIN
         (data_project_id,data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
 
         IF data_relationship_id IS NOT NULL THEN
-            RAISE NOTICE 'New relationship id: %', data_relationship_id;
+	    UPDATE respondent SET relationship_id = data_relationship_id WHERE id = data_respondent_id;
         ELSE
-            RAISE NOTICE 'No new relationship data_tenure_type: % data_parcel_id: % data_person_id: % data_ckan_user_id: %', data_tenure_type, data_parcel_id, data_person_id, data_ckan_user_id;
+	    RAISE EXCEPTION 'Cannot create relationship';
         END IF;
       END IF;
     END IF;
@@ -697,7 +717,6 @@ $cd_process_data$ LANGUAGE plpgsql;
 
 CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
     FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
-
 
 /******************************************************************
  TESTING cd_create_project_extents
@@ -1324,23 +1343,23 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+
 /********************************************************
 
     cd_update_party
 
     -- Update party 1 - Change to group, set group_name to Walmart
-    SELECT * FROM cd_update_party(1,1,'group',null,null,'Walmart',null,null,'group description','xxx661222x');
+    SELECT * FROM cd_update_party(1,21,'group',null,'Walmart',null,null,'group description','xxx661222x');
 
     -- Update party 2 - Change to individual, set name to Sam Hernandez
-    SELECT * FROM cd_update_party(1,2,'individual','Sam','Hernandez',null,'free text gender','1990-04-25','individual description','xxx661222x');
+    SELECT * FROM cd_update_party(1,21,'individual','Sam',null,'free text gender','1990-04-25','individual description','xxx661222x');
 
 *********************************************************/
 
 CREATE OR REPLACE FUNCTION cd_update_party( cd_project_id int,
                                             cd_party_id int,
                                             cd_party_type party_type,
-                                            cd_first_name character varying,
-                                            cd_last_name character varying,
+                                            cd_full_name character varying,
                                             cd_group_name character varying,
                                             cd_gender character varying,
                                             cd_dob date,
@@ -1361,26 +1380,21 @@ BEGIN
         RAISE EXCEPTION 'Invalid party id';
     END IF;
 
-    IF $3 = 'individual' AND cd_first_name IS NULL THEN
-	RAISE EXCEPTION 'Parrty type individual must have first name';
+    IF $3 = 'individual' AND cd_full_name IS NULL THEN
+	RAISE EXCEPTION 'Party type individual must have full name';
     END IF;
 
     IF ($4 IS NOT NULL AND $3 = 'group') OR  ($3 = 'group' AND cd_group_name IS NULL) THEN
-	RAISE EXCEPTION 'Party type group must have group name and no first/last_name';
-    END IF;
-
-    IF $5 IS NOT NULL AND $4 IS NULL THEN
-	RAISE EXCEPTION 'Cannot have last name without first name';
+	RAISE EXCEPTION 'Party type group must have group name and no full name';
     END IF;
 
     -- Ensure one attribute is updated
-    IF $3 IS NOT NULL OR $4 IS NOT NULL OR $5 IS NOT NULL OR $6 IS NOT NULL OR $7 IS NOT NULL OR $8 IS NOT NULL OR $9 IS NOT NULL OR $10 IS NOT NULL THEN
+    IF $3 IS NOT NULL OR $4 IS NOT NULL OR $5 IS NOT NULL OR $6 IS NOT NULL OR $7 IS NOT NULL OR $8 IS NOT NULL OR $9 IS NOT NULL THEN
 
         UPDATE party
         SET
         type = cd_party_type,
-        first_name = cd_first_name,
-        last_name = cd_last_name,
+        full_name = cd_full_name,
         group_name = cd_group_name,
         gender = cd_gender,
         dob = cd_dob,

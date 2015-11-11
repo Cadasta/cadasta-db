@@ -96,8 +96,7 @@ CREATE TABLE resource_project (
 CREATE TABLE party (
     id serial primary key not null,
     project_id int not null references project(id),
-    first_name character varying,
-    last_name character varying,
+    full_name character varying,
     group_name character varying,
     type party_type not null,
     title character varying,
@@ -121,7 +120,7 @@ CREATE TABLE party (
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
     created_by integer,
     updated_by integer,
-    check (first_name IS NOT NULL OR group_name IS NOT NULL)
+    check (full_name IS NOT NULL OR group_name IS NOT NULL)
 );
 
 -- Resource <--> party junction table
@@ -172,10 +171,16 @@ CREATE TABLE tenure_type (
     updated_by integer
 );
 
-INSERT INTO tenure_type (type) VALUES ('own');
-INSERT INTO tenure_type (type) VALUES ('lease');
-INSERT INTO tenure_type (type) VALUES ('occupy');
-INSERT INTO tenure_type (type) VALUES ('informal occupy');
+INSERT INTO tenure_type (type) VALUES ('indigenous land rights');
+INSERT INTO tenure_type (type) VALUES ('joint tenancy');
+INSERT INTO tenure_type (type) VALUES ('tenancy in common');
+INSERT INTO tenure_type (type, description) VALUES ('undivided co-ownership','general term covering strata title and condominiums');
+INSERT INTO tenure_type (type) VALUES ('easement');
+INSERT INTO tenure_type (type) VALUES ('equitable servitude');
+INSERT INTO tenure_type (type, description) VALUES ('mineral rights', 'includes oil & gas');
+INSERT INTO tenure_type (type, description) VALUES ('water rights', 'collective term for bundle of rights possible');
+INSERT INTO tenure_type (type, description) VALUES ('concessionary rights','non-mineral');
+INSERT INTO tenure_type (type) VALUES ('carbon rights');
 
 CREATE TABLE spatial_source (
     id serial primary key not null,
@@ -312,3 +317,9 @@ CREATE TABLE parcel_history (
     created_by integer,
     updated_by integer
 );
+
+CREATE INDEX idx_parcel_geom ON parcel USING GIST (geom);
+CREATE INDEX idx_parcel_history_geom ON parcel_history USING GIST (geom);
+CREATE INDEX idx_relationship_geom ON relationship USING GIST (geom);
+CREATE INDEX idx_relationship_history_geom ON relationship_history USING GIST (geom);
+CREATE INDEX idx_project_extents_geom ON project_extents USING GIST (geom);

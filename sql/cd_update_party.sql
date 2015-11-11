@@ -4,18 +4,17 @@
     cd_update_party
     
     -- Update party 1 - Change to group, set group_name to Walmart
-    SELECT * FROM cd_update_party(1,1,'group',null,null,'Walmart',null,null,'group description','xxx661222x');
+    SELECT * FROM cd_update_party(1,21,'group',null,'Walmart',null,null,'group description','xxx661222x');
 
     -- Update party 2 - Change to individual, set name to Sam Hernandez
-    SELECT * FROM cd_update_party(1,2,'individual','Sam','Hernandez',null,'free text gender','1990-04-25','individual description','xxx661222x');    
-	
+    SELECT * FROM cd_update_party(1,21,'individual','Sam',null,'free text gender','1990-04-25','individual description','xxx661222x');
+
 *********************************************************/
 
 CREATE OR REPLACE FUNCTION cd_update_party( cd_project_id int,
                                             cd_party_id int,
                                             cd_party_type party_type,
-                                            cd_first_name character varying,
-                                            cd_last_name character varying,
+                                            cd_full_name character varying,
                                             cd_group_name character varying,
                                             cd_gender character varying,
                                             cd_dob date,
@@ -36,26 +35,21 @@ BEGIN
         RAISE EXCEPTION 'Invalid party id';
     END IF;
 
-    IF $3 = 'individual' AND cd_first_name IS NULL THEN
-	RAISE EXCEPTION 'Parrty type individual must have first name';
+    IF $3 = 'individual' AND cd_full_name IS NULL THEN
+	RAISE EXCEPTION 'Party type individual must have full name';
     END IF;
 
     IF ($4 IS NOT NULL AND $3 = 'group') OR  ($3 = 'group' AND cd_group_name IS NULL) THEN
-	RAISE EXCEPTION 'Party type group must have group name and no first/last_name';
-    END IF;
-
-    IF $5 IS NOT NULL AND $4 IS NULL THEN
-	RAISE EXCEPTION 'Cannot have last name without first name';
+	RAISE EXCEPTION 'Party type group must have group name and no full name';
     END IF;
 
     -- Ensure one attribute is updated
-    IF $3 IS NOT NULL OR $4 IS NOT NULL OR $5 IS NOT NULL OR $6 IS NOT NULL OR $7 IS NOT NULL OR $8 IS NOT NULL OR $9 IS NOT NULL OR $10 IS NOT NULL THEN 
+    IF $3 IS NOT NULL OR $4 IS NOT NULL OR $5 IS NOT NULL OR $6 IS NOT NULL OR $7 IS NOT NULL OR $8 IS NOT NULL OR $9 IS NOT NULL THEN
 	
         UPDATE party
         SET
         type = cd_party_type,
-        first_name = cd_first_name,
-        last_name = cd_last_name,
+        full_name = cd_full_name,
         group_name = cd_group_name,
         gender = cd_gender,
         dob = cd_dob,

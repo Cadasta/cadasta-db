@@ -8,7 +8,6 @@ CREATE TABLE "field_data"
 	"id"			SERIAL				NOT NULL
 	,project_id int references project(id) 
 	,"user_id" int -- CKAN user id
-	,"parcel_id" int
 	,"id_string"		character varying unique
 	, "form_id" bigint unique
 	,"name"			character varying
@@ -107,6 +106,10 @@ CREATE TABLE "respondent"
 	,"field_data_id"		integer						REFERENCES "field_data"(id)
 	,"uuid" character varying NOT NULL unique
 	,"ona_data_id" character varying NOT NULL unique
+	,"parcel_id" int references parcel(id)
+	,"relationship_id" int references relationship(id)
+	,"party_id" int references party(id)
+	,"validated" boolean default false
 	,"submission_time"	timestamp with time zone,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,

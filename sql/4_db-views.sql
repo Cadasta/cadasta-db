@@ -29,7 +29,7 @@ and r.parcel_id = par.id;
 
 -- Show all parties and relationship count
 CREATE OR REPLACE VIEW show_parties AS
-select pro.id as project_id, p.id, count(r.id) as num_relationships, p.group_name, first_name, last_name, type,  p.national_id, p.gender, p.dob, p.description as notes, p.active, p.time_created, p.time_updated
+select pro.id as project_id, p.id, count(r.id) as num_relationships, p.group_name, full_name, type,  p.national_id, p.gender, p.dob, p.description as notes, p.active, p.time_created, p.time_updated
 from party p left join relationship r on r.party_id = p.id, project pro
 where p.project_id = pro.id
 group by p.id, pro.id;
@@ -37,7 +37,7 @@ group by p.id, pro.id;
 -- Show all relationships
 CREATE OR replace view show_relationships AS
 SELECT r.id AS id, t.type AS tenure_type, r.how_acquired, r.acquired_date, parcel.id AS parcel_id, project.id AS project_id,s.type AS spatial_source, r.geom,
-party.id AS party_id, first_name, lASt_name, group_name, r.time_created,r.active, r.time_updated
+party.id AS party_id, full_name, group_name, r.time_created,r.active, r.time_updated
 FROM parcel,party,relationship r, spatial_source s, tenure_type t, project
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
@@ -61,11 +61,11 @@ AND p.project_id = project.id
 AND ph.parcel_id = p.id
 AND version > 1
 UNION all
-SELECT 'party', party.id, NULL, COALESCE(first_name || ' ' || lASt_name, group_name), NULL, party.time_created, party.project_id
+SELECT 'party', party.id, NULL, COALESCE(full_name, group_name), NULL, party.time_created, party.project_id
 FROM party, project
 WHERE party.project_id = project.id
 UNION all
-SELECT 'relationship', r.id, t.type, COALESCE(p.first_name || ' ' || p.lASt_name, p.group_name) AS owners, par.id::text AS parcel_id, r.time_created, r.project_id
+SELECT 'relationship', r.id, t.type, COALESCE(p.full_name, p.group_name) AS owners, par.id::text AS parcel_id, r.time_created, r.project_id
 FROM relationship r, tenure_type t, party p, parcel par, project pro
 WHERE r.party_id = p.id
 AND r.parcel_id = par.id
@@ -113,7 +113,7 @@ parcel.id AS parcel_id, t.type as relationship_type,
 rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created, rh.length, rh.area,
 rh.time_updated, rh.created_by, rh.updated_by,
 -- relationship table columns
-s.type AS spatial_source, party.id AS party_id, first_name, last_name
+s.type AS spatial_source, party.id AS party_id, full_name
 FROM parcel,party,relationship r, spatial_source s, tenure_type t, relationship_history rh, project
 WHERE r.party_id = party.id
 AND r.parcel_id = parcel.id
@@ -173,7 +173,7 @@ CREATE OR REPLACE VIEW show_field_data_responses AS
 select f.project_id, r.field_data_id, r.respondent_id, json_object_agg(r.question_id, r.text) as response, r.time_created, r.time_updated
 from response r, field_data f
 where r.field_data_id = f.id
-group by r.respondent_id, r.field_data_id, r.time_created, r.time_updated, f.project_id,r.validated;
+group by r.respondent_id, r.field_data_id, r.time_created, r.time_updated, f.project_id;
 
 CREATE OR REPLACE VIEW show_field_data_questions AS
 select distinct(q.id) as question_id, t.name as type, q.name, COALESCE(q.label,q.name) as label, q.field_data_id, f.project_id
