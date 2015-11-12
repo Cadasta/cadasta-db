@@ -36,7 +36,7 @@ group by p.id, pro.id;
 
 -- Show all relationships
 CREATE OR replace view show_relationships AS
-SELECT r.id AS id, t.type AS tenure_type, r.how_acquired, r.acquired_date, parcel.id AS parcel_id, project.id AS project_id,s.type AS spatial_source, r.geom,
+SELECT r.id AS id, t.type AS tenure_type, r.how_acquired, r.acquired_date, r.validated, parcel.id AS parcel_id, project.id AS project_id,s.type AS spatial_source, r.geom,
 party.id AS party_id, full_name, group_name, r.time_created,r.active, r.time_updated
 FROM parcel,party,relationship r, spatial_source s, tenure_type t, project
 WHERE r.party_id = party.id
@@ -83,7 +83,7 @@ Order BY time_created DESC;
 
 -- Parcel list with relationship count
 CREATE OR REPLACE VIEW show_parcels_list AS
-SELECT p.id, pro.id AS project_id, p.time_created, p.area, p.length, array_agg(t.type) as tenure_type, count(r.id) as num_relationships, p.active
+SELECT p.id, pro.id AS project_id, p.time_created, p.area, p.length, p.validated, array_agg(t.type) as tenure_type, count(r.id) as num_relationships, p.active
 FROM parcel p, relationship r, tenure_type t, project pro
 WHERE r.parcel_id = p.id
 AND p.project_id = pro.id
@@ -93,7 +93,7 @@ AND p.active = true
 AND r.active = true
 GROUP BY p.id, pro.id
 UNION
-SELECT p.id, pro.id as project_id, p.time_created, p.area, p.length, ARRAY[]::character varying[], 0 as num_relationships, p.active
+SELECT p.id, pro.id as project_id, p.time_created, p.area, p.length, p.validated, ARRAY[]::character varying[], 0 as num_relationships, p.active
 FROM parcel p left join relationship r on r.parcel_id = p.id, project pro
 WHERE p.project_id = pro.id
 AND p.active = true
@@ -170,10 +170,9 @@ SELECT p.id, p.organization_id, p.title, pe.geom, p.active, p.sys_delete, p.time
 FROM project_extents pe right join project p on pe.project_id = p.id;
 
 CREATE OR REPLACE VIEW show_field_data_responses AS
-select f.project_id, r.field_data_id, r.respondent_id, json_object_agg(r.question_id, r.text) as response, r.time_created, r.time_updated
-from response r, field_data f
-where r.field_data_id = f.id
-group by r.respondent_id, r.field_data_id, r.time_created, r.time_updated, f.project_id;
+select f.project_id, r.field_data_id, r.respondent_id, r.question_id, r.text, r.time_created, r.time_updated
+from response r , field_data f
+where r.field_data_id = f.id;
 
 CREATE OR REPLACE VIEW show_field_data_questions AS
 select distinct(q.id) as question_id, t.name as type, q.name, COALESCE(q.label,q.name) as label, q.field_data_id, f.project_id

@@ -50,10 +50,9 @@ DROP FUNCTION cd_create_party(integer, party_type, character varying, character 
 DROP FUNCTION cd_update_party(integer, integer, party_type, character varying, character varying, character varying, character varying, date, character varying, character varying);
 
 CREATE OR REPLACE VIEW show_field_data_responses AS
-select f.project_id, r.field_data_id, r.respondent_id, json_object_agg(r.question_id, r.text) as response, r.time_created, r.time_updated
-from response r, field_data f
-where r.field_data_id = f.id
-group by r.respondent_id, r.field_data_id, r.time_created, r.time_updated, f.project_id;
+select f.project_id, r.field_data_id, r.respondent_id, r.question_id, r.text, r.time_created, r.time_updated
+from response r , field_data f
+where r.field_data_id = f.id;
 
 DROP VIEW show_parties;
 CREATE OR REPLACE VIEW show_parties AS
