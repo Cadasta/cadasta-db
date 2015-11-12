@@ -55,15 +55,15 @@ SELECT * FROM cd_import_data_json ($anystr$[
       },
 "_status": "submitted_via_web",
 "today": "2015-11-11",
-"_uuid": "72e9b01e-de05-4faf-9eb2-fea2f3b2b458",
+"_uuid": "72e9b01e-de05-4faf-39eb2-fea2f3b2b458",
 "means_of_acquire": "lease",
 "_submitted_by": "cadasta",
-"formhub/uuid": "80e4c579b3b84f918ec179e417a11873",
+"formhub/uuid": "80e4c579b3b84f3918ec179e417a11873",
 "_submission_time": "2015-11-11T19:18:04",
 "_version": "201511111907",
 "tenure_type": "mineral_rights",
-"deviceid": "352421035072778",
-"_id": 49
+"deviceid": "3524210350732778",
+"_id": 439
 }
 ]$anystr$);
 
