@@ -110,6 +110,7 @@ CREATE TABLE "respondent"
 	,"relationship_id" int references relationship(id)
 	,"party_id" int references party(id)
 	,"validated" boolean default false
+	,"time_validated" timestamp with time zone,
 	,"submission_time"	timestamp with time zone,
 	sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
