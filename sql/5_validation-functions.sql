@@ -721,7 +721,7 @@ END;
 
   cd_validate_respondents
 
-  SELECT * FROM cd_validate_respondents('20');
+  SELECT * FROM cd_validate_respondents('21,18,19', true);
 
   select * from respondent;
 
@@ -730,18 +730,18 @@ END;
   update relationship set validated = false;
   update party set validated = false;
 
-  select * from parcel where id IN (select parcel_id from respondent)
-  select * from parcel where id IN (select parcel_id from respondent where id IN(20) )
+  select id, validated from parcel where id IN (select parcel_id from respondent)
+  select id, validated from parcel where id IN (select parcel_id from respondent where id IN(20) )
 
-  select * from relationship where id IN (select relationship_id from respondent where id IN(20) )
-  select * from relationship where id IN (select relationship_id from respondent)
+  select id, validated from relationship where id IN (select relationship_id from respondent where id IN(20) )
+  select id, validated from relationship where id IN (select relationship_id from respondent)
 
-  select * from party where id IN (select party_id from respondent where id IN(20) )
-  select * from party where id IN (select party_id from respondent)
+  select id, validated from party where id IN (select party_id from respondent where id IN(20) )
+  select id, validated from party where id IN (select party_id from respondent)
 
 ******************************************************************/
 
-CREATE OR REPLACE FUNCTION cd_validate_respondents(respondent_ids character varying)
+CREATE OR REPLACE FUNCTION cd_validate_respondents(respondent_ids character varying, status boolean)
   RETURNS INT[] AS $$
   DECLARE
   r_field_data_id int; -- respondent field data id
@@ -799,12 +799,12 @@ BEGIN
         IF r_ids IS NOT NULL THEN
 
 
-            UPDATE respondent SET validated = true, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(r_ids);
+            UPDATE respondent SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(r_ids);
 
             -- Validate parcel, parties, and relationships
-            UPDATE parcel SET validated = true, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_parcel_ids) and project_id = r_project_id;
-            UPDATE relationship SET validated = true, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_relationship_ids) and project_id = r_project_id;
-            UPDATE party SET validated = true, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_party_ids) and project_id = r_project_id;
+            UPDATE parcel SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_parcel_ids) and project_id = r_project_id;
+            UPDATE relationship SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_relationship_ids) and project_id = r_project_id;
+            UPDATE party SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_party_ids) and project_id = r_project_id;
 
             RETURN r_ids;
 
