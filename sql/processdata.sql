@@ -30,7 +30,7 @@ DECLARE
   question_id integer;
   question_id_l integer;
   data_relationship_id int;
-  data_date_land_possession date;
+  data_date_land_possession timestamp with time zone;
   data_geojson character varying;
   data_means_aquired character varying;
   data_field_data_id integer; -- derived from submission _xform_id_string key and matched to id_string field in field_data table

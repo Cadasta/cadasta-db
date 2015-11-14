@@ -110,7 +110,7 @@ project.id as project_id,
 -- relationship history columns
 rh.relationship_id, rh.origin_id, rh.version, rh.parent_id, rh.geom, rh.tenure_type, rh.acquired_date, rh.how_acquired,
 parcel.id AS parcel_id, t.type as relationship_type,
-rh.expiration_date, rh.description, rh.date_modified, rh.active, rh.time_created, rh.length, rh.area,
+rh.expiration_date, rh.description, rh.active, rh.time_created, rh.length, rh.area,
 rh.time_updated, rh.created_by, rh.updated_by,
 -- relationship table columns
 s.type AS spatial_source, party.id AS party_id, full_name, group_name
@@ -124,7 +124,7 @@ AND r.project_id = project.id;
 
 -- Parcel History w/ project_id
 CREATE OR REPLACE VIEW show_parcel_history AS
-SELECT p.project_id, ph.id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.date_modified, ph.description, ph.land_use, ph.gov_pin, ph.geom, ph.length, ph.area, s.type as spatial_source, ph.active, ph.time_created, ph.time_updated, ph.created_by, ph.updated_by
+SELECT p.project_id, ph.id, ph.parcel_id, ph.origin_id, ph.parent_id, ph.version, ph.description, ph.land_use, ph.gov_pin, ph.geom, ph.length, ph.area, s.type as spatial_source, ph.active, ph.time_created, ph.time_updated, ph.created_by, ph.updated_by
 FROM parcel_history ph, parcel p, spatial_source s, project pro
 where ph.parcel_id = p.id
 and ph.spatial_source = s.id
@@ -169,10 +169,11 @@ CREATE OR REPLACE VIEW show_project_extents AS
 SELECT p.id, p.organization_id, p.title, pe.geom, p.active, p.sys_delete, p.time_created, p.time_updated, p.created_by, p.updated_by
 FROM project_extents pe right join project p on pe.project_id = p.id;
 
-CREATE OR REPLACE VIEW show_field_data_responses AS
-select f.project_id, r.field_data_id, r.respondent_id, r.question_id, r.text, r.time_created, r.time_updated
-from response r , field_data f
-where r.field_data_id = f.id;
+CREATE  VIEW show_field_data_responses AS
+select f.project_id, r.field_data_id, r.respondent_id, rd.validated, r.question_id, r.text, r.time_created, r.time_updated
+from response r , field_data f, respondent rd
+where r.field_data_id = f.id
+and r.respondent_id = rd.id;
 
 CREATE OR REPLACE VIEW show_field_data_questions AS
 select distinct(q.id) as question_id, t.name as type, q.name, COALESCE(q.label,q.name) as label, q.field_data_id, f.project_id

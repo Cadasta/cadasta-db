@@ -113,7 +113,7 @@ CREATE TABLE party (
     edu_level character varying,
     occupation character varying,
     gender character varying,
-    DOB date,
+    DOB timestamp with time zone,
     validated boolean,
     active boolean default true,
     sys_delete boolean default false,
@@ -238,7 +238,7 @@ CREATE TABLE relationship (
     length numeric,  -- lengthof linestring
 
     tenure_type int references tenure_type (id) not null,
-    acquired_date date,
+    acquired_date timestamp with time zone,
     how_acquired character varying,
     validated boolean,
     active boolean default true,
@@ -276,9 +276,8 @@ CREATE TABLE relationship_history (
     origin_id int references relationship(id) not null, -- in case of split, the origin id will always be the relationship id of the original relationship
     version int default 1 not null, -- verison of the original relationship
     parent_id int references relationship(id), --  in case of split, parent id is relationship id form which the relaltionship is derived from
-    expiration_date timestamp,
+    expiration_date timestamp with time zone,
     description character varying,
-    date_modified date not null,
 
     parcel_id int references parcel(id) not null,
     party_id int references party(id) not null,
@@ -286,7 +285,7 @@ CREATE TABLE relationship_history (
     area numeric,  -- area of polygon
     length numeric,  -- lengthof linestring
     tenure_type int references tenure_type (id) not null,
-    acquired_date date,
+    acquired_date timestamp with time zone,
     how_acquired character varying,
 
     active boolean default true not null,
@@ -304,7 +303,6 @@ CREATE TABLE parcel_history (
     parent_id int references parcel(id), -- in case of split, parent id is parcel id from which the parcel is derived from
     version int default 1 not null, -- version of the original parcel
     description character varying not null,
-    date_modified date not null,
 
     spatial_source int references spatial_source(id) not null, -- required?
     user_id character varying,

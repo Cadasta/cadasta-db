@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION cd_update_party( cd_project_id int,
                                             cd_full_name character varying,
                                             cd_group_name character varying,
                                             cd_gender character varying,
-                                            cd_dob date,
+                                            cd_dob timestamp with time zone,
                                             cd_description character varying,
                                             cd_national_id character varying)
   RETURNS INTEGER AS $$

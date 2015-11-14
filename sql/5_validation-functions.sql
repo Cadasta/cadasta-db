@@ -721,7 +721,7 @@ END;
 
   cd_validate_respondents
 
-  SELECT * FROM cd_validate_respondents('21,18,19', true);
+  SELECT * FROM cd_validate_respondents('21,18,19', false);
 
   select * from respondent;
 
@@ -798,15 +798,30 @@ BEGIN
 
         IF r_ids IS NOT NULL THEN
 
+            IF status = true THEN
+                UPDATE respondent SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(r_ids);
 
-            UPDATE respondent SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(r_ids);
+                -- Validate parcel, parties, and relationships
+                UPDATE parcel SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_parcel_ids) and project_id = r_project_id;
+                UPDATE relationship SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_relationship_ids) and project_id = r_project_id;
+                UPDATE party SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_party_ids) and project_id = r_project_id;
 
-            -- Validate parcel, parties, and relationships
-            UPDATE parcel SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_parcel_ids) and project_id = r_project_id;
-            UPDATE relationship SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_relationship_ids) and project_id = r_project_id;
-            UPDATE party SET validated = status, time_validated = curr_time, time_updated = curr_time WHERE id = ANY(valid_party_ids) and project_id = r_project_id;
+                RETURN r_ids;
 
-            RETURN r_ids;
+            ELSIF status = false THEN
+
+                -- Do not update time_validated if invalidating
+
+                UPDATE respondent SET validated = status, time_updated = curr_time WHERE id = ANY(r_ids);
+
+                -- Validate parcel, parties, and relationships
+                UPDATE parcel SET validated = status, time_updated = curr_time WHERE id = ANY(valid_parcel_ids) and project_id = r_project_id;
+                UPDATE relationship SET validated = status, time_updated = curr_time WHERE id = ANY(valid_relationship_ids) and project_id = r_project_id;
+                UPDATE party SET validated = status, time_updated = curr_time WHERE id = ANY(valid_party_ids) and project_id = r_project_id;
+
+                RETURN r_ids;
+
+            END IF;
 
         ELSE
             RAISE EXCEPTION 'Cannot find parcel ids';

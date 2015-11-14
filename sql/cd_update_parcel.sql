@@ -3,10 +3,6 @@
 
     cd_update_parcel
 
-    select * from parcel_history where parcel_id = 3
-
-    SELECT NOT(ST_Equals((SELECT geom FROM parcel_history where id = 14), (select geom from parcel_history where id = 15)))
-
     -- Update parcel geom, spatial_source, land_use, gov_pin and description
     SELECT * FROM cd_update_parcel (1, 3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
     'Commercial' , '331321sad', 'we have a new description');
@@ -40,7 +36,6 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
   ph_id integer;
   cd_geom geometry;
   cd_new_version integer;
-  cd_current_date date;
   cd_geom_type character varying;
   cd_area numeric;
   cd_length numeric;
@@ -93,7 +88,6 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
 
             -- increment version for parcel_history record
             SELECT INTO cd_new_version SUM(version + 1) FROM parcel_history where parcel_id = p_id GROUP BY VERSION ORDER BY VERSION DESC LIMIT 1;
-            SELECT INTO cd_current_date * FROM current_date;
 
             -- update parcel record
             UPDATE parcel
@@ -107,9 +101,9 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
             IF cd_new_version IS NOT NULL THEN
                 -- add parcel history record
                 INSERT INTO parcel_history(
-                parcel_id, origin_id, version, description, date_modified,
+                parcel_id, origin_id, version, description,
                 spatial_source, user_id, area, length, geom, land_use, gov_pin)
-	            VALUES (p_id, p_id, cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
+	            VALUES (p_id, p_id, cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)),
                 (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), (SELECT area FROM parcel WHERE id = p_id), (SELECT length FROM parcel where id = p_id), (SELECT geom FROM parcel where id = p_id),
                 (SELECT land_use FROM parcel WHERE id = p_id), (SELECT gov_pin FROM parcel WHERE id = p_id)) RETURNING id INTO ph_id;
 

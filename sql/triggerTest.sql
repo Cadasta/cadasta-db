@@ -8,21 +8,21 @@ select * from field_data
 ***/
 
 SELECT * FROM cd_import_data_json ($anystr$[
-{
-"_notes": [],
-"_bamboo_dataset_id": "",
-"_tags": [],
-"surveyor": "danielbaah",
-"_xform_id_string": "CJF-minimum_Wednesday4",
-"applicant_name_group": "Wal mart",
-"_attachments": [],
-"_duration": 99,
-"meta/instanceID": "uuid:72e9b01e-de05-4faf-9eb2-fea2f3b2b458",
-"end": "2015-11-11T11:18:27.193-08",
-"date_land_possession": "2015-11-02",
-"party_type": "group",
-"start": "2015-11-11T11:16:48.910-08",
-"_geolocation": {
+    {
+        "_notes": [],
+        "_bamboo_dataset_id": "",
+        "_tags": [],
+        "surveyor": "danielbaah",
+        "_xform_id_string": "CJF-minimum-la-paz3",
+        "applicant_name_group": "nme",
+        "_attachments": [],
+        "_duration": 25.0,
+        "meta/instanceID": "uuid:56608b19-a418-47ac-80e7-fd56f50bf910",
+        "end": "2015-11-13T16:12:57.397-08",
+        "date_land_possession": "2004-03-15T16:12:00.000-08",
+        "party_type": "group",
+        "start": "2015-11-13T16:12:32.712-08",
+        "_geolocation": {
         "type": "Polygon",
         "coordinates": [
           [
@@ -53,19 +53,20 @@ SELECT * FROM cd_import_data_json ($anystr$[
           ]
         ]
       },
-"_status": "submitted_via_web",
-"today": "2015-11-11",
-"_uuid": "72e9b01e-de05-4faf-39eb2-fea2f3b2b458",
-"means_of_acquire": "lease",
-"_submitted_by": "cadasta",
-"formhub/uuid": "80e4c579b3b84f3918ec179e417a11873",
-"_submission_time": "2015-11-11T19:18:04",
-"_version": "201511111907",
-"tenure_type": "mineral_rights",
-"deviceid": "3524210350732778",
-"_id": 439
-}
+        "_status": "submitted_via_web",
+        "today": "2015-11-13",
+        "_uuid": "56608b19-a418-47ac-80e7-fd56f50bf910",
+        "means_of_acquire": "inheritance",
+        "_submitted_by": "cadasta",
+        "formhub/uuid": "cdd6e61e38d942d7b6d506e7cb736c70",
+        "_submission_time": "2015-11-14T00:12:24",
+        "_version": "201511140010",
+        "tenure_type": "undivided_co_ownership",
+        "deviceid": "352421035072778",
+        "_id": 57
+    }
 ]$anystr$);
+
 
     /**
 
