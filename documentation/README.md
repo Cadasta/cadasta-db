@@ -247,10 +247,25 @@ Create a new relationship and relationship history.
 5.  geojson - (character varying) - Optional. Relationship Geometry [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
 6.  tenure\_type (ENUM) - ***Required. Case sensitive*** Tenure type of relationship
 Options:
-    * own
-    * lease
-    * occupy
-    * informal occupy
+    * indigenous land rights
+    * joint tenancy
+    * tenancy in common
+    * undivided co-ownership
+    * easement
+    * equitable servitude
+    * mineral rights
+    * water rights
+    * concessionary rights
+    * carbon rights
+    * freehold
+    * long term leasehold
+    * leasehold
+    * customary rights
+    * occupancy
+    * tenancy
+    * hunting/fishing/harvest rights
+    * grazing rights
+    
 7. acquired\_date (date) - Optional. ***YYYY-MM-DD*** Date of land acquisition
 8. how\_acquired (character varying) - Optional. A description of how the land was acquired
 9. history\_description (character varying) - A description of the relationships history

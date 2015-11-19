@@ -1,4 +1,21 @@
 ﻿/******************************************************************
+ Change Script 0.0.10
+ Date: 11/19/15
+
+ 1. New tenure types
+
+ ******************************************************************/
+
+ INSERT INTO tenure_type (type) VALUES ('freehold');
+ INSERT INTO tenure_type (type, description) VALUES ('long term leasehold', '10+ years');
+ INSERT INTO tenure_type (type) VALUES ('leasehold');
+ INSERT INTO tenure_type (type) VALUES ('customary rights');
+ INSERT INTO tenure_type (type, description) VALUES ('occupancy', 'no documented rights');
+ INSERT INTO tenure_type (type, description) VALUES ('tenancy','documented sub-lease');
+ INSERT INTO tenure_type (type) VALUES ('hunting/fishing/harvest rights');
+ INSERT INTO tenure_type (type) VALUES ('grazing rights');
+
+ /******************************************************************
 
  Function: cd_process_data()
 
@@ -280,9 +297,3 @@ BEGIN
   RETURN NEW;
 END;
 $cd_process_data$ LANGUAGE plpgsql;
-
-/**
-CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
-    FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
-
-    **/

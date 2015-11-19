@@ -5,6 +5,7 @@ Test data load
 
 select * from field_data
 
+
 ***/
 
 SELECT * FROM cd_import_data_json ($anystr$[
@@ -13,7 +14,7 @@ SELECT * FROM cd_import_data_json ($anystr$[
         "_bamboo_dataset_id": "",
         "_tags": [],
         "surveyor": "danielbaah",
-        "_xform_id_string": "CJF-minimum-la-paz3",
+        "_xform_id_string": "CJF-minimum-la-paz",
         "applicant_name_group": "nme",
         "_attachments": [],
         "_duration": 25.0,
@@ -55,18 +56,17 @@ SELECT * FROM cd_import_data_json ($anystr$[
       },
         "_status": "submitted_via_web",
         "today": "2015-11-13",
-        "_uuid": "56608b19-a418-47ac-80e7-fd56f50bf910",
+        "_uuid": "56608b19-a418-472ac-8011121322e7-fd56f50bf910",
         "means_of_acquire": "inheritance",
         "_submitted_by": "cadasta",
-        "formhub/uuid": "cdd6e61e38d942d7b6d506e7cb736c70",
+        "formhub/uuid": "122",
         "_submission_time": "2015-11-14T00:12:24",
         "_version": "201511140010",
-        "tenure_type": "undivided_co_ownership",
-        "deviceid": "352421035072778",
-        "_id": 57
+        "tenure_type": "grazing_rights",
+        "deviceid": "3524210335072778",
+        "_id": 71
     }
 ]$anystr$);
-
 
     /**
 
@@ -74,5 +74,5 @@ select * from relationship where id in (select relationship_id from respondent w
 select * from response order by time_created desc 
 select * from respondent order by time_created desc
 
-
+select * from relationship order by time_created desc;
     **/

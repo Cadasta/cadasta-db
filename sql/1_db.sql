@@ -183,6 +183,15 @@ INSERT INTO tenure_type (type, description) VALUES ('water rights', 'collective 
 INSERT INTO tenure_type (type, description) VALUES ('concessionary rights','non-mineral');
 INSERT INTO tenure_type (type) VALUES ('carbon rights');
 
+ INSERT INTO tenure_type (type) VALUES ('freehold');
+ INSERT INTO tenure_type (type, description) VALUES ('long term leasehold', '10+ years');
+ INSERT INTO tenure_type (type) VALUES ('leasehold');
+ INSERT INTO tenure_type (type) VALUES ('customary rights');
+ INSERT INTO tenure_type (type, description) VALUES ('occupancy', 'no documented rights');
+ INSERT INTO tenure_type (type, description) VALUES ('tenancy' 'documented sub-lease');
+ INSERT INTO tenure_type (type) VALUES ('hunting/fishing/harvest rights');
+ INSERT INTO tenure_type (type) VALUES ('grazing rights');
+
 CREATE TABLE spatial_source (
     id serial primary key not null,
     type character varying not null,

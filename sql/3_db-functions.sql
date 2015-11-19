@@ -480,7 +480,7 @@ DECLARE
   question_id integer;
   question_id_l integer;
   data_relationship_id int;
-  data_date_land_possession date;
+  data_date_land_possession timestamp with time zone;
   data_geojson character varying;
   data_means_aquired character varying;
   data_field_data_id integer; -- derived from submission _xform_id_string key and matched to id_string field in field_data table
@@ -618,10 +618,26 @@ BEGIN
                 data_tenure_type = 'mineral rights';
               WHEN 'water_rights' THEN
                 data_tenure_type = 'water rights';
-               WHEN 'concessionary_rights' THEN
+              WHEN 'concessionary_rights' THEN
                 data_tenure_type = 'concessionary rights';
-               WHEN 'carbon_rights' THEN
+              WHEN 'carbon_rights' THEN
                 data_tenure_type = 'carbon rights';
+              WHEN 'freehold' THEN
+                data_tenure_type = 'freehold';
+              WHEN 'long_term_leasehold' THEN
+                data_tenure_type = 'long term leasehold';
+              WHEN 'leasehold' THEN
+                data_tenure_type = 'leasehold';
+              WHEN 'customary_rights' THEN
+                data_tenure_type = 'customary rights';
+              WHEN 'occupancy' THEN
+                data_tenure_type = 'occupancy';
+              WHEN 'tenancy' THEN
+                data_tenure_type = 'tenancy';
+              WHEN 'hunting_fishing_harvest_rights' THEN
+                data_tenure_type = 'hunting/fishing/harvest rights';
+              WHEN 'grazing_rights' THEN
+                data_tenure_type = 'grazing rights';
               ELSE
                 RAISE EXCEPTION 'Invalid tenure type CASE %', data_tenure_type;
             END CASE;
