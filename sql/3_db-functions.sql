@@ -227,10 +227,6 @@ END;
 
 *********************************************************/
 
--- Function: cd_create_parcel(integer, character varying, geometry, land_use, character varying, character varying)
-
--- DROP FUNCTION cd_create_parcel(integer, character varying, characer varying, land_use, character varying, character varying);
-
 CREATE OR REPLACE FUNCTION cd_create_parcel(project_id integer,
                                             spatial_source character varying,
                                             geojson character varying,
@@ -296,8 +292,8 @@ BEGIN
 				    RAISE NOTICE 'Successfully created parcel, id: %', p_id;
 
                     -- Create parcel history record
-				    INSERT INTO parcel_history (parcel_id,origin_id,description,date_modified, spatial_source, area, length, geom, land_use, gov_pin)
-				    VALUES (p_id,p_id,cd_history_description,cd_current_date, cd_spatial_source_id, cd_area, cd_length, cd_geometry, cd_land_use, cd_gov_pin)
+				    INSERT INTO parcel_history (parcel_id,origin_id,description, spatial_source, area, length, geom, land_use, gov_pin)
+				    VALUES (p_id,p_id,cd_history_description, cd_spatial_source_id, cd_area, cd_length, cd_geometry, cd_land_use, cd_gov_pin)
 				    RETURNING id INTO ph_id;
 
 				    RAISE NOTICE 'Successfully created parcel history, id: %', ph_id;
