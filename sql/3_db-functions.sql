@@ -324,9 +324,8 @@ $$ LANGUAGE plpgsql VOLATILE;
 
 -- Create relationship with relationship geometry
 
-SELECT * FROM cd_create_relationship(1,7,null,4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,'lease',current_date,'stolen','family fortune');
-SELECT * FROM cd_create_relationship(1,3,null,4,$anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'lease',current_date,null,null);
-
+SELECT * FROM cd_create_relationship(1,1,null,22,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,'easement',current_date,'stolen','family fortune');
+SELECT * FROM cd_create_relationship(1,3,null,4,$anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'mineral rights',current_date,null,null);
 
 ******************************************************************/
 
@@ -337,7 +336,7 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
                                             partyId int,
                                             geojson character varying,
                                             tenureType character varying,
-                                            acquiredDate date,
+                                            acquiredDate timestamp with time zone,
                                             howAcquired character varying,
                                             historyDescription character varying)
   RETURNS INTEGER AS $$
@@ -353,13 +352,10 @@ CREATE OR REPLACE FUNCTION cd_create_relationship(
   cd_area numeric;
   cd_length numeric;
   cd_tenure_type character varying;
-  cd_acquired_date date;
+  cd_acquired_date timestamp with time zone;
   cd_how_acquired character varying;
   cd_history_description character varying;
-  cd_current_date date;
   cd_geojson character varying; -- geojson paramater
-
-
 
 BEGIN
 
@@ -397,8 +393,6 @@ BEGIN
         -- get ckan user id
         cd_ckan_user_id = ckan_user_id;
 
-        SELECT INTO cd_current_date * FROM current_date;
-
         IF cd_tenure_type_id IS NULL THEN
             RAISE EXCEPTION 'Invalid Tenure Type';
         END IF;
@@ -416,9 +410,9 @@ BEGIN
             IF r_id IS NOT NULL THEN
 
                 -- create relationship history
-                INSERT INTO relationship_history (area, length, relationship_id,origin_id,active,description,date_modified, created_by, parcel_id, party_id, geom, tenure_type, acquired_date, how_acquired)
+                INSERT INTO relationship_history (area, length, relationship_id,origin_id,active,description, created_by, parcel_id, party_id, geom, tenure_type, acquired_date, how_acquired)
 
-                VALUES ((SELECT area FROM relationship where id = r_id), (SELECT length FROM relationship where id = r_id), r_id,r_id,true,cd_history_description, cd_current_date, cd_ckan_user_id, (SELECT parcel_id FROM relationship where id = r_id), (SELECT party_id FROM relationship where id = r_id),
+                VALUES ((SELECT area FROM relationship where id = r_id), (SELECT length FROM relationship where id = r_id), r_id,r_id,true,cd_history_description, cd_ckan_user_id, (SELECT parcel_id FROM relationship where id = r_id), (SELECT party_id FROM relationship where id = r_id),
                 (SELECT geom FROM relationship where id = r_id), (SELECT tenure_type FROM relationship where id = r_id), (SELECT acquired_date FROM relationship where id = r_id), (SELECT how_acquired FROM relationship where id = r_id))
                 RETURNING id INTO rh_id;
 
