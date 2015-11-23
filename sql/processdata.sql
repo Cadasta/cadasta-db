@@ -236,7 +236,7 @@ BEGIN
                   RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
 
 		          -- Create new parce
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel(data_project_id,'survey_sketch',data_geojson,null,null,'new description');
+                  SELECT INTO data_parcel_id * FROM cd_create_parcel(data_project_id,'survey coordinates',data_geojson,null,null,'new description');
 
                   IF data_parcel_id IS NOT NULL THEN
                     RAISE NOTICE 'New parcel id: %', data_parcel_id;

@@ -729,6 +729,7 @@ BEGIN
   END LOOP;
   RETURN NEW;
 END;
+$cd_process_data$ LANGUAGE plpgsql;
 
 CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
     FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
