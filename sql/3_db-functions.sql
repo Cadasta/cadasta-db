@@ -1071,13 +1071,10 @@ END;
 
 
 
+
 /********************************************************
 
     cd_update_parcel
-
-    select * from parcel_history where parcel_id = 3
-
-    SELECT NOT(ST_Equals((SELECT geom FROM parcel_history where id = 14), (select geom from parcel_history where id = 15)))
 
     -- Update parcel geom, spatial_source, land_use, gov_pin and description
     SELECT * FROM cd_update_parcel (1, 3, $anystr${"type": "LineString","coordinates": [[91.96083984375,43.04889669318],[91.94349609375,42.9511174899156]]}$anystr$,'digitized',
@@ -1090,7 +1087,7 @@ END;
     SELECT * FROM cd_update_parcel (1, 3, null, null, null , null, null);
 
     -- Should return exception: 'Invalid spatial_source'
-    SELECT * FROM cd_update_parcel (1, 3, null, 'survey_sketchh', null , null, null);
+    SELECT * FROM cd_update_parcel (1, 3, null, 'survey sketchh', null , null, null);
 
     -- Should return exception: 'Project and Parcel id required'
     SELECT * FROM cd_update_parcel (1, null, null, 'survey sketch', null , null, null);
@@ -1112,7 +1109,6 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
   ph_id integer;
   cd_geom geometry;
   cd_new_version integer;
-  cd_current_date date;
   cd_geom_type character varying;
   cd_area numeric;
   cd_length numeric;
@@ -1165,7 +1161,6 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
 
             -- increment version for parcel_history record
             SELECT INTO cd_new_version SUM(version + 1) FROM parcel_history where parcel_id = p_id GROUP BY VERSION ORDER BY VERSION DESC LIMIT 1;
-            SELECT INTO cd_current_date * FROM current_date;
 
             -- update parcel record
             UPDATE parcel
@@ -1179,9 +1174,9 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
             IF cd_new_version IS NOT NULL THEN
                 -- add parcel history record
                 INSERT INTO parcel_history(
-                parcel_id, origin_id, version, description, date_modified,
+                parcel_id, origin_id, version, description,
                 spatial_source, user_id, area, length, geom, land_use, gov_pin)
-	            VALUES (p_id, p_id, cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)), cd_current_date,
+	            VALUES (p_id, p_id, cd_new_version, COALESCE(cd_description,(SELECT description FROM parcel_history where parcel_id = p_id GROUP BY description, version ORDER BY version DESC LIMIT 1)),
                 (SELECT spatial_source FROM parcel WHERE id = p_id), (SELECT user_id FROM parcel WHERE id = p_id), (SELECT area FROM parcel WHERE id = p_id), (SELECT length FROM parcel where id = p_id), (SELECT geom FROM parcel where id = p_id),
                 (SELECT land_use FROM parcel WHERE id = p_id), (SELECT gov_pin FROM parcel WHERE id = p_id)) RETURNING id INTO ph_id;
 
@@ -1211,10 +1206,10 @@ $$ LANGUAGE plpgsql VOLATILE;
 
     cd_update_relationship
 
-    SELECT * FROM cd_create_relationship(1,7,null,4,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,'lease',current_date,'stolen','family fortune');
+    SELECT * FROM cd_create_relationship(1,1,null,22,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,'easement',current_date,'stolen','family fortune');
 
     -- Update relationship 1's tenure type, how acqured, and history description
-    SELECT * FROM cd_update_relationship(1,1,null,null,null,'occupy',null, 'taken over by government', 'informed in the mail');
+    SELECT * FROM cd_update_relationship(1,33,null,null,null,'mineral rights',null, 'taken over by government', 'informed in the mail');
 
     -- Update relationship 1's geometry
     SELECT * FROM cd_update_relationship(1,1,null,null,$anystr${"type":"Point","coordinates":[-72.9490754,40.8521095]}$anystr$,null,null,null,null);
@@ -1225,6 +1220,7 @@ $$ LANGUAGE plpgsql VOLATILE;
     -- Update no values on relationship 1
     SELECT * FROM cd_update_relationship(1,1,null,null,null,null,null,null,null);
 
+
 *********************************************************/
 
 CREATE OR REPLACE FUNCTION cd_update_relationship(	cd_project_id integer,
@@ -1233,7 +1229,7 @@ CREATE OR REPLACE FUNCTION cd_update_relationship(	cd_project_id integer,
 							cd_parcel_id int,
 							geojson character varying,
 							cd_tenure_type character varying,
-							cd_acquired_date date,
+							cd_acquired_date timestamp with time zone,
 							cd_how_acquired character varying,
 							cd_history_description character varying)
   RETURNS INTEGER AS $$
@@ -1250,8 +1246,6 @@ CREATE OR REPLACE FUNCTION cd_update_relationship(	cd_project_id integer,
   cd_geom_type character varying;
   cd_tenure_type_id int;
   cd_new_version int;
-  cd_current_date date;
-  cd_parent_id date;
 
   BEGIN
     -- 1. update relationship record
@@ -1303,7 +1297,6 @@ CREATE OR REPLACE FUNCTION cd_update_relationship(	cd_project_id integer,
 
     -- increment version for parcel_history record
     SELECT INTO cd_new_version SUM(version + 1) FROM relationship_history where relationship_id = valid_relationship_id GROUP BY VERSION ORDER BY VERSION DESC LIMIT 1;
-    SELECT INTO cd_current_date * FROM current_date;
 
     -- update parcel record
     UPDATE relationship
@@ -1319,7 +1312,7 @@ CREATE OR REPLACE FUNCTION cd_update_relationship(	cd_project_id integer,
     IF cd_new_version IS NOT NULL THEN
 
         -- create relationship history
-        INSERT INTO relationship_history (version, area, length, relationship_id, origin_id,description,date_modified, parcel_id, party_id, geom, tenure_type, acquired_date, how_acquired)
+        INSERT INTO relationship_history (version, area, length, relationship_id, origin_id,description, parcel_id, party_id, geom, tenure_type, acquired_date, how_acquired)
 
         VALUES (cd_new_version,
         (SELECT area FROM relationship where id = valid_relationship_id),
@@ -1327,7 +1320,6 @@ CREATE OR REPLACE FUNCTION cd_update_relationship(	cd_project_id integer,
         valid_relationship_id,
         valid_relationship_id,
         COALESCE(cd_history_description,(SELECT description FROM relationship_history where relationship_id = valid_relationship_id GROUP BY description, version ORDER BY version DESC LIMIT 1)),
-        cd_current_date,
         (SELECT parcel_id FROM relationship where id = valid_relationship_id),
         (SELECT party_id FROM relationship where id = valid_relationship_id),
         (SELECT geom FROM relationship where id = valid_relationship_id),

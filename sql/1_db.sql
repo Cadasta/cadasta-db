@@ -115,6 +115,7 @@ CREATE TABLE party (
     gender character varying,
     DOB timestamp with time zone,
     validated boolean,
+    time_validated timestamp with time zone,
     active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -221,6 +222,7 @@ CREATE TABLE parcel (
     land_use land_use,
     gov_pin character varying,
     validated boolean,
+    time_validated timestamp with time zone,
     active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -242,15 +244,14 @@ CREATE TABLE relationship (
     project_id int not null references project(id),
     parcel_id int references parcel(id) not null,
     party_id int references party(id) not null,
-
     geom geometry,
     area numeric,  -- area of polygon
     length numeric,  -- lengthof linestring
-
     tenure_type int references tenure_type (id) not null,
     acquired_date timestamp with time zone,
     how_acquired character varying,
     validated boolean,
+    time_validated timestamp with time zone,
     active boolean default true,
     sys_delete boolean default false,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
@@ -313,7 +314,6 @@ CREATE TABLE parcel_history (
     parent_id int references parcel(id), -- in case of split, parent id is parcel id from which the parcel is derived from
     version int default 1 not null, -- version of the original parcel
     description character varying not null,
-
     spatial_source int references spatial_source(id) not null, -- required?
     user_id character varying,
     area numeric,  -- area of polygon
@@ -321,7 +321,6 @@ CREATE TABLE parcel_history (
     geom geometry,
     land_use land_use,
     gov_pin character varying,
-
     active boolean default true not null,
     time_created timestamp with time zone NOT NULL DEFAULT current_timestamp,
     time_updated timestamp with time zone NOT NULL DEFAULT current_timestamp,
