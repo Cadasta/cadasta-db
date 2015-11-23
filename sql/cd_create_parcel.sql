@@ -6,7 +6,7 @@
 
     SELECT * FROM cd_create_parcel(1, 'digitized', null, 'Commercial', null, 'insert description here');
     
-    SELECT * FROM cd_create_parcel(3, 'survey_sketch', $anystr${
+    SELECT * FROM cd_create_parcel(3, 'survey sketch', $anystr${
         "type": "Polygon",
         "coordinates": [
           [

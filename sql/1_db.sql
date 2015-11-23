@@ -188,7 +188,7 @@ INSERT INTO tenure_type (type) VALUES ('carbon rights');
  INSERT INTO tenure_type (type) VALUES ('leasehold');
  INSERT INTO tenure_type (type) VALUES ('customary rights');
  INSERT INTO tenure_type (type, description) VALUES ('occupancy', 'no documented rights');
- INSERT INTO tenure_type (type, description) VALUES ('tenancy' 'documented sub-lease');
+ INSERT INTO tenure_type (type, description) VALUES ('tenancy','documented sub-lease');
  INSERT INTO tenure_type (type) VALUES ('hunting/fishing/harvest rights');
  INSERT INTO tenure_type (type) VALUES ('grazing rights');
 
@@ -202,10 +202,11 @@ CREATE TABLE spatial_source (
     updated_by integer
 );
 
-INSERT INTO spatial_source (type) VALUES ('survey_sketch');
+INSERT INTO spatial_source (type) VALUES ('survey sketch');
 INSERT INTO spatial_source (type) VALUES ('digitized');
-INSERT INTO spatial_source (type) VALUES ('recreational_gps');
-INSERT INTO spatial_source (type) VALUES ('survey_grade_gps');
+INSERT INTO spatial_source (type) VALUES ('survey coordinates');
+INSERT INTO spatial_source (type) VALUES ('recreational gps');
+INSERT INTO spatial_source (type) VALUES ('survey grade gps');
 
 -- Parcel Table
 -- Parcel Geometry table

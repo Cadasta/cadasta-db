@@ -74,9 +74,10 @@ Create a new parcel and parcel history.
 2. spatial\_source (character varying) – ***Required***.
 Options:
     * digitized
-    * recreational_gps
-    * survey_grade_gps
-    * survey_sketch
+    * survey coordinates
+    * recreational gps
+    * survey grade gps
+    * survey sketch
 3. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
 4.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
@@ -125,9 +126,10 @@ Update a parcel & parcel history
 4. spatial\_source (character varying) – Optional. Parcel Spatial Source
 Options:
     * digitized
-    * recreational_gps
-    * survey_grade_gps
-    * survey_sketch
+    * recreational gps
+    * survey grade gps
+    * survey sketch
+    * survey coordinates
 5.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
     * Commercial

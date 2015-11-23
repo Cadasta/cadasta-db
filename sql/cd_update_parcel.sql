@@ -14,10 +14,10 @@
     SELECT * FROM cd_update_parcel (1, 3, null, null, null , null, null);
 
     -- Should return exception: 'Invalid spatial_source'
-    SELECT * FROM cd_update_parcel (1, 3, null, 'survey_sketchh', null , null, null);
+    SELECT * FROM cd_update_parcel (1, 3, null, 'survey sketchh', null , null, null);
 
     -- Should return exception: 'Project and Parcel id required'
-    SELECT * FROM cd_update_parcel (1, null, null, 'survey_sketch', null , null, null);
+    SELECT * FROM cd_update_parcel (1, null, null, 'survey sketch', null , null, null);
 
 *********************************************************/
 

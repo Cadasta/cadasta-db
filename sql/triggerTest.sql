@@ -5,6 +5,8 @@ Test data load
 
 select * from field_data
 
+select * from parcel order by time_Created desc
+
 
 ***/
 
@@ -14,7 +16,7 @@ SELECT * FROM cd_import_data_json ($anystr$[
         "_bamboo_dataset_id": "",
         "_tags": [],
         "surveyor": "danielbaah",
-        "_xform_id_string": "CJF-minimum-la-paz",
+        "_xform_id_string": "deebz_test",
         "applicant_name_group": "nme",
         "_attachments": [],
         "_duration": 25.0,
