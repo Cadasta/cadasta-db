@@ -74,9 +74,10 @@ Create a new parcel and parcel history.
 2. spatial\_source (character varying) – ***Required***.
 Options:
     * digitized
-    * recreational_gps
-    * survey_grade_gps
-    * survey_sketch
+    * survey coordinates
+    * recreational gps
+    * survey grade gps
+    * survey sketch
 3. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
 4.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
@@ -125,9 +126,10 @@ Update a parcel & parcel history
 4. spatial\_source (character varying) – Optional. Parcel Spatial Source
 Options:
     * digitized
-    * recreational_gps
-    * survey_grade_gps
-    * survey_sketch
+    * recreational gps
+    * survey grade gps
+    * survey sketch
+    * survey coordinates
 5.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
     * Commercial
@@ -162,13 +164,12 @@ Create a new party
 Options: ***Case Sensitive***
     * individual
     * group
-3.  first\_name (character varying) – ***Required if group\_name is NULL***.
-4.  last\_name (character varying) – 
-5.  cd\_group\_name (character varying) - ***Required if first\_name is null***. - Name of Group
-6. cd\_gender (character varying) - Optional Gender
-7. cd\_dob (date) -  ***YYYY-MM-DD*** Date if Birth
-8. description (character varying) - Notes
-9. cd\_national_id (character varying) - National ID
+3.  full\_name (character varying) – ***Required if group\_name is NULL***.
+4.  cd\_group\_name (character varying) - ***Required if first\_name is null***. - Name of Group
+5. cd\_gender (character varying) - Optional Gender
+6. cd\_dob (date) -  ***YYYY-MM-DD*** Date if Birth
+7. description (character varying) - Notes
+8. cd\_national_id (character varying) - National ID
 
 ##### Result
 
@@ -178,7 +179,7 @@ Integer. The party is successfully created if an integer is returned.
 
 -   Create new party Ian O'Guin for project 1
 
-```    SELECT * FROM cd_create_party(1, 'individual', 'Ian', 'O''Quinn', null, 'Male', '4-25-1990', 'my name is Ian', '14u1oakldaCCCC');```
+```    SELECT * FROM cd_create_party(1, 'individual', 'Ian', null, 'Male', '4-25-1990', 'my name is Ian', '14u1oakldaCCCC');```
 
 2
 
@@ -204,13 +205,12 @@ Update a party
 Options: ***Case Sensitive***
     * individual
     * group
-4.  first\_name (character varying) – ***Required if group\_name is NULL***.
-5.  last\_name (character varying) – 
-6.  cd\_group\_name (character varying) - ***Required if first\_name is null***. - Name of Group
-7. cd\_gender (character varying) - Optional Gender
-8. cd\_dob (date) -  ***YYYY-MM-DD*** Date if Birth
-9. description (character varying) - Notes
-10. cd\_national_id (character varying) - National ID
+4.  full\_name (character varying) – ***Required if group\_name is NULL***.
+5.  cd\_group\_name (character varying) - ***Required if first\_name is null***. - Name of Group
+6. cd\_gender (character varying) - Optional Gender
+7. cd\_dob (date) -  ***YYYY-MM-DD*** Date if Birth
+8. description (character varying) - Notes
+9. cd\_national_id (character varying) - National ID
 
 ##### Result
 
@@ -249,10 +249,25 @@ Create a new relationship and relationship history.
 5.  geojson - (character varying) - Optional. Relationship Geometry [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
 6.  tenure\_type (ENUM) - ***Required. Case sensitive*** Tenure type of relationship
 Options:
-    * own
-    * lease
-    * occupy
-    * informal occupy
+    * indigenous land rights
+    * joint tenancy
+    * tenancy in common
+    * undivided co-ownership
+    * easement
+    * equitable servitude
+    * mineral rights
+    * water rights
+    * concessionary rights
+    * carbon rights
+    * freehold
+    * long term leasehold
+    * leasehold
+    * customary rights
+    * occupancy
+    * tenancy
+    * hunting/fishing/harvest rights
+    * grazing rights
+    
 7. acquired\_date (date) - Optional. ***YYYY-MM-DD*** Date of land acquisition
 8. how\_acquired (character varying) - Optional. A description of how the land was acquired
 9. history\_description (character varying) - A description of the relationships history
@@ -286,10 +301,25 @@ Update a relationship & relationship history
 5. geojson - Optional. Relationship geometry [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
 6. tenure\_type (ENUM) - Optional. ***Case sensitive*** Tenure type of relationship
 Options:
-    * own
-    * lease
-    * occupy
-    * informal occupy 
+    * indigenous land rights
+    * joint tenancy
+    * tenancy in common
+    * undivided co-ownership
+    * easement
+    * equitable servitude
+    * mineral rights
+    * water rights
+    * concessionary rights
+    * carbon rights
+    * freehold
+    * long term leasehold
+    * leasehold
+    * customary rights
+    * occupancy
+    * tenancy
+    * hunting/fishing/harvest rights
+    * grazing rights
+    
 7.  acquired\_date (Date) - Optional. ***YYYY-MM-DD*** Date of tenure acquisition
 8.  how\_acquired (character varying) - Optional. A description of how acquisition was acquired
 9.  description (character varying) - Optional. A description of the relationships history

@@ -1,4 +1,21 @@
 ﻿/******************************************************************
+ Change Script 0.0.10
+ Date: 11/19/15
+
+ 1. New tenure types
+
+ ******************************************************************/
+
+ INSERT INTO tenure_type (type) VALUES ('freehold');
+ INSERT INTO tenure_type (type, description) VALUES ('long term leasehold', '10+ years');
+ INSERT INTO tenure_type (type) VALUES ('leasehold');
+ INSERT INTO tenure_type (type) VALUES ('customary rights');
+ INSERT INTO tenure_type (type, description) VALUES ('occupancy', 'no documented rights');
+ INSERT INTO tenure_type (type, description) VALUES ('tenancy','documented sub-lease');
+ INSERT INTO tenure_type (type) VALUES ('hunting/fishing/harvest rights');
+ INSERT INTO tenure_type (type) VALUES ('grazing rights');
+
+ /******************************************************************
 
  Function: cd_process_data()
 
@@ -30,16 +47,17 @@ DECLARE
   question_id integer;
   question_id_l integer;
   data_relationship_id int;
-  data_date_land_possession date;
+  data_date_land_possession timestamp with time zone;
   data_geojson character varying;
   data_means_aquired character varying;
   data_field_data_id integer; -- derived from submission _xform_id_string key and matched to id_string field in field_data table
   data_xform_id_string character varying; -- xform id string is used to find field data id
   data_tenure_type character varying;
+  party_type party_type;
   tenure_type_id int;
   data_parcel_id int;
-  data_survey_first_name character varying;
-  data_survey_last_name character varying;
+  data_survey_full_name character varying;
+  data_survey_group_name character varying;
   question_slug text;
   parent_question_slug text;
   data_ckan_user_id int;
@@ -78,26 +96,41 @@ BEGIN
     -- save field data id in raw_data table
     UPDATE raw_data SET field_data_id = data_field_data_id, project_id = data_project_id where id = raw_data_id;
 
-    -- get respondent first name
-    SELECT INTO data_survey_first_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_first';
+    -- get respondent full name
+    SELECT INTO data_survey_full_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name_full';
+    -- get respondent group name
+    SELECT INTO data_survey_group_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name_group';
+
     -- get respondent last name
-    SELECT INTO data_survey_last_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_last';
+    --SELECT INTO data_survey_last_name value::text FROM json_each_text(survey.value) WHERE key = 'applicant_name/applicant_name_last';
     -- get uuid of response
     SELECT INTO data_uuid value::text FROM json_each_text(survey.value) WHERE key = '_uuid';
 
     SELECT INTO data_submission_time value::text FROM json_each_text(survey.value) WHERE key = '_submission_time';
     SELECT INTO data_ona_data_id value::int FROM json_each_text(survey.value) WHERE key = '_id';
 
+    SELECT INTO party_type value::party_type FROM json_each_text(survey.value) WHERE key = 'party_type';
+
     -- process survey data only if there is a survey in the database that matches
     IF data_field_data_id IS NOT NULL THEN
 
+        -- Add respondent row and return id
+        INSERT INTO respondent (field_data_id, uuid, submission_time, ona_data_id) VALUES (data_field_data_id,data_uuid,data_submission_time,data_ona_data_id) RETURNING id INTO data_respondent_id;
+
         -- take the first name , last name fields out of the survey
-        IF data_survey_first_name IS NOT NULL AND data_survey_last_name IS NOT NULL THEN
-          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, 'individual', data_survey_first_name,data_survey_last_name, null, null, null, null, null);
-          RAISE NOTICE 'Created Person id: %', data_person_id;
+        IF party_type = 'individual' AND data_survey_full_name IS NOT NULL THEN
+        raise notice 'party type: %  person name: %', party_type, data_survey_full_name;
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, party_type, data_survey_full_name, null, null, null, null, null);
+        ELSIF party_type = 'group' AND data_survey_group_name IS NOT NULL THEN
+        raise notice 'party type: %  group name: %', party_type, data_survey_group_name;
+          SELECT INTO data_person_id * FROM cd_create_party (data_project_id, party_type, null, data_survey_group_name, null, null, null, null);
         END IF;
 
-      INSERT INTO respondent (field_data_id, uuid, submission_time, ona_data_id) VALUES (data_field_data_id,data_uuid,data_submission_time,data_ona_data_id) RETURNING id INTO data_respondent_id;
+          IF data_person_id IS NOT NULL THEN
+            UPDATE respondent SET party_id = data_person_id WHERE id = data_respondent_id;
+          ELSE
+            RAISE EXCEPTION 'Cannot create party %',party_type;
+          END IF;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
@@ -134,29 +167,49 @@ BEGIN
           WHEN 'date_land_possession' THEN
             data_date_land_possession = element.value;
           WHEN 'tenure_type' THEN
+          RAISE NOTICE 'made it to tenure type %', element.value;
             CASE (element.value)
-              WHEN 'allodial' THEN
-                data_tenure_type = 'own';
+              WHEN 'indigenous_land_rights' THEN
+                data_tenure_type = 'indigenous land rights';
+              WHEN 'joint_tenancy' THEN
+                data_tenure_type = 'joint tenancy';
+              WHEN 'tenancy_in_common' THEN
+                data_tenure_type = 'tenancy in common';
+              WHEN 'undivided_co_ownership' THEN
+                data_tenure_type = 'undivided co-ownership';
+              WHEN 'easment' THEN
+                data_tenure_type = 'easement';
+              WHEN 'equitable_servitude' THEN
+                data_tenure_type = 'equitable servitude';
+              WHEN 'mineral_rights' THEN
+                data_tenure_type = 'mineral rights';
+              WHEN 'water_rights' THEN
+                data_tenure_type = 'water rights';
+              WHEN 'concessionary_rights' THEN
+                data_tenure_type = 'concessionary rights';
+              WHEN 'carbon_rights' THEN
+                data_tenure_type = 'carbon rights';
               WHEN 'freehold' THEN
-                data_tenure_type = 'own';
-              WHEN 'lease' THEN
-                data_tenure_type = 'lease';
-              WHEN 'common_law_freehold' THEN
-                data_tenure_type = 'own';
-              WHEN 'occupy' THEN
-                data_tenure_type = 'occupy';
-              WHEN 'informal_occupy' THEN
-                data_tenure_type = 'informal occupy';
-              WHEN 'contractual' THEN
-                data_tenure_type = 'lease';
+                data_tenure_type = 'freehold';
+              WHEN 'long_term_leasehold' THEN
+                data_tenure_type = 'long term leasehold';
+              WHEN 'leasehold' THEN
+                data_tenure_type = 'leasehold';
+              WHEN 'customary_rights' THEN
+                data_tenure_type = 'customary rights';
+              WHEN 'occupancy' THEN
+                data_tenure_type = 'occupancy';
+              WHEN 'tenancy' THEN
+                data_tenure_type = 'tenancy';
+              WHEN 'hunting_fishing_harvest_rights' THEN
+                data_tenure_type = 'hunting/fishing/harvest rights';
+              WHEN 'grazing_rights' THEN
+                data_tenure_type = 'grazing rights';
               ELSE
-                RAISE NOTICE 'Improper Tenure Type';
+                RAISE EXCEPTION 'Invalid tenure type CASE %', data_tenure_type;
             END CASE;
-            RAISE NOTICE 'Found Loan';
           ELSE
         END CASE;
-
-        RAISE NOTICE 'Data tenture type: %', data_tenure_type;
 
         -- RAISE NOTICE 'Element: %', element.key;
         -- RAISE NOTICE 'Last slug: %', question_slug;
@@ -204,7 +257,7 @@ BEGIN
 
                   IF data_parcel_id IS NOT NULL THEN
                     RAISE NOTICE 'New parcel id: %', data_parcel_id;
-                    UPDATE field_data SET parcel_id = data_parcel_id WHERE id = data_field_data_id;
+                    UPDATE respondent SET parcel_id = data_parcel_id WHERE id = data_respondent_id;
                   ELSE
                     RAISE NOTICE 'Cannot create parcel';
                   END IF;
@@ -230,9 +283,9 @@ BEGIN
         (data_project_id,data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
 
         IF data_relationship_id IS NOT NULL THEN
-            RAISE NOTICE 'New relationship id: %', data_relationship_id;
+	    UPDATE respondent SET relationship_id = data_relationship_id WHERE id = data_respondent_id;
         ELSE
-            RAISE NOTICE 'No new relationship data_tenure_type: % data_parcel_id: % data_person_id: % data_ckan_user_id: %', data_tenure_type, data_parcel_id, data_person_id, data_ckan_user_id;
+	    RAISE EXCEPTION 'Cannot create relationship';
         END IF;
       END IF;
     END IF;
@@ -244,71 +297,3 @@ BEGIN
   RETURN NEW;
 END;
 $cd_process_data$ LANGUAGE plpgsql;
-
-CREATE TRIGGER cd_process_data AFTER INSERT ON raw_data
-    FOR EACH ROW EXECUTE PROCEDURE cd_process_data();
-
-/***
-
-
-Test data load
-
-***/
-
-SELECT * FROM cd_import_data_json ($anystr$[{
-      "_notes": [],
-      "applicant_name/applicant_name_first": "Makkonen",
-      "_bamboo_dataset_id": "",
-      "_tags": [],
-      "surveyor": "katechapman",
-      "_xform_id_string": "CJF-minimum",
-      "_geolocation": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -68.13127398490906,
-              -16.498594502708375
-            ],
-            [
-              -68.13038885593414,
-              -16.4990522778716
-            ],
-            [
-              -68.13022255897522,
-              -16.49927344975331
-            ],
-            [
-              -68.1305605173111,
-              -16.499906102809422
-            ],
-            [
-              -68.13167631626129,
-              -16.49923744504563
-            ],
-            [
-              -68.13127398490906,
-              -16.498594502708375
-            ]
-          ]
-        ]
-      },
-      "_duration": 27.0,
-      "meta/instanceID": "uuid:6d998c13123213d-d712-4dbc-b041-16939500f5a7",
-      "end": "2015-10-07T12:55:55.218-07",
-      "date_land_possession": "2010-05-25",
-      "applicant_name/applicant_name_last": "Ontario ",
-      "start": "2015-10-07T12:55:28.024-07",
-      "_attachments": [],
-      "_status": "submitted_via_web",
-      "today": "2015-10-07",
-      "_uuid": "6d998c3d-d712-4dbc-b0132131241-16939500f5a7",
-      "means_of_acquire": "inheritance",
-      "_submitted_by": null,
-      "formhub/uuid": "5b453ab2cbec49f13123279193293262d68376",
-      "_submission_time": "2015-10-07T19:55:46",
-      "_version": "201510071848",
-      "tenure_type": "common_law_freehold",
-      "deviceid": "35385206286421",
-      "_id": 11312315}
-    ]$anystr$);
