@@ -1,4 +1,9 @@
--- Create fake org and project until API is wrapped in CKAN API
+/******************************************************************
+
+This file should only be used when testing the Cadasta API
+
+******************************************************************/
+
 
 SELECT * FROM cd_create_organization('habit','habitat','Habitat for Humanity',null);
 

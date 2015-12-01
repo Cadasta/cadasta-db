@@ -29,10 +29,25 @@ and r.parcel_id = par.id;
 
 -- Show all parties and relationship count
 CREATE OR REPLACE VIEW show_parties AS
-select pro.id as project_id, p.id, count(r.id) as num_relationships, p.group_name, full_name, type,  p.national_id, p.gender, p.dob, p.description as notes, p.active, p.time_created, p.time_updated
-from party p left join relationship r on r.party_id = p.id, project pro
-where p.project_id = pro.id
-group by p.id, pro.id;
+ SELECT pro.id AS project_id,
+    p.id,
+    count(r.id) AS num_relationships,
+    p.group_name,
+    p.full_name,
+    p.type,
+    p.validated,
+    p.national_id,
+    p.gender,
+    p.dob,
+    p.description AS notes,
+    p.active,
+    p.time_created,
+    p.time_updated
+   FROM party p
+     LEFT JOIN relationship r ON r.party_id = p.id,
+    project pro
+  WHERE p.project_id = pro.id
+  GROUP BY p.id, pro.id;
 
 -- Show all relationships
 CREATE OR replace view show_relationships AS
@@ -169,11 +184,23 @@ CREATE OR REPLACE VIEW show_project_extents AS
 SELECT p.id, p.organization_id, p.title, pe.geom, p.active, p.sys_delete, p.time_created, p.time_updated, p.created_by, p.updated_by
 FROM project_extents pe right join project p on pe.project_id = p.id;
 
-CREATE  VIEW show_field_data_responses AS
-select f.project_id, r.field_data_id, r.respondent_id, rd.validated, r.question_id, r.text, r.time_created, r.time_updated
-from response r , field_data f, respondent rd
-where r.field_data_id = f.id
-and r.respondent_id = rd.id;
+
+CREATE OR REPLACE VIEW show_field_data_responses AS
+ SELECT f.project_id,
+    r.field_data_id,
+    r.respondent_id,
+    rd.parcel_id,
+    rd.party_id,
+    rd.relationship_id,
+    rd.validated,
+    r.question_id,
+    r.text,
+    r.time_created,
+    r.time_updated
+   FROM response r,
+    field_data f,
+    respondent rd
+  WHERE r.field_data_id = f.id AND r.respondent_id = rd.id;
 
 CREATE OR REPLACE VIEW show_field_data_questions AS
 select distinct(q.id) as question_id, t.name as type, q.name, COALESCE(q.label,q.name) as label, q.field_data_id, f.project_id
