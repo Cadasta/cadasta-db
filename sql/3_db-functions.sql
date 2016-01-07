@@ -261,7 +261,7 @@ BEGIN
             SELECT INTO cd_current_date * FROM current_date;
 
             cd_gov_pin := gov_pin;
-            SELECT INTO cd_land_use * FROM land_use;
+            cd_land_use = land_use;
             cd_spatial_source = spatial_source;
             cd_history_description = history_description;
             cd_geojson = geojson;
