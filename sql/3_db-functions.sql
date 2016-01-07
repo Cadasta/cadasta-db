@@ -261,7 +261,7 @@ BEGIN
             SELECT INTO cd_current_date * FROM current_date;
 
             cd_gov_pin := gov_pin;
-            cd_land_use := lower(land_use);
+            SELECT INTO cd_land_use * FROM land_use;
             cd_spatial_source = spatial_source;
             cd_history_description = history_description;
             cd_geojson = geojson;
@@ -1167,7 +1167,7 @@ CREATE OR REPLACE FUNCTION cd_update_parcel(	     cd_project_id integer,
             SET
             geom = COALESCE(cd_geom, geom),
             spatial_source = COALESCE(cd_spatial_source_id, spatial_source),
-            land_use = COALESCE (lower(cd_land_use), lower(land_use)),
+            land_use = COALESCE (cd_land_use, land_use),
             gov_pin  = COALESCE (cd_gov_pin, gov_pin)
             WHERE id = p_id;
 
