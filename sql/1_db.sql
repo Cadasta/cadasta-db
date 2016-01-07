@@ -8,8 +8,8 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE TYPE json_result AS (response json);
 
--- Normalize
-CREATE TYPE land_use AS ENUM ('Commercial', 'Residential');
+-- ENUM types
+CREATE TYPE land_use AS ENUM ('commercial', 'residential', 'agriculture', 'grazing', 'community land', 'other');
 CREATE TYPE party_type AS ENUM ('individual', 'group');
 
 -- CKAN organizaiton
