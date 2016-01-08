@@ -81,8 +81,12 @@ Options:
 3. geojson - [GeoJSON geometry object](http://geojson.org/geojson-spec.html#geometry-objects)
 4.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
-    * Commercial
-    * Residential
+    * commercial
+    * residential
+    * agriculture
+    * grazing
+    * community land
+    * other
 5.  gov\_pin (character varying) - Optional.
 6.  history\_description (character varying) - ***Required***. A description of the parcels history
 
@@ -92,7 +96,7 @@ Integer. The parcel is successfully created if an integer is returned.
 
 ##### Example(s)
 
--   Add new digitized, Commercial parcel to project 1
+-   Add new digitized, commercial parcel to project 1
 
 ```SELECT * FROM cd_create_parcel(1, 'digitized', 	$anystr${
            "type": "LineString",
@@ -106,7 +110,7 @@ Integer. The parcel is successfully created if an integer is returned.
                44.57247110339075
              ]
            ]
-         }$anystr$, 'Commercial', null, 'insert description here');```
+         }$anystr$, 'commercial', null, 'insert description here');```
 
 14
 
@@ -132,8 +136,12 @@ Options:
     * survey coordinates
 5.  land\_use (ENUM) - Optional. Type of parcel real estate
 Options:
-    * Commercial
-    * Residential
+    * commercial
+    * residential
+    * agriculture
+    * grazing
+    * community land
+    * other
 6.  gov\_pin (character varying) - Optional.
 7.  description (character varying) - Optional. A description of the parcels history
 
