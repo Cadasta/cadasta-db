@@ -260,16 +260,17 @@ BEGIN
             SELECT INTO cd_current_date * FROM current_date;
 
             cd_gov_pin := gov_pin;
-            cd_land_use := land_use;
+            cd_land_use = land_use;
             cd_spatial_source = spatial_source;
             cd_history_description = history_description;
             cd_geojson = geojson;
 
-            SELECT INTO cd_geometry * FROM ST_SetSRID(ST_GeomFromGeoJSON(cd_geojson),4326); -- convert to LAT LNG GEOM
+            IF $3 IS NOT NULL THEN
+		SELECT INTO cd_geometry * FROM ST_SetSRID(ST_GeomFromGeoJSON(cd_geojson),4326); -- convert to LAT LNG GEOM
+		SELECT INTO cd_geom_type * FROM ST_GeometryType(cd_geometry); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+            END IF;
 
-            SELECT INTO cd_spatial_source_id id FROM spatial_source WHERE type = cd_spatial_source;
-
-            SELECT INTO cd_geom_type * FROM ST_GeometryType(cd_geometry); -- get geometry type (ST_Polygon, ST_Linestring, or ST_Point)
+	    SELECT INTO cd_spatial_source_id id FROM spatial_source WHERE type = cd_spatial_source;
 
              IF cd_geom_type iS NOT NULL THEN
                   RAISE NOTICE 'cd_geom_type: %', cd_geom_type;
@@ -315,7 +316,6 @@ BEGIN
 	END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
-
 
 /******************************************************************
 
