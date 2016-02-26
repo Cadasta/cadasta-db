@@ -1,4 +1,4 @@
-/******************************************************************
+﻿/******************************************************************
     Create New field data form
 
     cd_create_field_data
@@ -557,142 +557,142 @@ BEGIN
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
       FOR element IN (SELECT * FROM json_each_text(survey.value)) LOOP
-      IF (element.key IS NOT NULL) THEN
+          IF (element.key IS NOT NULL) THEN
 
-        SELECT INTO question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1) as slugs;
-        SELECT INTO num_slugs count(slugs) FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum) as slugs;
-        SELECT INTO num_questions count(id) FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
-	-- get question id
-        SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
+          SELECT INTO question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1) as slugs;
+            SELECT INTO num_slugs count(slugs) FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum) as slugs;
+            SELECT INTO num_questions count(id) FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
+    	-- get question id
+            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
 
-        IF num_questions > 1 THEN
-          RAISE NOTICE '---------> MULTIPLE QUESTIONS FOUND!!!: %', num_questions || ' (count) key: ' || element.key || ' question_id found: ' || question_id;
-          IF num_slugs > 1 THEN
-            SELECT INTO parent_question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1 offset 1) as slugs;
-            -- get question id
-            RAISE NOTICE 'parent_question_slug: %', parent_question_slug;
-            SELECT INTO raw_group_id id FROM q_group where lower(name) = lower(parent_question_slug) and field_data_id = data_field_data_id;
+            IF num_questions > 1 THEN
+              RAISE NOTICE '---------> MULTIPLE QUESTIONS FOUND!!!: %', num_questions || ' (count) key: ' || element.key || ' question_id found: ' || question_id;
+              IF num_slugs > 1 THEN
+                SELECT INTO parent_question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1 offset 1) as slugs;
+                -- get question id
+                RAISE NOTICE 'parent_question_slug: %', parent_question_slug;
+                SELECT INTO raw_group_id id FROM q_group where lower(name) = lower(parent_question_slug) and field_data_id = data_field_data_id;
 
-            RAISE NOTICE 'question_slug: %, field_data_id: %, raw_id: %, group_id: %', question_slug, data_field_data_id, data_field_data_id, raw_group_id;
-            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id AND group_id = (select id from q_group where lower(name) = lower(parent_question_slug) and field_data_id = data_field_data_id);
-          ELSE
-            -- get question id
-            SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id AND group_id IS NULL;
-          END IF;
-          RAISE NOTICE '---------> QUESTION ID UPDATED: %', question_id;
-        END IF;
-
-        CASE (element.key)
-          -- get tenure type
-          WHEN 'means_of_acquire' THEN
-            data_means_aquired = element.value;
-          WHEN 'date_land_possession' THEN
-            data_date_land_possession = element.value;
-          WHEN 'tenure_type' THEN
-          RAISE NOTICE 'made it to tenure type %', element.value;
-            CASE (element.value)
-              WHEN 'indigenous_land_rights' THEN
-                data_tenure_type = 'indigenous land rights';
-              WHEN 'joint_tenancy' THEN
-                data_tenure_type = 'joint tenancy';
-              WHEN 'tenancy_in_common' THEN
-                data_tenure_type = 'tenancy in common';
-              WHEN 'undivided_co_ownership' THEN
-                data_tenure_type = 'undivided co-ownership';
-              WHEN 'easment' THEN
-                data_tenure_type = 'easement';
-              WHEN 'equitable_servitude' THEN
-                data_tenure_type = 'equitable servitude';
-              WHEN 'mineral_rights' THEN
-                data_tenure_type = 'mineral rights';
-              WHEN 'water_rights' THEN
-                data_tenure_type = 'water rights';
-              WHEN 'concessionary_rights' THEN
-                data_tenure_type = 'concessionary rights';
-              WHEN 'carbon_rights' THEN
-                data_tenure_type = 'carbon rights';
-              WHEN 'freehold' THEN
-                data_tenure_type = 'freehold';
-              WHEN 'long_term_leasehold' THEN
-                data_tenure_type = 'long term leasehold';
-              WHEN 'leasehold' THEN
-                data_tenure_type = 'leasehold';
-              WHEN 'customary_rights' THEN
-                data_tenure_type = 'customary rights';
-              WHEN 'occupancy' THEN
-                data_tenure_type = 'occupancy';
-              WHEN 'tenancy' THEN
-                data_tenure_type = 'tenancy';
-              WHEN 'hunting_fishing_harvest_rights' THEN
-                data_tenure_type = 'hunting/fishing/harvest rights';
-              WHEN 'grazing_rights' THEN
-                data_tenure_type = 'grazing rights';
+                RAISE NOTICE 'question_slug: %, field_data_id: %, raw_id: %, group_id: %', question_slug, data_field_data_id, data_field_data_id, raw_group_id;
+                SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id AND group_id = (select id from q_group where lower(name) = lower(parent_question_slug) and field_data_id = data_field_data_id);
               ELSE
-                RAISE EXCEPTION 'Invalid tenure type CASE %', data_tenure_type;
-            END CASE;
-          ELSE
-        END CASE;
+                -- get question id
+                SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id AND group_id IS NULL;
+              END IF;
+              RAISE NOTICE '---------> QUESTION ID UPDATED: %', question_id;
+            END IF;
 
-        -- RAISE NOTICE 'Element: %', element.key;
-        -- RAISE NOTICE 'Last slug: %', question_slug;
-        IF (question_id IS NOT NULL) THEN
-                RAISE NOTICE 'Found question: %', question_id;
-
-          SELECT INTO question_type name FROM type WHERE id = (SELECT type_id FROM question WHERE id = question_id);
-          -- RAISE NOTICE 'Found question: %', question_id || ' - ' || question_type;
-          -- check to see if this is a loop (group or repeat type)
-          CASE (question_type)
-            WHEN 'integer','decimal' THEN
-              IF is_numeric(element.value) THEN
-                numeric_value := element.value;
-                IF numeric_value >= 0 THEN
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ',' ||  element.value || ');';
-                ELSE
-                  EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ', NULL);';
-                END IF;
-              ELSE
-	          END IF;
-            ELSE
-              EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ','|| question_id || ',' || quote_literal(element.value) ||');';
-          END CASE;
-        -- question is not found in the database
-        ELSE
-
-         RAISE NOTICE 'Cant find question: %', element.key;
-          -- elements that have a key starting with an underscore, are not a survey question EXCEPT _geolocation
-          IF left(element.key, 1) = '_' THEN
-            CASE (lower(element.key))
-              WHEN ('_geolocation') THEN
-                RAISE NOTICE 'Found geolocation:' ;
-                  data_geojson = element.value::text;
-
-                  RAISE NOTICE 'geojson: %', data_geojson;
-
-                  SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326); -- convert to LAT LNG GEOM
-
-                  SELECT INTO data_geojson * FROM ST_AsGeoJSON(data_geom);
-
-                  RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
-
-		          -- Create new parce
-                  SELECT INTO data_parcel_id * FROM cd_create_parcel(data_project_id,'survey coordinates',data_geojson,null,null,'new description');
-
-                  IF data_parcel_id IS NOT NULL THEN
-                    RAISE NOTICE 'New parcel id: %', data_parcel_id;
-                    UPDATE respondent SET parcel_id = data_parcel_id WHERE id = data_respondent_id;
+            CASE (element.key)
+              -- get tenure type
+              WHEN 'means_of_acquire' THEN
+                data_means_aquired = element.value;
+              WHEN 'date_land_possession' THEN
+                data_date_land_possession = element.value;
+              WHEN 'tenure_type' THEN
+              RAISE NOTICE 'made it to tenure type %', element.value;
+                CASE (element.value)
+                  WHEN 'indigenous_land_rights' THEN
+                    data_tenure_type = 'indigenous land rights';
+                  WHEN 'joint_tenancy' THEN
+                    data_tenure_type = 'joint tenancy';
+                  WHEN 'tenancy_in_common' THEN
+                    data_tenure_type = 'tenancy in common';
+                  WHEN 'undivided_co_ownership' THEN
+                    data_tenure_type = 'undivided co-ownership';
+                  WHEN 'easment' THEN
+                    data_tenure_type = 'easement';
+                  WHEN 'equitable_servitude' THEN
+                    data_tenure_type = 'equitable servitude';
+                  WHEN 'mineral_rights' THEN
+                    data_tenure_type = 'mineral rights';
+                  WHEN 'water_rights' THEN
+                    data_tenure_type = 'water rights';
+                  WHEN 'concessionary_rights' THEN
+                    data_tenure_type = 'concessionary rights';
+                  WHEN 'carbon_rights' THEN
+                    data_tenure_type = 'carbon rights';
+                  WHEN 'freehold' THEN
+                    data_tenure_type = 'freehold';
+                  WHEN 'long_term_leasehold' THEN
+                    data_tenure_type = 'long term leasehold';
+                  WHEN 'leasehold' THEN
+                    data_tenure_type = 'leasehold';
+                  WHEN 'customary_rights' THEN
+                    data_tenure_type = 'customary rights';
+                  WHEN 'occupancy' THEN
+                    data_tenure_type = 'occupancy';
+                  WHEN 'tenancy' THEN
+                    data_tenure_type = 'tenancy';
+                  WHEN 'hunting_fishing_harvest_rights' THEN
+                    data_tenure_type = 'hunting/fishing/harvest rights';
+                  WHEN 'grazing_rights' THEN
+                    data_tenure_type = 'grazing rights';
                   ELSE
-                    RAISE NOTICE 'Cannot create parcel';
-                  END IF;
-
-              WHEN ('_submission_time') THEN
-                IF element.value IS NOT NULL THEN
-                  EXECUTE 'UPDATE respondent SET submission_time = ' || quote_literal(replace(element.value,'T',' ')) || ' WHERE id = ' || data_respondent_id;
-                END IF;
+                    RAISE EXCEPTION 'Invalid tenure type CASE %', data_tenure_type;
+                END CASE;
               ELSE
             END CASE;
+
+            -- RAISE NOTICE 'Element: %', element.key;
+            -- RAISE NOTICE 'Last slug: %', question_slug;
+            IF (question_id IS NOT NULL) THEN
+                    RAISE NOTICE 'Found question: %', question_id;
+
+              SELECT INTO question_type name FROM type WHERE id = (SELECT type_id FROM question WHERE id = question_id);
+              -- RAISE NOTICE 'Found question: %', question_id || ' - ' || question_type;
+              -- check to see if this is a loop (group or repeat type)
+              CASE (question_type)
+                WHEN 'integer','decimal' THEN
+                  IF is_numeric(element.value) THEN
+                    numeric_value := element.value;
+                    IF numeric_value >= 0 THEN
+                      EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ',' ||  element.value || ');';
+                    ELSE
+                      EXECUTE 'INSERT INTO response (respondent_id, question_id, numeric) VALUES (' || data_respondent_id || ','|| question_id || ', NULL);';
+                    END IF;
+                  ELSE
+    	          END IF;
+                ELSE
+                  EXECUTE 'INSERT INTO response (respondent_id, question_id, text) VALUES (' || data_respondent_id || ','|| question_id || ',' || quote_literal(element.value) ||');';
+              END CASE;
+            -- question is not found in the database
+            ELSE
+
+             RAISE NOTICE 'Cant find question: %', element.key;
+              -- elements that have a key starting with an underscore, are not a survey question EXCEPT _geolocation
+              IF left(element.key, 1) = '_' THEN
+                CASE (lower(element.key))
+                  WHEN ('_geolocation') THEN
+                    RAISE NOTICE 'Found geolocation:' ;
+                      data_geojson = element.value::text;
+
+                      RAISE NOTICE 'geojson: %', data_geojson;
+
+                      SELECT INTO data_geom * FROM ST_SetSRID(ST_GeomFromGeoJSON(data_geojson),4326); -- convert to LAT LNG GEOM
+
+                      SELECT INTO data_geojson * FROM ST_AsGeoJSON(data_geom);
+
+                      RAISE NOTICE 'GEOLOCATION VALUE %: ', data_geom;
+
+    		          -- Create new parce
+                      SELECT INTO data_parcel_id * FROM cd_create_parcel(data_project_id,'survey coordinates',data_geojson,null,null,'new description');
+
+                      IF data_parcel_id IS NOT NULL THEN
+                        RAISE NOTICE 'New parcel id: %', data_parcel_id;
+                        UPDATE respondent SET parcel_id = data_parcel_id WHERE id = data_respondent_id;
+                      ELSE
+                        RAISE NOTICE 'Cannot create parcel';
+                      END IF;
+
+                  WHEN ('_submission_time') THEN
+                    IF element.value IS NOT NULL THEN
+                      EXECUTE 'UPDATE respondent SET submission_time = ' || quote_literal(replace(element.value,'T',' ')) || ' WHERE id = ' || data_respondent_id;
+                    END IF;
+                  ELSE
+                END CASE;
+              END IF;
+            END IF;
           END IF;
-        END IF;
-      END IF;
     END LOOP;
       IF data_field_data_id IS NOT NULL THEN
         RAISE NOTICE 'Raw data is not null: %',data_field_data_id ;
@@ -710,11 +710,14 @@ BEGIN
 	    RAISE EXCEPTION 'Cannot create relationship';
         END IF;
       END IF;
+      
     END IF;
   ELSE
     RAISE NOTICE 'Cannot find field data form';
     RETURN NEW;
   END IF;
+  RAISE LOG 'Process attached resources.';
+	PERFORM cd_process_attachments(data_project_id, data_person_id, data_parcel_id, data_relationship_id, data_field_data_id);
   END LOOP;
   RETURN NEW;
 END;
