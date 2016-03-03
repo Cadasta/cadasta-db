@@ -541,18 +541,18 @@ BEGIN
 
         -- take the first name , last name fields out of the survey
         IF party_type = 'individual' AND data_survey_full_name IS NOT NULL THEN
-        raise notice 'party type: %  person name: %', party_type, data_survey_full_name;
+          raise notice 'party type: %  person name: %', party_type, data_survey_full_name;
           SELECT INTO data_person_id * FROM cd_create_party (data_project_id, party_type, data_survey_full_name, null, null, null, null, null);
         ELSIF party_type = 'group' AND data_survey_group_name IS NOT NULL THEN
-        raise notice 'party type: %  group name: %', party_type, data_survey_group_name;
+          raise notice 'party type: %  group name: %', party_type, data_survey_group_name;
           SELECT INTO data_person_id * FROM cd_create_party (data_project_id, party_type, null, data_survey_group_name, null, null, null, null);
         END IF;
 
-          IF data_person_id IS NOT NULL THEN
-            UPDATE respondent SET party_id = data_person_id WHERE id = data_respondent_id;
-          ELSE
-            RAISE EXCEPTION 'Cannot create party %',party_type;
-          END IF;
+    	  IF data_person_id IS NOT NULL THEN
+    	    UPDATE respondent SET party_id = data_person_id WHERE id = data_respondent_id;
+    	  ELSE
+    	    RAISE EXCEPTION 'Cannot create party %',party_type;
+    	  END IF;
 
       count := count + 1;
       RAISE NOTICE 'Processing survey number % ...', count;
@@ -562,7 +562,7 @@ BEGIN
           SELECT INTO question_slug slugs FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum desc limit 1) as slugs;
             SELECT INTO num_slugs count(slugs) FROM (SELECT slugs.*, row_number() OVER () as rownum from regexp_split_to_table(element.key, '/') as slugs order by rownum) as slugs;
             SELECT INTO num_questions count(id) FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
-    	-- get question id
+    	      -- get question id
             SELECT INTO question_id id FROM question WHERE lower(name) = lower(question_slug) AND field_data_id = data_field_data_id;
 
             IF num_questions > 1 THEN
@@ -693,7 +693,7 @@ BEGIN
               END IF;
             END IF;
           END IF;
-    END LOOP;
+      END LOOP;
       IF data_field_data_id IS NOT NULL THEN
         RAISE NOTICE 'Raw data is not null: %',data_field_data_id ;
         EXECUTE 'UPDATE response SET field_data_id = ' || quote_literal(data_field_data_id) || ' WHERE respondent_id = ' || data_respondent_id;
@@ -705,18 +705,19 @@ BEGIN
         (data_project_id,data_parcel_id,data_ckan_user_id,data_person_id,null,data_tenure_type,data_date_land_possession, data_means_aquired, null);
 
         IF data_relationship_id IS NOT NULL THEN
-	    UPDATE respondent SET relationship_id = data_relationship_id WHERE id = data_respondent_id;
+	        UPDATE respondent SET relationship_id = data_relationship_id WHERE id = data_respondent_id;
         ELSE
-	    RAISE EXCEPTION 'Cannot create relationship';
+	        RAISE EXCEPTION 'Cannot create relationship';
         END IF;
       END IF;
     END IF;
+    -- process attached resources
+    RAISE NOTICE 'Process attached resources.';
+    PERFORM cd_process_attachments(data_project_id, data_person_id, data_parcel_id, data_relationship_id, raw_data_id);
   ELSE
     RAISE NOTICE 'Cannot find field data form';
     RETURN NEW;
   END IF;
-  RAISE LOG 'Process attached resources.';
-	PERFORM cd_process_attachments(data_project_id, data_person_id, data_parcel_id, data_relationship_id, data_field_data_id);
   END LOOP;
   RETURN NEW;
 END;
@@ -1421,7 +1422,7 @@ END;
 
 ******************************************************************/
 
-CREATE OR REPLACE FUNCTION cd_process_attachments(proj_id int, pty_id int, pcel_id int, rel_id int, field_id int)
+CREATE OR REPLACE FUNCTION cd_process_attachments(proj_id int, pty_id int, pcel_id int, rel_id int, raw_data_id int)
 RETURNS BOOLEAN AS $$
 DECLARE
     data_json json;
@@ -1433,16 +1434,13 @@ DECLARE
     resource_type text;
     filename character varying;
     url character varying;
-    data_field_data_id int;
     data_project_id int;
     survey_host character varying;
 BEGIN
-
-    FOR survey IN (SELECT * FROM json_array_elements((select json from raw_data WHERE id = field_id AND project_id = proj_id))) LOOP
+    FOR survey IN (SELECT * FROM json_array_elements((select json from raw_data WHERE id = raw_data_id AND project_id = proj_id))) LOOP
         SELECT INTO attachments value::json FROM (SELECT * FROM json_each_text(survey.value) WHERE key = '_attachments') AS att;
         IF attachments IS NOT NULL THEN
             FOR attachment IN (SELECT * FROM json_array_elements((attachments))) LOOP
-                RAISE LOG 'Attachment is %', attachment;
                 FOR element IN (SELECT * FROM json_each_text(attachment)) LOOP
                     CASE (element.key)
                         WHEN 'resource_type' THEN
@@ -1458,8 +1456,7 @@ BEGIN
                 END LOOP;
                 -- add survey host to url
                 url := 'http://' || survey_host || url;
-                RAISE LOG '%, %, %, %, %', proj_id, resource_type, pty_id, url, filename;
-
+                RAISE NOTICE '%, %, %, %, %', proj_id, resource_type, pty_id, url, filename;
                     CASE (resource_type)
                         WHEN 'party' THEN
                             PERFORM cd_create_resource(proj_id, resource_type, pty_id, url, '', filename);
@@ -1471,7 +1468,8 @@ BEGIN
                     END CASE;
             END LOOP;
         ELSE
-            RAISE LOG 'no attachments found';
+            RAISE NOTICE 'no attachments found';
+            RETURN FALSE;
         END IF;
     END LOOP;
     RETURN TRUE;
