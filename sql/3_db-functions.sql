@@ -550,6 +550,8 @@ BEGIN
 
     	  IF data_person_id IS NOT NULL THEN
     	    UPDATE respondent SET party_id = data_person_id WHERE id = data_respondent_id;
+          -- validate party
+          UPDATE party SET validated = true WHERE id = data_person_id;
     	  ELSE
     	    RAISE EXCEPTION 'Cannot create party %',party_type;
     	  END IF;
