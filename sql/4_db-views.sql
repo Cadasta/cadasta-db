@@ -213,3 +213,27 @@ CREATE OR REPLACE VIEW show_field_data_list AS
 SELECT f.id, f.project_id, count(r.id) as num_submissions, f.user_id, f.id_string, f.form_id, f.name, f.label, f.publish, f.sys_delete, f.time_created, f.time_updated
 FROM field_data f left join respondent r on r.field_data_id = f.id
 GROUP BY f.id;
+
+
+-- Export Parcel data with relationship count and Geom
+CREATE OR REPLACE VIEW export_parcels_list AS
+SELECT p.id, pro.id AS project_id, par.id as party_id, p.time_created, p.area, p.length, p.validated, array_agg(t.type) as tenure_type, st_astext(p.geom) as the_geom, count(r.id) as num_relationships, p.active, par.group_name as party_title
+FROM parcel p, relationship r, tenure_type t, project pro, party par
+WHERE r.parcel_id = p.id
+AND p.project_id = pro.id
+AND r.project_id = pro.id
+AND r.tenure_type = t.id
+AND p.active = true
+AND r.active = true
+AND r.party_id = par.id
+GROUP BY p.id, pro.id, par.id
+UNION
+SELECT p.id, pro.id as project_id, 0 as party_id, p.time_created, p.area, p.length, p.validated, ARRAY[]::character varying[], st_astext(p.geom) as the_geom, 0 as num_relationships, p.active, '' as party_title
+FROM parcel p left join relationship r on r.parcel_id = p.id, project pro
+WHERE p.project_id = pro.id
+AND p.active = true
+AND p.id IN (select distinct(p.id)
+from parcel p left join relationship r on r.parcel_id = p.id
+except
+select distinct(p.id)
+from parcel p join relationship r on r.parcel_id = p.id);
